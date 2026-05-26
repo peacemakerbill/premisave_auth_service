@@ -5,19 +5,19 @@ spring:
   # ── Data Stores ──
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: localhost
+      port: 6379
 
   # ── MongoDB ──
   mongodb:
-    uri: ${MONGODB_URI:mongodb://localhost:27017/premisave_auth}
+    uri: mongodb://localhost:27017/premisave-auth
 
   # ── Mail (Gmail SMTP) ──
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${GMAIL_USERNAME}
-    password: ${GMAIL_PASSWORD}
+    username: thepeacemakerske@gmail.com
+    password: "nyea rbvz wkzp ksaz"
     properties:
       mail:
         smtp:
@@ -28,12 +28,12 @@ spring:
 
   # ── RabbitMQ ──
   rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
     deserialization:
-      trust-all: ${SPRING_AMQP_DESERIALIZATION_TRUST_ALL:true}
+      trust-all: true
 
 # ── Server ──
 server:
@@ -41,26 +41,26 @@ server:
 
 # ── Application URLs ──
 frontend:
-  url: ${FRONTEND_URL:http://localhost:3000}
+  url: http://localhost:3000
 
 backend:
-  url: ${BACKEND_URL:http://localhost:8080}
+  url: http://localhost:8080
 
 # ── External Services ──
 cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME}
-  api-key: ${CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET}
+  cloud-name: thepeacemakersllc
+  api-key: 929659223288334
+  api-secret: nAsBdgfXx86u7-Y8X2VnLa-2FbQ
 
 # ── JWT ──
 jwt:
-  secret: ${JWT_SECRET}
-  expiration: ${JWT_EXPIRATION:2592000000} # 30 days in milliseconds
-  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:2592000000} # 30 days for refresh token
+  secret: eW91ci12ZXJ5LXNlY3VyZS1qd3Qtc2VjcmV0LWtleS0zMi1ieXRlcyE=
+  expiration: 2592000000 # 30 days in milliseconds
+  refresh-token-expiration: 2592000000 # 30 days for refresh token
 
 # ── Rate Limiting ──
 rate-limit:
-  requests-per-minute: ${RATE_LIMIT_REQUESTS_PER_MINUTE:20}
+  requests-per-minute: 20
 
 # ── Email Templates ──
 email:
@@ -68,17 +68,7 @@ email:
     path: templates/activation-email.html
   reset-password:
     path: templates/reset-password-email.html
-  support: ${SUPPORT_EMAIL:support@premisave.com}  # Add support email configuration
-
-# ── Dashboard Redirect URLs ──
-dashboard:
-  url:
-    client: ${frontend.url}/dashboard/client
-    home-owner: ${frontend.url}/dashboard/home-owner
-    admin: ${frontend.url}/dashboard/admin
-    operations: ${frontend.url}/dashboard/operations
-    finance: ${frontend.url}/dashboard/finance
-    support: ${frontend.url}/dashboard/support
+  support: ${SUPPORT_EMAIL:thepeacemakerske@gmail.com}
 
 # ── Logging ──
 logging:
