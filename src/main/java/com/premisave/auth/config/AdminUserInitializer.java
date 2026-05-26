@@ -52,7 +52,7 @@ public class AdminUserInitializer implements CommandLineRunner {
         System.out.println("Admin user created successfully!");
         System.out.println("   Email    : " + adminEmail);
         System.out.println("   Username : premisave_admin");
-        System.out.println("   Password : Admin@Premisave2026!");
+        System.out.println("   Password : admin***pa***");
         System.out.println("   Role     : ADMIN");
     }
 }
