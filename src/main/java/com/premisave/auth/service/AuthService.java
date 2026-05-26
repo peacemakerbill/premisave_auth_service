@@ -9,7 +9,6 @@ import com.premisave.auth.enums.TokenType;
 import com.premisave.auth.repository.TokenRepository;
 import com.premisave.auth.repository.UserRepository;
 import com.premisave.auth.security.JwtService;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -49,9 +48,6 @@ public class AuthService {
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
-    @Value("${backend.url:http://localhost:8080}")
-    private String backendUrl;
-
     @Value("${email.activation.path:templates/activation-email.html}")
     private String activationEmailPath;
 
@@ -60,38 +56,6 @@ public class AuthService {
 
     @Value("${email.support:support@premisave.com}")
     private String supportEmail;
-
-    // Dashboard URLs from properties
-    @Value("${dashboard.url.client:${frontend.url}/dashboard/client}")
-    private String clientDashboardUrl;
-
-    @Value("${dashboard.url.home-owner:${frontend.url}/dashboard/home-owner}")
-    private String homeOwnerDashboardUrl;
-
-    @Value("${dashboard.url.admin:${frontend.url}/dashboard/admin}")
-    private String adminDashboardUrl;
-
-    @Value("${dashboard.url.operations:${frontend.url}/dashboard/operations}")
-    private String operationsDashboardUrl;
-
-    @Value("${dashboard.url.finance:${frontend.url}/dashboard/finance}")
-    private String financeDashboardUrl;
-
-    @Value("${dashboard.url.support:${frontend.url}/dashboard/support}")
-    private String supportDashboardUrl;
-
-    private Map<Role, String> dashboardUrls;
-
-    @PostConstruct
-    public void init() {
-        dashboardUrls = new HashMap<>();
-        dashboardUrls.put(Role.CLIENT, clientDashboardUrl);
-        dashboardUrls.put(Role.HOME_OWNER, homeOwnerDashboardUrl);
-        dashboardUrls.put(Role.ADMIN, adminDashboardUrl);
-        dashboardUrls.put(Role.OPERATIONS, operationsDashboardUrl);
-        dashboardUrls.put(Role.FINANCE, financeDashboardUrl);
-        dashboardUrls.put(Role.SUPPORT, supportDashboardUrl);
-    }
 
     public AuthService(UserRepository userRepository,
                        TokenRepository tokenRepository,
@@ -111,6 +75,9 @@ public class AuthService {
         this.resourceLoader = resourceLoader;
     }
 
+    /**
+     * Registers a new user and sends account activation email.
+     */
     public AuthResponse signup(SignupRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
@@ -127,7 +94,7 @@ public class AuthService {
         user.setAddress2(request.getAddress2());
         user.setCountry(request.getCountry());
         
-        // Fix Language handling
+        // Set language with fallback to ENGLISH
         try {
             Language language = Language.valueOf(request.getLanguage().toUpperCase());
             user.setLanguage(language);
@@ -141,12 +108,11 @@ public class AuthService {
         user.setActive(true);
 
         user = userRepository.save(user);
-        System.out.println("DEBUG: User saved to MongoDB with ID: " + user.getId());
 
+        // Generate and send activation token
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         String activationLink = frontendUrl + "/verify/" + activationToken;
         
-        // Prepare template data
         Map<String, String> templateData = new HashMap<>();
         templateData.put("activationLink", activationLink);
         templateData.put("supportEmail", supportEmail);
@@ -154,21 +120,22 @@ public class AuthService {
         
         String emailContent = processEmailTemplate(activationEmailPath, templateData);
 
-        // Use RabbitMQ to queue the email
         emailService.queueEmail(
                 user.getEmail(),
                 "Activate Your Premisave Account",
                 emailContent
         );
-        System.out.println("DEBUG: Email queued for: " + user.getEmail());
 
+        // Return JWT token for immediate use after signup
         AuthResponse response = new AuthResponse();
         response.setToken(jwtService.generateToken(user));
         response.setRole(user.getRole().name());
-        response.setRedirectUrl(getDashboardUrl(user.getRole()));
         return response;
     }
 
+    /**
+     * Authenticates user and returns JWT token on successful login.
+     */
     public AuthResponse signin(AuthRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -185,7 +152,7 @@ public class AuthService {
                 throw new RuntimeException("Account is deactivated. Please contact support.");
             }
 
-            // Update last login timestamp
+            // Update last login time
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
 
@@ -195,11 +162,9 @@ public class AuthService {
             AuthResponse response = new AuthResponse();
             response.setToken(jwtService.generateToken(user));
             response.setRole(user.getRole().name());
-            response.setRedirectUrl(getDashboardUrl(user.getRole()));
             return response;
             
         } catch (BadCredentialsException e) {
-            // Check if the email exists in the system
             boolean emailExists = userRepository.findByEmail(request.getEmail()).isPresent();
             
             if (emailExists) {
@@ -208,14 +173,15 @@ public class AuthService {
                 throw new RuntimeException("No account found with this email. Please sign up first.");
             }
         } catch (Exception e) {
-            // Re-throw other exceptions as they are
             throw e;
         }
     }
 
+    /**
+     * Refreshes expired JWT token using a valid refresh token.
+     */
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         try {
-            // Extract username from refresh token
             String username = jwtService.extractUsername(request.getRefreshToken());
             
             if (username == null) {
@@ -225,26 +191,18 @@ public class AuthService {
             User user = userRepository.findByEmail(username)
                     .orElseThrow(() -> new RuntimeException("User not found"));
             
-            // Validate the refresh token
             if (!jwtService.isTokenValid(request.getRefreshToken(), user)) {
                 throw new RuntimeException("Invalid or expired refresh token");
             }
             
-            // Generate new access token
-            String newAccessToken = jwtService.generateToken(user);
-            
-            // Update user's last login
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
             
-            // Cache updated user in Redis
             redisTemplate.opsForValue().set("user:" + user.getId(), user);
             
             AuthResponse response = new AuthResponse();
-            response.setToken(newAccessToken);
+            response.setToken(jwtService.generateToken(user));
             response.setRole(user.getRole().name());
-            response.setRedirectUrl(getDashboardUrl(user.getRole()));
-            
             return response;
             
         } catch (Exception e) {
@@ -252,6 +210,9 @@ public class AuthService {
         }
     }
 
+    /**
+     * Verifies user account using activation token.
+     */
     public void verifyAccount(String tokenStr) {
         Token token = tokenRepository.findByToken(tokenStr)
                 .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
@@ -268,6 +229,9 @@ public class AuthService {
         tokenRepository.save(token);
     }
 
+    /**
+     * Resends account activation email.
+     */
     public void resendActivation(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -279,7 +243,6 @@ public class AuthService {
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         String activationLink = frontendUrl + "/verify/" + activationToken;
         
-        // Prepare template data
         Map<String, String> templateData = new HashMap<>();
         templateData.put("activationLink", activationLink);
         templateData.put("supportEmail", supportEmail);
@@ -293,6 +256,9 @@ public class AuthService {
         );
     }
 
+    /**
+     * Initiates password reset process by sending reset link via email.
+     */
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("No account found with this email"));
@@ -300,7 +266,6 @@ public class AuthService {
         String resetToken = generateToken(user, TokenType.RESET_PASSWORD);
         String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
         
-        // Prepare template data
         Map<String, String> templateData = new HashMap<>();
         templateData.put("resetLink", resetLink);
         templateData.put("supportEmail", supportEmail);
@@ -314,13 +279,14 @@ public class AuthService {
         );
     }
 
+    /**
+     * Completes password reset using valid reset token.
+     */
     public void confirmResetPassword(ResetPasswordConfirmRequest request) {
-        // Validate passwords match
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new RuntimeException("New passwords do not match");
         }
 
-        // Find and validate token
         Token token = tokenRepository.findByToken(request.getToken())
                 .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
 
@@ -332,19 +298,19 @@ public class AuthService {
             throw new RuntimeException("Invalid token type");
         }
 
-        // Get user and update password
         User user = token.getUser();
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
 
-        // Mark token as used
         token.setUsed(true);
         tokenRepository.save(token);
 
-        // Clear cached user
         redisTemplate.delete("user:" + user.getId());
     }
 
+    /**
+     * Allows authenticated user to change their password.
+     */
     public void changePassword(ChangePasswordRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) auth.getPrincipal();
@@ -360,10 +326,12 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
         
-        // Clear cached user
         redisTemplate.delete("user:" + user.getId());
     }
 
+    /**
+     * Generates and saves activation or reset password token.
+     */
     private String generateToken(User user, TokenType type) {
         String tokenValue = UUID.randomUUID().toString();
 
@@ -375,24 +343,19 @@ public class AuthService {
         token.setUser(user);
 
         tokenRepository.save(token);
-        System.out.println("DEBUG: Token saved for user: " + user.getId());
         return tokenValue;
     }
 
-    private String getDashboardUrl(Role role) {
-        return dashboardUrls.getOrDefault(role, frontendUrl + "/dashboard");
-    }
-
+    /**
+     * Reads email template from resources.
+     */
     private String readEmailTemplate(String templatePath) {
-        // Try with classpath prefix first
         Resource resource = resourceLoader.getResource("classpath:" + templatePath);
         
-        // If not found, try without the prefix (in case it's already included)
         if (!resource.exists()) {
             resource = resourceLoader.getResource("classpath:/" + templatePath);
         }
         
-        // If still not found, try as a file resource
         if (!resource.exists()) {
             resource = resourceLoader.getResource("file:src/main/resources/" + templatePath);
         }
@@ -408,10 +371,12 @@ public class AuthService {
         }
     }
     
+    /**
+     * Processes email template by replacing placeholders.
+     */
     private String processEmailTemplate(String templatePath, Map<String, String> data) {
         String template = readEmailTemplate(templatePath);
         
-        // Replace placeholders in the format {{placeholder}}
         for (Map.Entry<String, String> entry : data.entrySet()) {
             String placeholder = "{{" + entry.getKey() + "}}";
             template = template.replace(placeholder, entry.getValue());
