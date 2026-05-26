@@ -57,6 +57,9 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/test/**").permitAll()  
                 
+                // ADMIN ONLY - User Management
+                .requestMatchers("/admin/**").hasRole("ADMIN")
+                
                 // All other requests need authentication
                 .anyRequest().authenticated()
             )
