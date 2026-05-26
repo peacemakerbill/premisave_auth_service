@@ -48,11 +48,16 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
+                // Public endpoints
+                .requestMatchers("/").permitAll()
+                .requestMatchers("/health").permitAll()
                 .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/test/**").permitAll()  // Added for debugging
                 .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/test/**").permitAll()  
+                
+                // All other requests need authentication
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
