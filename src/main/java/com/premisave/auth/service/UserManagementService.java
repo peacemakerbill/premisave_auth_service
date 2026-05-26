@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,22 +33,16 @@ public class UserManagementService {
         // Custom mapping for User -> UserDto
         modelMapper.createTypeMap(User.class, UserDto.class)
             .addMappings(mapper -> {
-                // Map displayUsername to username in DTO
                 mapper.map(User::getDisplayUsername, UserDto::setUsername);
-                // Map email field to email in DTO
                 mapper.map(User::getEmail, UserDto::setEmail);
-                // Don't map password for security
                 mapper.skip(UserDto::setPassword);
             });
             
         // Custom mapping for UserDto -> User
         modelMapper.createTypeMap(UserDto.class, User.class)
             .addMappings(mapper -> {
-                // Map username from DTO to displayUsername in User
                 mapper.map(UserDto::getUsername, User::setDisplayUsername);
-                // Map email from DTO to email in User
                 mapper.map(UserDto::getEmail, User::setEmail);
-                // Handle password separately
                 mapper.skip(User::setPassword);
             });
     }
@@ -61,33 +54,24 @@ public class UserManagementService {
             .collect(Collectors.toList());
     }
 
-    @Transactional
     public UserDto createUser(UserDto userDto) {
         log.info("Creating new user with email: {}", userDto.getEmail());
         
-        // Check if email already exists
         if (userRepository.findByEmail(userDto.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
         
-        // Check if display username already exists
         if (userDto.getUsername() != null && 
             userRepository.findByUsername(userDto.getUsername()).isPresent()) {
             throw new RuntimeException("Username already exists");
         }
         
-        // Create new user
         User user = new User();
         
-        // Set display username
         if (userDto.getUsername() != null) {
             user.setDisplayUsername(userDto.getUsername());
         }
-        
-        // Set email
         user.setEmail(userDto.getEmail());
-        
-        // Set other fields
         user.setFirstName(userDto.getFirstName());
         user.setMiddleName(userDto.getMiddleName());
         user.setLastName(userDto.getLastName());
@@ -102,11 +86,9 @@ public class UserManagementService {
         user.setVerified(userDto.isVerified());
         user.setArchived(userDto.isArchived());
         
-        // Handle password
         if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         } else {
-            // Set default password if not provided
             user.setPassword(passwordEncoder.encode("TempPassword123!"));
         }
         
@@ -116,13 +98,11 @@ public class UserManagementService {
         return convertToDto(user);
     }
 
-    @Transactional
     public UserDto updateUser(String id, UserDto userDto) {
         log.info("Updating user with ID: {}", id);
         
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Check if email is being changed and if it already exists
         if (userDto.getEmail() != null && !user.getEmail().equals(userDto.getEmail())) {
             if (userRepository.findByEmail(userDto.getEmail()).isPresent()) {
                 throw new RuntimeException("Email already exists");
@@ -130,7 +110,6 @@ public class UserManagementService {
             user.setEmail(userDto.getEmail());
         }
         
-        // Check if display username is being changed and if it already exists
         if (userDto.getUsername() != null && !user.getDisplayUsername().equals(userDto.getUsername())) {
             if (userRepository.findByUsername(userDto.getUsername()).isPresent()) {
                 throw new RuntimeException("Username already exists");
@@ -138,7 +117,6 @@ public class UserManagementService {
             user.setDisplayUsername(userDto.getUsername());
         }
         
-        // Update other fields if provided
         if (userDto.getFirstName() != null) user.setFirstName(userDto.getFirstName());
         if (userDto.getMiddleName() != null) user.setMiddleName(userDto.getMiddleName());
         if (userDto.getLastName() != null) user.setLastName(userDto.getLastName());
@@ -150,12 +128,10 @@ public class UserManagementService {
         if (userDto.getProfilePictureUrl() != null) user.setProfilePictureUrl(userDto.getProfilePictureUrl());
         if (userDto.getRole() != null) user.setRole(userDto.getRole());
         
-        // Update status fields
         user.setActive(userDto.isActive());
         user.setVerified(userDto.isVerified());
         user.setArchived(userDto.isArchived());
         
-        // Handle password update separately
         if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         }
@@ -166,7 +142,6 @@ public class UserManagementService {
         return convertToDto(user);
     }
 
-    @Transactional
     public void deleteUser(String id) {
         log.info("Deleting user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
@@ -174,58 +149,91 @@ public class UserManagementService {
         log.info("User deleted successfully");
     }
 
-    @Transactional
     public void archiveUser(String id) {
         log.info("Archiving user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (user.isArchived()) {
+            throw new RuntimeException("User is already archived");
+        }
+        
         user.setArchived(true);
         userRepository.save(user);
         log.info("User archived successfully");
     }
 
-    @Transactional
     public void unarchiveUser(String id) {
         log.info("Unarchiving user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (!user.isArchived()) {
+            throw new RuntimeException("User is already unarchived");
+        }
+        
         user.setArchived(false);
         userRepository.save(user);
         log.info("User unarchived successfully");
     }
 
-    @Transactional
     public void activateUser(String id) {
         log.info("Activating user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (user.isActive()) {
+            throw new RuntimeException("User is already active");
+        }
+        
         user.setActive(true);
         userRepository.save(user);
         log.info("User activated successfully");
     }
 
-    @Transactional
     public void deactivateUser(String id) {
         log.info("Deactivating user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (!user.isActive()) {
+            throw new RuntimeException("User is already deactivated");
+        }
+        
         user.setActive(false);
         userRepository.save(user);
         log.info("User deactivated successfully");
     }
 
-    @Transactional
     public void verifyUser(String id) {
         log.info("Verifying user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        
+        if (user.isVerified()) {
+            throw new RuntimeException("User is already verified");
+        }
+        
         user.setVerified(true);
         userRepository.save(user);
         log.info("User verified successfully");
     }
 
-    @Transactional
     public void unverifyUser(String id) {
         log.info("Unverifying user with ID: {}", id);
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        if (!user.isVerified()) {
+            log.warn("User {} is already unverified", id);
+            throw new RuntimeException("User is already unverified");
+        }
+
+        if (user.getRole() == com.premisave.auth.enums.Role.ADMIN) {
+            log.warn("Attempted to unverify ADMIN user: {}", id);
+            throw new RuntimeException("Cannot unverify ADMIN accounts for security reasons");
+        }
+
         user.setVerified(false);
         userRepository.save(user);
-        log.info("User unverified successfully");
+        
+        log.info("User unverified successfully: {} ({})", id, user.getEmail());
     }
 
     public List<UserDto> searchUsers(UserSearchRequest request) {
@@ -236,7 +244,6 @@ public class UserManagementService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional
     public void updatePassword(String id, String newPassword) {
         log.info("Updating password for user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
@@ -245,7 +252,6 @@ public class UserManagementService {
             throw new IllegalArgumentException("Password cannot be empty");
         }
         
-        // Validate password strength
         validatePasswordStrength(newPassword);
         
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -253,28 +259,23 @@ public class UserManagementService {
         log.info("Password updated successfully for user: {}", user.getEmail());
     }
 
-    @Transactional
     public void resetPassword(String id) {
         log.info("Resetting password for user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         
-        // Generate a temporary password
         String temporaryPassword = "TempPassword123!";
         user.setPassword(passwordEncoder.encode(temporaryPassword));
         
         userRepository.save(user);
         log.info("Password reset successfully for user: {}", user.getEmail());
-        // TODO: Send email notification with temporary password
     }
 
     public UserDto getUserById(String id) {
-        log.debug("Getting user by ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         return convertToDto(user);
     }
 
     public UserDto getUserByEmail(String email) {
-        log.debug("Getting user by email: {}", email);
         User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         return convertToDto(user);
     }
@@ -287,7 +288,6 @@ public class UserManagementService {
         return userRepository.findByUsername(username).isPresent();
     }
 
-    @Transactional
     public void changeUserRole(String id, String role) {
         log.info("Changing role to {} for user with ID: {}", role, id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
@@ -304,7 +304,6 @@ public class UserManagementService {
     }
 
     public List<UserDto> getActiveUsers() {
-        log.debug("Getting all active users");
         List<User> users = userRepository.findByActiveTrueAndArchivedFalse();
         return users.stream()
                 .map(this::convertToDto)
@@ -312,25 +311,17 @@ public class UserManagementService {
     }
 
     public List<UserDto> getArchivedUsers() {
-        log.debug("Getting all archived users");
         List<User> users = userRepository.findByArchivedTrue();
         return users.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Custom conversion method to handle the display username mapping
-     */
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
-        
-        // Map basic fields
         dto.setId(user.getId());
-        dto.setUsername(user.getDisplayUsername()); // Use display username
-        dto.setEmail(user.getEmail()); // Use email field
-        
-        // Map personal information
+        dto.setUsername(user.getDisplayUsername());
+        dto.setEmail(user.getEmail());
         dto.setFirstName(user.getFirstName());
         dto.setMiddleName(user.getMiddleName());
         dto.setLastName(user.getLastName());
@@ -340,25 +331,15 @@ public class UserManagementService {
         dto.setCountry(user.getCountry());
         dto.setLanguage(user.getLanguage());
         dto.setProfilePictureUrl(user.getProfilePictureUrl());
-        
-        // Map role and status
         dto.setRole(user.getRole());
         dto.setActive(user.isActive());
         dto.setVerified(user.isVerified());
         dto.setArchived(user.isArchived());
-        
-        // Don't map password for security
         dto.setPassword(null);
-        
-        log.debug("Converted User to DTO - Username: '{}', Email: '{}'", 
-            dto.getUsername(), dto.getEmail());
         
         return dto;
     }
 
-    /**
-     * Password strength validation
-     */
     private void validatePasswordStrength(String password) {
         if (password.length() < 8) {
             throw new IllegalArgumentException("Password must be at least 8 characters long");

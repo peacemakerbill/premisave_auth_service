@@ -135,14 +135,11 @@ public class UserManagementController {
         return ResponseEntity.ok(userManagementService.existsByUsername(username));
     }
 
-    // Request DTOs
+    // ==================== Inner DTO Classes ====================
+
     public static class PasswordUpdateRequest {
         @jakarta.validation.constraints.NotBlank(message = "New password is required")
         @jakarta.validation.constraints.Size(min = 8, message = "Password must be at least 8 characters")
-        @jakarta.validation.constraints.Pattern(
-            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{8,}$",
-            message = "Password must contain at least one digit, one lowercase, one uppercase, and one special character"
-        )
         private String newPassword;
 
         public String getNewPassword() {
