@@ -32,8 +32,13 @@ spring:
     port: 5672
     username: guest
     password: guest
+    # Fixed deserialization settings
     deserialization:
       trust-all: true
+    listener:
+      simple:
+        deserialization:
+          trust-all: true
 
 # ── Server ──
 server:
