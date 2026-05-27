@@ -7,7 +7,7 @@ import com.premisave.auth.dto.ProfileUploadResponse;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.entity.User;
 import com.premisave.auth.repository.UserRepository;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,223 +22,249 @@ import java.util.Set;
 @Service
 public class ProfileService {
 
-    private final UserRepository userRepository;
-    private final Cloudinary cloudinary;
-    private final PasswordEncoder passwordEncoder;
+	private final UserRepository userRepository;
+	private final Cloudinary cloudinary;
+	private final PasswordEncoder passwordEncoder;
 
-    // Allowed image content types
-    private static final Set<String> ALLOWED_CONTENT_TYPES = new HashSet<>(Arrays.asList(
-        "image/jpeg",
-        "image/png",
-        "image/gif",
-        "image/webp"
-    ));
+	// Allowed image content types
+	private static final Set<String> ALLOWED_CONTENT_TYPES = new HashSet<>(
+			Arrays.asList("image/jpeg", "image/png", "image/gif", "image/webp"));
 
-    // Maximum file size (10MB)
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
+	@Value("${spring.servlet.multipart.max-file-size:10MB}")
+	private String maxFileSizeStr;
 
-    public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.cloudinary = cloudinary;
-        this.passwordEncoder = passwordEncoder;
-    }
+	// Parsed max file size in bytes
+	private long maxFileSizeBytes;
 
-    @Async
-    public ProfileUploadResponse uploadProfilePic(MultipartFile file) {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
+	public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder) {
+		this.userRepository = userRepository;
+		this.cloudinary = cloudinary;
+		this.passwordEncoder = passwordEncoder;
+		this.maxFileSizeBytes = parseMaxFileSize();
+	}
 
-            User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+	/**
+	 * Parse Spring's max-file-size property (supports 10MB, 5KB, etc.)
+	 */
+	private long parseMaxFileSize() {
+		if (maxFileSizeStr == null || maxFileSizeStr.isEmpty()) {
+			return 10 * 1024 * 1024; // 10MB default
+		}
 
-            // Validation
-            if (file.isEmpty()) {
-                return new ProfileUploadResponse("Please select a file to upload", null, false);
-            }
-            if (file.getSize() > MAX_FILE_SIZE) {
-                return new ProfileUploadResponse("File size must be less than 10MB", null, false);
-            }
-            if (file.getContentType() == null || !ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
-                return new ProfileUploadResponse("Only image files (JPEG, PNG, GIF, WEBP) are allowed", null, false);
-            }
+		String value = maxFileSizeStr.toUpperCase().trim();
+		try {
+			if (value.endsWith("MB")) {
+				double mb = Double.parseDouble(value.replace("MB", "").trim());
+				return (long) (mb * 1024 * 1024);
+			} else if (value.endsWith("KB")) {
+				double kb = Double.parseDouble(value.replace("KB", "").trim());
+				return (long) (kb * 1024);
+			} else if (value.endsWith("B")) {
+				return Long.parseLong(value.replace("B", "").trim());
+			} else {
+				// Assume bytes if no unit
+				return Long.parseLong(value);
+			}
+		} catch (Exception e) {
+			System.err.println("Failed to parse max-file-size: " + maxFileSizeStr + ". Using 10MB default.");
+			return 10 * 1024 * 1024;
+		}
+	}
 
-            // Delete old profile picture if exists
-            if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) {
-                deleteOldProfilePicture(user.getProfilePictureUrl());
-            }
+	/**
+	 * Upload profile picture - Synchronous
+	 */
+	public ProfileUploadResponse uploadProfilePic(MultipartFile file) {
+		try {
+			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+			String email = authentication.getName();
 
-            // Generate unique public ID
-            String publicId = "premisave/profile-photos/user_" + user.getId() + "_" + System.currentTimeMillis();
+			User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Upload new image with optimization
-            @SuppressWarnings("rawtypes")
-            Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
-                ObjectUtils.asMap(
-                    "public_id", publicId,
-                    "folder", "premisave/profile-photos",
-                    "transformation", "w_400,h_400,c_fill,q_auto,f_auto"
-                ));
+			// Validation
+			if (file.isEmpty()) {
+				return new ProfileUploadResponse("Please select a file to upload", null, false);
+			}
+			if (file.getSize() > maxFileSizeBytes) {
+				return new ProfileUploadResponse("File size must be less than " + maxFileSizeStr, null, false);
+			}
+			if (file.getContentType() == null || !ALLOWED_CONTENT_TYPES.contains(file.getContentType())) {
+				return new ProfileUploadResponse("Only image files (JPEG, PNG, GIF, WEBP) are allowed", null, false);
+			}
 
-            String newUrl = (String) uploadResult.get("secure_url");
+			// Delete old profile picture if exists
+			if (user.getProfilePictureUrl() != null && !user.getProfilePictureUrl().isEmpty()) {
+				deleteOldProfilePicture(user.getProfilePictureUrl());
+			}
 
-            // Update user
-            user.setProfilePictureUrl(newUrl);
-            userRepository.save(user);
+			// Generate unique public ID - WITHOUT duplicating folder
+			String publicId = "user_" + user.getId() + "_" + System.currentTimeMillis();
 
-            return new ProfileUploadResponse("Profile picture uploaded successfully", newUrl, true);
+			// Upload new image with optimization
+			@SuppressWarnings("rawtypes")
+			Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap("public_id", publicId,
+					"folder", "premisave/profile-photos", "transformation", "w_400,h_400,c_fill,q_auto,f_auto"));
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ProfileUploadResponse("Failed to upload profile picture: " + e.getMessage(), null, false);
-        }
-    }
+			String newUrl = (String) uploadResult.get("secure_url");
 
-    /**
-     * Deletes old profile picture from Cloudinary
-     */
-    private void deleteOldProfilePicture(String oldUrl) {
-        if (oldUrl == null || oldUrl.isEmpty()) {
-            return;
-        }
+			// Update user
+			user.setProfilePictureUrl(newUrl);
+			userRepository.save(user);
 
-        try {
-            String publicId = extractPublicIdFromUrl(oldUrl);
-            if (publicId != null) {
-                @SuppressWarnings("rawtypes")
-                Map result = cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-                System.out.println("Old profile picture deleted successfully: " + publicId);
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to delete old profile picture: " + e.getMessage());
-            // Do not throw - we don't want deletion failure to stop new upload
-        }
-    }
+			return new ProfileUploadResponse("Profile picture uploaded successfully", newUrl, true);
 
-    /**
-     * Extracts Cloudinary public_id from URL
-     */
-    private String extractPublicIdFromUrl(String url) {
-        try {
-            String[] parts = url.split("/");
-            boolean foundUpload = false;
-            StringBuilder publicId = new StringBuilder();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return new ProfileUploadResponse("Failed to upload profile picture: " + e.getMessage(), null, false);
+		}
+	}
 
-            for (String part : parts) {
-                if (foundUpload) {
-                    if (publicId.length() > 0) {
-                        publicId.append("/");
-                    }
-                    publicId.append(part);
-                }
-                if ("upload".equals(part)) {
-                    foundUpload = true;
-                }
-            }
+	/**
+	 * Deletes old profile picture from Cloudinary
+	 */
+	private void deleteOldProfilePicture(String oldUrl) {
+		if (oldUrl == null || oldUrl.isEmpty()) {
+			return;
+		}
 
-            String id = publicId.toString();
-            // Remove file extension
-            if (id.contains(".")) {
-                id = id.substring(0, id.lastIndexOf("."));
-            }
+		try {
+			String publicId = extractPublicIdFromUrl(oldUrl);
+			if (publicId != null) {
+				@SuppressWarnings("rawtypes")
+				Map result = cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+				System.out.println("Old profile picture deleted successfully: " + publicId);
+			}
+		} catch (Exception e) {
+			System.err.println("Failed to delete old profile picture: " + e.getMessage());
+		}
+	}
 
-            return id.isEmpty() ? null : id;
-        } catch (Exception e) {
-            return null;
-        }
-    }
+	/**
+	 * Extracts Cloudinary public_id from URL
+	 */
+	private String extractPublicIdFromUrl(String url) {
+		try {
+			String[] parts = url.split("/");
+			boolean foundUpload = false;
+			StringBuilder publicId = new StringBuilder();
 
-    public UserDto getCurrentUserProfile() {
-        try {
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String email = authentication.getName();
+			for (String part : parts) {
+				if (foundUpload) {
+					if (publicId.length() > 0) {
+						publicId.append("/");
+					}
+					publicId.append(part);
+				}
+				if ("upload".equals(part)) {
+					foundUpload = true;
+				}
+			}
 
-            User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+			String id = publicId.toString();
+			if (id.contains(".")) {
+				id = id.substring(0, id.lastIndexOf("."));
+			}
 
-            return convertToDto(user);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to get user profile: " + e.getMessage());
-        }
-    }
+			return id.isEmpty() ? null : id;
+		} catch (Exception e) {
+			return null;
+		}
+	}
 
-    public void updateProfile(ProfileUpdateRequest request) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
+	public UserDto getCurrentUserProfile() {
+		try {
+			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+			String email = authentication.getName();
 
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+			User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Update username if provided and different
-        if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
-            if (userRepository.existsByUsername(request.getUsername())) {
-                throw new RuntimeException("Username already taken");
-            }
-            user.setUsername(request.getUsername());
-        }
+			return convertToDto(user);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to get user profile: " + e.getMessage());
+		}
+	}
 
-        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
-        if (request.getMiddleName() != null) user.setMiddleName(request.getMiddleName());
-        if (request.getLastName() != null) user.setLastName(request.getLastName());
-        if (request.getPhoneNumber() != null) user.setPhoneNumber(request.getPhoneNumber());
-        if (request.getAddress1() != null) user.setAddress1(request.getAddress1());
-        if (request.getAddress2() != null) user.setAddress2(request.getAddress2());
-        if (request.getCountry() != null) user.setCountry(request.getCountry());
+	public void updateProfile(ProfileUpdateRequest request) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		String email = authentication.getName();
 
-        if (request.getLanguage() != null) {
-            try {
-                user.setLanguage(com.premisave.auth.enums.Language.valueOf(request.getLanguage().toUpperCase()));
-            } catch (IllegalArgumentException e) {
-                throw new RuntimeException("Invalid language value");
-            }
-        }
+		User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-        userRepository.save(user);
-    }
+		if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
+			if (userRepository.existsByUsername(request.getUsername())) {
+				throw new RuntimeException("Username already taken");
+			}
+			user.setUsername(request.getUsername());
+		}
 
-    public void updatePassword(String currentPassword, String newPassword, String confirmPassword) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String email = authentication.getName();
+		if (request.getFirstName() != null)
+			user.setFirstName(request.getFirstName());
+		if (request.getMiddleName() != null)
+			user.setMiddleName(request.getMiddleName());
+		if (request.getLastName() != null)
+			user.setLastName(request.getLastName());
+		if (request.getPhoneNumber() != null)
+			user.setPhoneNumber(request.getPhoneNumber());
+		if (request.getAddress1() != null)
+			user.setAddress1(request.getAddress1());
+		if (request.getAddress2() != null)
+			user.setAddress2(request.getAddress2());
+		if (request.getCountry() != null)
+			user.setCountry(request.getCountry());
 
-        User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+		if (request.getLanguage() != null) {
+			try {
+				user.setLanguage(com.premisave.auth.enums.Language.valueOf(request.getLanguage().toUpperCase()));
+			} catch (IllegalArgumentException e) {
+				throw new RuntimeException("Invalid language value");
+			}
+		}
 
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("Current password is incorrect");
-        }
+		userRepository.save(user);
+	}
 
-        if (!newPassword.equals(confirmPassword)) {
-            throw new RuntimeException("New password and confirmation do not match");
-        }
+	public void updatePassword(String currentPassword, String newPassword, String confirmPassword) {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		String email = authentication.getName();
 
-        if (newPassword.length() < 8) {
-            throw new RuntimeException("Password must be at least 8 characters long");
-        }
+		User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
 
-        user.setPassword(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-    }
+		if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+			throw new RuntimeException("Current password is incorrect");
+		}
 
-    private UserDto convertToDto(User user) {
-        UserDto dto = new UserDto();
-        dto.setId(user.getId());
-        dto.setUsername(user.getUsername());
-        dto.setFirstName(user.getFirstName());
-        dto.setMiddleName(user.getMiddleName());
-        dto.setLastName(user.getLastName());
-        dto.setEmail(user.getEmail());
-        dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setAddress1(user.getAddress1());
-        dto.setAddress2(user.getAddress2());
-        dto.setCountry(user.getCountry());
-        dto.setLanguage(user.getLanguage());
-        dto.setProfilePictureUrl(user.getProfilePictureUrl());
-        dto.setRole(user.getRole());
-        dto.setActive(user.isActive());
-        dto.setVerified(user.isVerified());
-        dto.setArchived(user.isArchived());
-        dto.setPassword(null); // Security
+		if (!newPassword.equals(confirmPassword)) {
+			throw new RuntimeException("New password and confirmation do not match");
+		}
 
-        return dto;
-    }
+		if (newPassword.length() < 8) {
+			throw new RuntimeException("Password must be at least 8 characters long");
+		}
+
+		user.setPassword(passwordEncoder.encode(newPassword));
+		userRepository.save(user);
+	}
+
+	private UserDto convertToDto(User user) {
+		UserDto dto = new UserDto();
+		dto.setId(user.getId());
+		dto.setUsername(user.getUsername());
+		dto.setFirstName(user.getFirstName());
+		dto.setMiddleName(user.getMiddleName());
+		dto.setLastName(user.getLastName());
+		dto.setEmail(user.getEmail());
+		dto.setPhoneNumber(user.getPhoneNumber());
+		dto.setAddress1(user.getAddress1());
+		dto.setAddress2(user.getAddress2());
+		dto.setCountry(user.getCountry());
+		dto.setLanguage(user.getLanguage());
+		dto.setProfilePictureUrl(user.getProfilePictureUrl());
+		dto.setRole(user.getRole());
+		dto.setActive(user.isActive());
+		dto.setVerified(user.isVerified());
+		dto.setArchived(user.isArchived());
+		dto.setPassword(null);
+
+		return dto;
+	}
 }
