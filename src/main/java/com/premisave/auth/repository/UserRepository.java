@@ -1,6 +1,8 @@
 package com.premisave.auth.repository;
 
 import com.premisave.auth.entity.User;
+import com.premisave.auth.enums.Role;
+
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -84,6 +86,9 @@ public interface UserRepository extends MongoRepository<User, String> {
     long countByVerifiedTrue();
     long countByVerifiedFalse();
     
+    //Count by role
+    long countByRole(Role role);
+    
     // Find users with pagination support
     @Query("{'active': true, 'archived': false}")
     List<User> findActiveUsers(org.springframework.data.domain.Pageable pageable);
@@ -106,4 +111,5 @@ public interface UserRepository extends MongoRepository<User, String> {
             + "{'lastName': {'$regex': ?0, '$options': 'i'}}"
             + "]}")
     List<User> findByNameContaining(String name);
+    
 }

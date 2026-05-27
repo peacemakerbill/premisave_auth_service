@@ -3,6 +3,7 @@ package com.premisave.auth.service;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.dto.UserSearchRequest;
 import com.premisave.auth.entity.User;
+import com.premisave.auth.enums.Role;
 import com.premisave.auth.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -290,16 +291,38 @@ public class UserManagementService {
 
     public void changeUserRole(String id, String role) {
         log.info("Changing role to {} for user with ID: {}", role, id);
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Check if user is trying to change their own role (optional security)
+        // You can add this if needed using SecurityContext
+
         try {
-            com.premisave.auth.enums.Role newRole = com.premisave.auth.enums.Role.valueOf(role.toUpperCase());
+            com.premisave.auth.enums.Role newRole = com.premisave.auth.enums.Role.valueOf(role.toUpperCase().trim());
+            
+            // Check if user already has this role
+            if (user.getRole() == newRole) {
+                throw new RuntimeException("User is already a " + newRole.name() + ". No changes made.");
+            }
+
+            // Prevent demoting the last ADMIN (security measure)
+            if (user.getRole() == Role.ADMIN && newRole != Role.ADMIN) {
+                long adminCount = userRepository.countByRole(Role.ADMIN); // You'll need to add this query
+                if (adminCount <= 1) {
+                    throw new RuntimeException("Cannot demote the last ADMIN user for security reasons.");
+                }
+            }
+
             user.setRole(newRole);
             userRepository.save(user);
-            log.info("Role changed successfully to {} for user: {}", role, user.getEmail());
+            
+            log.info("Role changed successfully from {} to {} for user: {}", 
+                    user.getRole(), newRole, user.getEmail());
+            
         } catch (IllegalArgumentException e) {
-            log.error("Invalid role provided: {}", role);
-            throw new RuntimeException("Invalid role: " + role);
+            throw new RuntimeException("Invalid role provided: " + role + ". Allowed roles: " + 
+                    java.util.Arrays.toString(Role.values()));
         }
     }
 

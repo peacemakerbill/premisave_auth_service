@@ -107,10 +107,14 @@ public class UserManagementController {
         return ResponseEntity.ok("Password reset successfully. Temporary password sent to user.");
     }
 
+    /**
+     * Change User Role with proper validation
+     */
     @PutMapping("/change-role/{id}")
     public ResponseEntity<String> changeUserRole(
             @PathVariable String id,
-            @RequestBody RoleChangeRequest request) {
+            @Valid @RequestBody RoleChangeRequest request) {
+        
         userManagementService.changeUserRole(id, request.getRole());
         return ResponseEntity.ok("User role updated successfully");
     }
