@@ -26,20 +26,6 @@ spring:
             enable: true
             required: true
 
-  # ── RabbitMQ ──
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
-    # Fixed deserialization settings
-    deserialization:
-      trust-all: true
-    listener:
-      simple:
-        deserialization:
-          trust-all: true
-
 # ── Server ──
 server:
   port: 8080
@@ -61,7 +47,6 @@ cloudinary:
 jwt:
   secret: eW91ci12ZXJ5LXNlY3VyZS1qd3Qtc2VjcmV0LWtleS0zMi1ieXRlcyE=
   expiration: 2592000000 # 30 days in milliseconds
-  refresh-token-expiration: 2592000000 # 30 days for refresh token
 
 # ── Rate Limiting ──
 rate-limit:
@@ -69,10 +54,6 @@ rate-limit:
 
 # ── Email Templates ──
 email:
-  activation:
-    path: templates/activation-email.html
-  reset-password:
-    path: templates/reset-password-email.html
   support: ${SUPPORT_EMAIL:thepeacemakerske@gmail.com}
 
 # ── Logging ──

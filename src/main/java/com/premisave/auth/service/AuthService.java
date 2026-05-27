@@ -10,8 +10,6 @@ import com.premisave.auth.repository.TokenRepository;
 import com.premisave.auth.repository.UserRepository;
 import com.premisave.auth.security.JwtService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -20,17 +18,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.FileCopyUtils;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.time.Year;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -43,19 +33,9 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final RedisTemplate<String, Object> redisTemplate;
-    private final ResourceLoader resourceLoader;
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
-
-    @Value("${email.activation.path:templates/activation-email.html}")
-    private String activationEmailPath;
-
-    @Value("${email.reset-password.path:templates/reset-password-email.html}")
-    private String resetPasswordEmailPath;
-
-    @Value("${email.support:support@premisave.com}")
-    private String supportEmail;
 
     public AuthService(UserRepository userRepository,
                        TokenRepository tokenRepository,
@@ -63,8 +43,7 @@ public class AuthService {
                        JwtService jwtService,
                        AuthenticationManager authenticationManager,
                        EmailService emailService,
-                       RedisTemplate<String, Object> redisTemplate,
-                       ResourceLoader resourceLoader) {
+                       RedisTemplate<String, Object> redisTemplate) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -72,7 +51,6 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
         this.emailService = emailService;
         this.redisTemplate = redisTemplate;
-        this.resourceLoader = resourceLoader;
     }
 
     /**
@@ -111,20 +89,8 @@ public class AuthService {
 
         // Generate and send activation token
         String activationToken = generateToken(user, TokenType.ACTIVATION);
-        String activationLink = frontendUrl + "/verify/" + activationToken;
         
-        Map<String, String> templateData = new HashMap<>();
-        templateData.put("activationLink", activationLink);
-        templateData.put("supportEmail", supportEmail);
-        templateData.put("currentYear", String.valueOf(Year.now().getValue()));
-        
-        String emailContent = processEmailTemplate(activationEmailPath, templateData);
-
-        emailService.queueEmail(
-                user.getEmail(),
-                "Activate Your Premisave Account",
-                emailContent
-        );
+        emailService.sendVerificationEmail(user.getEmail(), activationToken);
 
         // Return JWT token for immediate use after signup
         AuthResponse response = new AuthResponse();
@@ -241,19 +207,7 @@ public class AuthService {
         }
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
-        String activationLink = frontendUrl + "/verify/" + activationToken;
-        
-        Map<String, String> templateData = new HashMap<>();
-        templateData.put("activationLink", activationLink);
-        templateData.put("supportEmail", supportEmail);
-        templateData.put("currentYear", String.valueOf(Year.now().getValue()));
-        
-        String emailContent = processEmailTemplate(activationEmailPath, templateData);
-        emailService.queueEmail(
-                email,
-                "Activate Your Premisave Account",
-                emailContent
-        );
+        emailService.sendVerificationEmail(email, activationToken);
     }
 
     /**
@@ -264,19 +218,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("No account found with this email"));
 
         String resetToken = generateToken(user, TokenType.RESET_PASSWORD);
-        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
-        
-        Map<String, String> templateData = new HashMap<>();
-        templateData.put("resetLink", resetLink);
-        templateData.put("supportEmail", supportEmail);
-        templateData.put("currentYear", String.valueOf(Year.now().getValue()));
-        
-        String emailContent = processEmailTemplate(resetPasswordEmailPath, templateData);
-        emailService.queueEmail(
-                user.getEmail(),
-                "Reset Your Premisave Password",
-                emailContent
-        );
+        emailService.sendResetPasswordEmail(user.getEmail(), resetToken);
     }
 
     /**
@@ -344,44 +286,5 @@ public class AuthService {
 
         tokenRepository.save(token);
         return tokenValue;
-    }
-
-    /**
-     * Reads email template from resources.
-     */
-    private String readEmailTemplate(String templatePath) {
-        Resource resource = resourceLoader.getResource("classpath:" + templatePath);
-        
-        if (!resource.exists()) {
-            resource = resourceLoader.getResource("classpath:/" + templatePath);
-        }
-        
-        if (!resource.exists()) {
-            resource = resourceLoader.getResource("file:src/main/resources/" + templatePath);
-        }
-        
-        if (!resource.exists()) {
-            throw new RuntimeException("Email template not found at any location: " + templatePath);
-        }
-        
-        try (Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8)) {
-            return FileCopyUtils.copyToString(reader);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read email template: " + templatePath, e);
-        }
-    }
-    
-    /**
-     * Processes email template by replacing placeholders.
-     */
-    private String processEmailTemplate(String templatePath, Map<String, String> data) {
-        String template = readEmailTemplate(templatePath);
-        
-        for (Map.Entry<String, String> entry : data.entrySet()) {
-            String placeholder = "{{" + entry.getKey() + "}}";
-            template = template.replace(placeholder, entry.getValue());
-        }
-        
-        return template;
     }
 }
