@@ -1,7 +1,7 @@
 package com.premisave.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -11,8 +11,7 @@ public class PasswordChangeRequest {
     private String currentPassword;
     
     @NotBlank(message = "New password is required")
-    @Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$", 
-             message = "Password must be at least 8 characters long, contain at least one digit, one lowercase letter, one uppercase letter, and one special character")
+    @Size(min = 8, message = "Password must be at least 8 characters long")
     private String newPassword;
     
     @NotBlank(message = "Confirm password is required")
