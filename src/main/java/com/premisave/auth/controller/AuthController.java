@@ -2,6 +2,7 @@ package com.premisave.auth.controller;
 
 import com.premisave.auth.dto.*;
 import com.premisave.auth.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,45 +17,87 @@ public class AuthController {
         this.authService = authService;
     }
 
+    /**
+     * User Registration
+     */
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
-        return ResponseEntity.ok(authService.signup(request));
+        AuthResponse response = authService.signup(request);
+        return ResponseEntity.ok(response);
     }
 
+    /**
+     * User Login
+     */
     @PostMapping("/signin")
     public ResponseEntity<AuthResponse> signin(@Valid @RequestBody AuthRequest request) {
-        return ResponseEntity.ok(authService.signin(request));
+        AuthResponse response = authService.signin(request);
+        return ResponseEntity.ok(response);
     }
 
+    /**
+     * User Logout - Blacklists the JWT token
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<LogoutResponse> logout(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        LogoutResponse response = authService.logout(authHeader);
+        
+        if (response.isSuccess()) {
+            return ResponseEntity.ok(response);
+        } else {
+            return ResponseEntity.badRequest().body(response);
+        }
+    }
+
+    /**
+     * Refresh Token
+     */
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(authService.refreshToken(request));
+        AuthResponse response = authService.refreshToken(request);
+        return ResponseEntity.ok(response);
     }
 
+    /**
+     * Verify Account using token
+     */
     @GetMapping("/verify/{token}")
     public ResponseEntity<String> verifyAccount(@PathVariable String token) {
         authService.verifyAccount(token);
-        return ResponseEntity.ok("Account verified successfully");
+        return ResponseEntity.ok("Account verified successfully. You can now login.");
     }
 
-    @PostMapping("/resend-activation/{email}")
-    public ResponseEntity<String> resendActivation(@PathVariable String email) {
+    /**
+     * Resend Activation Email
+     */
+    @PostMapping("/resend-activation")
+    public ResponseEntity<String> resendActivation(@RequestParam String email) {
         authService.resendActivation(email);
-        return ResponseEntity.ok("Activation link resent");
+        return ResponseEntity.ok("Activation email resent successfully");
     }
 
+    /**
+     * Forgot Password - Send reset link
+     */
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
         return ResponseEntity.ok("Password reset link sent to your email");
     }
 
-    @PostMapping("/reset-password/confirm")
-    public ResponseEntity<String> confirmResetPassword(@Valid @RequestBody ResetPasswordConfirmRequest request) {
+    /**
+     * Reset Password using token
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordConfirmRequest request) {
         authService.confirmResetPassword(request);
-        return ResponseEntity.ok("Password has been reset successfully");
+        return ResponseEntity.ok("Password reset successfully");
     }
 
+    /**
+     * Change Password (Authenticated user)
+     */
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);

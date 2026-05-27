@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -72,7 +73,6 @@ public class AuthService {
         user.setAddress2(request.getAddress2());
         user.setCountry(request.getCountry());
         
-        // Set language with fallback to ENGLISH
         try {
             Language language = Language.valueOf(request.getLanguage().toUpperCase());
             user.setLanguage(language);
@@ -87,12 +87,9 @@ public class AuthService {
 
         user = userRepository.save(user);
 
-        // Generate and send activation token
         String activationToken = generateToken(user, TokenType.ACTIVATION);
-        
         emailService.sendVerificationEmail(user.getEmail(), activationToken);
 
-        // Return JWT token for immediate use after signup
         AuthResponse response = new AuthResponse();
         response.setToken(jwtService.generateToken(user));
         response.setRole(user.getRole().name());
@@ -118,11 +115,9 @@ public class AuthService {
                 throw new RuntimeException("Account is deactivated. Please contact support.");
             }
 
-            // Update last login time
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
 
-            // Cache user in Redis
             redisTemplate.opsForValue().set("user:" + user.getId(), user);
 
             AuthResponse response = new AuthResponse();
@@ -132,19 +127,58 @@ public class AuthService {
             
         } catch (BadCredentialsException e) {
             boolean emailExists = userRepository.findByEmail(request.getEmail()).isPresent();
-            
             if (emailExists) {
                 throw new RuntimeException("Incorrect password. Please try again.");
             } else {
                 throw new RuntimeException("No account found with this email. Please sign up first.");
             }
-        } catch (Exception e) {
-            throw e;
         }
     }
 
     /**
-     * Refreshes expired JWT token using a valid refresh token.
+     * Logs out the current user by blacklisting their JWT token
+     */
+    public LogoutResponse logout(String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return new LogoutResponse("Invalid or missing Authorization header", false);
+            }
+
+            String jwt = authHeader.substring(7);
+
+            String email = jwtService.extractUsername(jwt);
+            if (email == null) {
+                return new LogoutResponse("Invalid token", false);
+            }
+
+            // Blacklist token until it expires
+            Date expiration = jwtService.extractExpiration(jwt);
+            long expirationTime = expiration.getTime() - System.currentTimeMillis();
+
+            if (expirationTime > 0) {
+                redisTemplate.opsForValue().set(
+                    "blacklist:" + jwt, 
+                    true, 
+                    expirationTime, 
+                    java.util.concurrent.TimeUnit.MILLISECONDS
+                );
+            }
+
+            // Clear user cache
+            User user = userRepository.findByEmail(email).orElse(null);
+            if (user != null) {
+                redisTemplate.delete("user:" + user.getId());
+            }
+
+            return new LogoutResponse("Logged out successfully", true);
+
+        } catch (Exception e) {
+            return new LogoutResponse("Logout failed: " + e.getMessage(), false);
+        }
+    }
+
+    /**
+     * Refreshes expired JWT token
      */
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         try {
@@ -211,7 +245,7 @@ public class AuthService {
     }
 
     /**
-     * Initiates password reset process by sending reset link via email.
+     * Initiates password reset process
      */
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
@@ -222,7 +256,7 @@ public class AuthService {
     }
 
     /**
-     * Completes password reset using valid reset token.
+     * Completes password reset
      */
     public void confirmResetPassword(ResetPasswordConfirmRequest request) {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
@@ -251,7 +285,7 @@ public class AuthService {
     }
 
     /**
-     * Allows authenticated user to change their password.
+     * Change password for authenticated user
      */
     public void changePassword(ChangePasswordRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
