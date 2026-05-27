@@ -26,6 +26,13 @@ spring:
             enable: true
             required: true
 
+  # ── File Upload Configuration ──
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
 # ── Server ──
 server:
   port: 8080
@@ -46,13 +53,13 @@ cloudinary:
 # ── JWT ──
 jwt:
   secret: eW91ci12ZXJ5LXNlY3VyZS1qd3Qtc2VjcmV0LWtleS0zMi1ieXRlcyE=
-  expiration: 2592000000 # 30 days in milliseconds
+  expiration: 2592000000
 
 # ── Rate Limiting ──
 rate-limit:
   requests-per-minute: 20
 
-# ── Email Templates ──
+# ── Email ──
 email:
   support: ${SUPPORT_EMAIL:thepeacemakerske@gmail.com}
 
@@ -61,4 +68,3 @@ logging:
   level:
     com.premisave.auth: DEBUG
     org.springframework.data.mongodb: DEBUG
-    org.mongodb.driver: DEBUG

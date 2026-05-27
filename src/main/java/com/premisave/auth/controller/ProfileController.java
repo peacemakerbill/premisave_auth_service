@@ -2,6 +2,7 @@ package com.premisave.auth.controller;
 
 import com.premisave.auth.dto.PasswordChangeRequest;
 import com.premisave.auth.dto.ProfileUpdateRequest;
+import com.premisave.auth.dto.ProfileUploadResponse;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.service.ProfileService;
 import jakarta.validation.Valid;
@@ -36,9 +37,9 @@ public class ProfileController {
 
     @PostMapping("/upload-profile-picture")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> uploadProfilePicture(@RequestParam("file") MultipartFile file) {
-        String url = profileService.uploadProfilePic(file);
-        return ResponseEntity.ok(url);
+    public ResponseEntity<ProfileUploadResponse> uploadProfilePicture(@RequestParam("file") MultipartFile file) {
+        ProfileUploadResponse response = profileService.uploadProfilePic(file);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/change-password")
