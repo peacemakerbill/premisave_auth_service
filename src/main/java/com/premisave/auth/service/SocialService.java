@@ -16,6 +16,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.Optional;
+
 @Slf4j
 @Service
 public class SocialService {
@@ -37,9 +40,6 @@ public class SocialService {
 
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new RuntimeException("User not authenticated");
-        }
         String email = auth.getName();
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -69,7 +69,13 @@ public class SocialService {
 
     public SocialActionResponse unlikeUser(String targetId) {
         User user = getCurrentUser();
-        likeRepository.deleteByUserIdAndTargetId(user.getId(), targetId);
+
+        Optional<Like> likeOpt = likeRepository.findByUserIdAndTargetId(user.getId(), targetId);
+        if (likeOpt.isEmpty()) {
+            return SocialActionResponse.error("UNLIKE", "You have not liked this user");
+        }
+
+        likeRepository.delete(likeOpt.get());
         log.info("User {} unliked target {}", user.getId(), targetId);
         return SocialActionResponse.success("UNLIKE", "User unliked successfully");
     }
@@ -101,7 +107,13 @@ public class SocialService {
 
     public SocialActionResponse unfollowUser(String targetId) {
         User user = getCurrentUser();
-        followerRepository.deleteByUserIdAndFollowerId(targetId, user.getId());
+
+        Optional<Follower> followOpt = followerRepository.findByUserIdAndFollowerId(targetId, user.getId());
+        if (followOpt.isEmpty()) {
+            return SocialActionResponse.error("UNFOLLOW", "You are not following this user");
+        }
+
+        followerRepository.delete(followOpt.get());
         log.info("User {} unfollowed target {}", user.getId(), targetId);
         return SocialActionResponse.success("UNFOLLOW", "User unfollowed successfully");
     }
@@ -133,7 +145,6 @@ public class SocialService {
         return SocialActionResponse.success("REVIEW", "Review submitted successfully");
     }
 
-    // ====================== EDIT REVIEW ======================
     public SocialActionResponse editReview(SocialActionRequest request) {
         User user = getCurrentUser();
         String reviewId = request.getReviewId();
@@ -145,7 +156,6 @@ public class SocialService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Review not found"));
 
-        // Only author can edit
         if (!review.getUser().getId().equals(user.getId())) {
             return SocialActionResponse.error("EDIT_REVIEW", "You can only edit your own review");
         }
@@ -162,12 +172,10 @@ public class SocialService {
         }
 
         reviewRepository.save(review);
-
         log.info("User {} edited review {}", user.getId(), reviewId);
         return SocialActionResponse.success("EDIT_REVIEW", "Review updated successfully");
     }
 
-    // ====================== DELETE REVIEW ======================
     public SocialActionResponse deleteReview(String reviewId) {
         User user = getCurrentUser();
 
@@ -178,15 +186,18 @@ public class SocialService {
         Review review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new RuntimeException("Review not found"));
 
-        // Only author can delete
         if (!review.getUser().getId().equals(user.getId())) {
             return SocialActionResponse.error("DELETE_REVIEW", "You can only delete your own review");
         }
 
         reviewRepository.delete(review);
-
         log.info("User {} deleted review {}", user.getId(), reviewId);
         return SocialActionResponse.success("DELETE_REVIEW", "Review deleted successfully");
+    }
+
+    // ====================== GET REVIEWS FOR A USER ======================
+    public List<Review> getUserReviews(String targetId) {
+        return reviewRepository.findByTargetId(targetId);
     }
 
     // ====================== USER STATS ======================

@@ -3,11 +3,14 @@ package com.premisave.auth.controller;
 import com.premisave.auth.dto.SocialActionRequest;
 import com.premisave.auth.dto.SocialActionResponse;
 import com.premisave.auth.dto.UserInteractionDto;
+import com.premisave.auth.entity.Review;
 import com.premisave.auth.service.SocialService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/social")
@@ -53,6 +56,12 @@ public class SocialController {
     @DeleteMapping("/review/{reviewId}")
     public ResponseEntity<SocialActionResponse> deleteReview(@PathVariable String reviewId) {
         return ResponseEntity.ok(socialService.deleteReview(reviewId));
+    }
+
+    @GetMapping("/reviews/{targetId}")
+    public ResponseEntity<List<Review>> getUserReviews(@PathVariable String targetId) {
+        List<Review> reviews = socialService.getUserReviews(targetId);
+        return ResponseEntity.ok(reviews);
     }
 
     @GetMapping("/stats/{userId}")
