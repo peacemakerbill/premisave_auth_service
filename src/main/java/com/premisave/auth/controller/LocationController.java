@@ -33,9 +33,19 @@ public class LocationController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Get location history with optional limit
+     * Example: /location/history?limit=50
+     */
     @GetMapping("/history")
-    public ResponseEntity<List<LocationResponse>> getLocationHistory() {
-        List<LocationResponse> history = locationService.getLocationHistory();
+    public ResponseEntity<List<LocationResponse>> getLocationHistory(
+            @RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+        
+        if (limit > 500) {
+            limit = 500; // Prevent excessive data
+        }
+        
+        List<LocationResponse> history = locationService.getLocationHistory(limit);
         return ResponseEntity.ok(history);
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -34,50 +35,71 @@ public class LocationService {
     }
 
     /**
-     * Update or set current location
+     * Update current location while preserving full history
      */
     public LocationResponse updateLocation(LocationUpdateRequest request) {
         User user = getCurrentUser();
 
-        // Deactivate previous current location
-        locationRepository.deleteByUserIdAndIsCurrentTrue(user.getId());
+        // Mark previous current location as historical
+        Optional<UserLocation> previousCurrentOpt = locationRepository.findByUserIdAndIsCurrentTrue(user.getId());
+        previousCurrentOpt.ifPresent(previous -> {
+            previous.setCurrent(false);
+            locationRepository.save(previous);
+            log.info("Previous location marked as historical for user: {}", user.getId());
+        });
 
-        UserLocation location = new UserLocation();
-        location.setUser(user);
-        location.setLatitude(request.getLatitude());
-        location.setLongitude(request.getLongitude());
-        location.setLocationName(request.getLocationName());
-        location.setAddress(request.getAddress());
-        location.setCountry(request.getCountry());
-        location.setCity(request.getCity());
-        location.setCurrent(true);
+        // Create new current location
+        UserLocation newLocation = new UserLocation();
+        newLocation.setUser(user);
+        newLocation.setLatitude(request.getLatitude());
+        newLocation.setLongitude(request.getLongitude());
+        newLocation.setLocationName(request.getLocationName());
+        newLocation.setAddress(request.getAddress());
+        newLocation.setCountry(request.getCountry());
+        newLocation.setCity(request.getCity());
+        newLocation.setCurrent(true);
 
-        UserLocation saved = locationRepository.save(location);
+        UserLocation saved = locationRepository.save(newLocation);
 
-        log.info("Location updated for user: {} | Lat: {}, Lng: {}", 
+        log.info("New current location saved for user: {} | Lat: {}, Lng: {}", 
                 user.getId(), request.getLatitude(), request.getLongitude());
 
         return convertToResponse(saved);
     }
 
     /**
-     * Get current active location of logged-in user
+     * Get current active location
      */
     public LocationResponse getCurrentLocation() {
         User user = getCurrentUser();
+        
         UserLocation location = locationRepository.findByUserIdAndIsCurrentTrue(user.getId())
-                .orElseThrow(() -> new RuntimeException("No location found. Please update your location."));
+                .orElseThrow(() -> new RuntimeException("No current location found. Please update your location first."));
 
         return convertToResponse(location);
     }
 
     /**
-     * Get location history for current user
+     * Get full location history (newest first)
      */
     public List<LocationResponse> getLocationHistory() {
         User user = getCurrentUser();
         List<UserLocation> history = locationRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
-        return history.stream().map(this::convertToResponse).collect(Collectors.toList());
+        return history.stream()
+                      .map(this::convertToResponse)
+                      .collect(Collectors.toList());
+    }
+
+    /**
+     * Get limited location history
+     */
+    public List<LocationResponse> getLocationHistory(int limit) {
+        User user = getCurrentUser();
+        List<UserLocation> history = locationRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
+        return history.stream()
+                      .limit(limit)
+                      .map(this::convertToResponse)
+                      .collect(Collectors.toList());
     }
 
     private LocationResponse convertToResponse(UserLocation location) {
@@ -89,7 +111,7 @@ public class LocationService {
         response.setAddress(location.getAddress());
         response.setCountry(location.getCountry());
         response.setCity(location.getCity());
-        response.setCurrent(location.isCurrent());   // Fixed: Use isCurrent()
+        response.setCurrent(location.isCurrent());
         response.setCreatedAt(location.getCreatedAt());
         response.setUpdatedAt(location.getUpdatedAt());
         return response;

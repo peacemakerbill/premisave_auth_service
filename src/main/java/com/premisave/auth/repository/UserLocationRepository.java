@@ -13,9 +13,14 @@ public interface UserLocationRepository extends MongoRepository<UserLocation, St
 
     List<UserLocation> findByUserIdOrderByCreatedAtDesc(String userId);
 
+    // Delete all current flags for a user (safety method)
     void deleteByUserIdAndIsCurrentTrue(String userId);
 
-    // Find nearby users (within radius in meters) - for future use
+    // Optional: Find locations within a time range
+    List<UserLocation> findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(
+            String userId, java.time.LocalDateTime start, java.time.LocalDateTime end);
+
+    // Nearby users query (for future social features)
     @Query("{'location': { $nearSphere: { $geometry: { type: 'Point', coordinates: [?0, ?1] }, $maxDistance: ?2 } }, 'isCurrent': true}")
     List<UserLocation> findNearbyUsers(Double longitude, Double latitude, Double maxDistanceInMeters);
 }
