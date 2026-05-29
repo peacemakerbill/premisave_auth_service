@@ -51,10 +51,13 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints - accessible without authentication
+                // Public endpoints
                 .requestMatchers("/", "/health", "/auth/**", "/oauth2/**", 
                                "/error", "/swagger-ui/**", "/v3/api-docs/**", 
                                "/test/**").permitAll()
+                
+                // Social endpoints - require authentication
+                .requestMatchers("/social/**").authenticated()
                 
                 // Admin-only endpoints
                 .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -65,7 +68,6 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
-            // Custom error handling for unauthorized access
             .exceptionHandling(exception -> exception
                 .accessDeniedHandler(accessDeniedHandler())
             )
@@ -75,10 +77,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Custom handler to return a clear message when a non-admin user
-     * tries to access admin-only endpoints.
-     */
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
         return (request, response, accessDeniedException) -> {

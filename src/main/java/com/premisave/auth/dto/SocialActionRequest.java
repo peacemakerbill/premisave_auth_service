@@ -19,4 +19,7 @@ public class SocialActionRequest {
 
     @Size(max = 1000, message = "Comment cannot exceed 1000 characters")
     private String comment;
+
+    // For Edit/Delete Review
+    private String reviewId;   // Required for edit and delete operations
 }
