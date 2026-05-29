@@ -160,15 +160,23 @@ public class SocialService {
             return SocialActionResponse.error("EDIT_REVIEW", "You can only edit your own review");
         }
 
+        boolean updated = false;
+
         if (request.getRating() != null) {
             if (request.getRating() < 1 || request.getRating() > 5) {
                 return SocialActionResponse.error("EDIT_REVIEW", "Rating must be between 1 and 5");
             }
             review.setRating(request.getRating());
+            updated = true;
         }
 
         if (request.getComment() != null) {
             review.setComment(request.getComment());
+            updated = true;
+        }
+
+        if (!updated) {
+            return SocialActionResponse.error("EDIT_REVIEW", "No changes provided");
         }
 
         reviewRepository.save(review);
