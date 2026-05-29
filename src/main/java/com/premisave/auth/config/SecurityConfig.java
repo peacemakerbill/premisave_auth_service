@@ -56,8 +56,11 @@ public class SecurityConfig {
                                "/error", "/swagger-ui/**", "/v3/api-docs/**", 
                                "/test/**").permitAll()
                 
-                // Social endpoints - require authentication
+                // Social endpoints
                 .requestMatchers("/social/**").authenticated()
+                
+                // Location endpoints
+                .requestMatchers("/location/**").authenticated()
                 
                 // Admin-only endpoints
                 .requestMatchers("/admin/**").hasRole("ADMIN")
