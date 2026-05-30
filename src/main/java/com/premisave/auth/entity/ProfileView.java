@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 @Document(collection = "profile_views")
 @CompoundIndexes({
     @CompoundIndex(name = "viewer_target_idx", def = "{'viewer.$id': 1, 'target.$id': 1}"),
-    @CompoundIndex(name = "target_viewed_idx", def = "{'target.$id': 1, 'createdAt': -1}"),
+    @CompoundIndex(name = "target_viewed_idx", def = "{'target.$id': 1, 'viewedAt': -1}"),
     @CompoundIndex(name = "viewer_date_idx", def = "{'viewer.$id': 1, 'viewedAt': -1}")
 })
 public class ProfileView {
@@ -33,10 +33,9 @@ public class ProfileView {
 
     private String ipAddress;
     private String userAgent;
-    private String deviceType;        // MOBILE, DESKTOP, TABLET
-    private String source;            // "SEARCH", "RECOMMENDATION", "DIRECT", "SUGGESTED"
+    private String deviceType;
+    private String source;
 
-    // Analytics
-    private int viewDurationSeconds;  // How long they stayed (future use)
-    private boolean isAnonymous;      // For private browsing mode
+    private int viewDurationSeconds;
+    private boolean isAnonymous;
 }
