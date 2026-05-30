@@ -2,6 +2,7 @@ package com.premisave.auth.repository;
 
 import com.premisave.auth.entity.ProfileView;
 import lombok.RequiredArgsConstructor;
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
@@ -19,8 +20,8 @@ public class ProfileViewRepositoryImpl implements ProfileViewRepositoryCustom {
     @Override
     public int countUniqueViewers(String targetId) {
         Aggregation aggregation = Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("target.$id").is(targetId)),
-                Aggregation.group("$viewer.$id"),
+                Aggregation.match(Criteria.where("target").is(new ObjectId(targetId))),
+                Aggregation.group("$viewer"),
                 Aggregation.count().as("uniqueCount")
         );
 

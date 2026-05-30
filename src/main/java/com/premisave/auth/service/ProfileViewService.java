@@ -8,6 +8,7 @@ import com.premisave.auth.repository.ProfileViewRepository;
 import com.premisave.auth.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -37,7 +38,7 @@ public class ProfileViewService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         LocalDateTime oneDayAgo = LocalDateTime.now().minusHours(24);
-        if (profileViewRepository.findRecentView(viewer.getId(), targetId, oneDayAgo).isPresent()) {
+        if (profileViewRepository.findRecentView(new ObjectId(viewer.getId()), new ObjectId(targetId), oneDayAgo).isPresent()) {
             return new ProfileViewResponse(null, null, null, null, null, null, null, null, "Profile view already recorded recently");
         }
 
@@ -59,17 +60,18 @@ public class ProfileViewService {
 
     public List<ProfileViewResponse> getWhoViewedMyProfile() {
         User user = getCurrentUser();
-        List<ProfileView> views = profileViewRepository.findTop20ByTargetIdOrderByViewedAtDesc(user.getId());
+        List<ProfileView> views = profileViewRepository.findTop20ByTargetIdOrderByViewedAtDesc(new ObjectId(user.getId()));
         return views.stream().map(this::convertToResponse).collect(Collectors.toList());
     }
 
     public ProfileViewStats getProfileViewStats() {
         User user = getCurrentUser();
-        long total = profileViewRepository.countByTargetId(user.getId());
-        long last7Days = profileViewRepository.countViewsInLastDays(user.getId(), LocalDateTime.now().minusDays(7));
-        long last30Days = profileViewRepository.countViewsInLastDays(user.getId(), LocalDateTime.now().minusDays(30));
-
+        ObjectId userId = new ObjectId(user.getId());
+        long total = profileViewRepository.countByTargetId(userId);
+        long last7Days = profileViewRepository.countViewsInLastDays(userId, LocalDateTime.now().minusDays(7));
+        long last30Days = profileViewRepository.countViewsInLastDays(userId, LocalDateTime.now().minusDays(30));
         int uniqueViewers = profileViewRepository.countUniqueViewers(user.getId());
+
         return new ProfileViewStats(total, last7Days, last30Days, uniqueViewers, "Profile statistics retrieved successfully");
     }
 

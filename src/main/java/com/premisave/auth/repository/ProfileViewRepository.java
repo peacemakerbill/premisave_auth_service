@@ -1,6 +1,7 @@
 package com.premisave.auth.repository;
 
 import com.premisave.auth.entity.ProfileView;
+import org.bson.types.ObjectId;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -10,18 +11,18 @@ import java.util.Optional;
 
 public interface ProfileViewRepository extends MongoRepository<ProfileView, String>, ProfileViewRepositoryCustom {
 
-    @Query("{'viewer.$id': ?0, 'target.$id': ?1, 'viewedAt': {$gt: ?2}}")
-    Optional<ProfileView> findRecentView(String viewerId, String targetId, LocalDateTime after);
+    @Query("{'viewer': ?0, 'target': ?1, 'viewedAt': {$gt: ?2}}")
+    Optional<ProfileView> findRecentView(ObjectId viewerId, ObjectId targetId, LocalDateTime after);
 
-    @Query(value = "{'target.$id': ?0}", sort = "{'viewedAt': -1}")
-    List<ProfileView> findTop20ByTargetIdOrderByViewedAtDesc(String targetId);
+    @Query(value = "{'target': ?0}", sort = "{'viewedAt': -1}")
+    List<ProfileView> findTop20ByTargetIdOrderByViewedAtDesc(ObjectId targetId);
 
-    @Query(value = "{'target.$id': ?0}", count = true)
-    long countByTargetId(String targetId);
+    @Query(value = "{'target': ?0}", count = true)
+    long countByTargetId(ObjectId targetId);
 
-    @Query(value = "{'target.$id': ?0, 'viewedAt': {$gte: ?1}}", count = true)
-    long countViewsInLastDays(String targetId, LocalDateTime since);
+    @Query(value = "{'target': ?0, 'viewedAt': {$gte: ?1}}", count = true)
+    long countViewsInLastDays(ObjectId targetId, LocalDateTime since);
 
-    @Query(value = "{'viewer.$id': ?0}", sort = "{'viewedAt': -1}")
-    List<ProfileView> findByViewerIdOrderByViewedAtDesc(String viewerId);
+    @Query(value = "{'viewer': ?0}", sort = "{'viewedAt': -1}")
+    List<ProfileView> findByViewerIdOrderByViewedAtDesc(ObjectId viewerId);
 }
