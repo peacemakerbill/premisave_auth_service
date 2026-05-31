@@ -20,7 +20,31 @@ public class HomeController {
 
     @GetMapping("/health")
     public String health() {
-        return "Premisave Auth Service is running successfully.";
+        return """
+                
+                **************************************************************
+                *                                                            *
+                *                      P R E M I S A V E                    *
+                *                                                            *
+                **************************************************************
+                *                                                            *
+                *        +-----------+       +-----------+                   *
+                *        |  [=====]  |       |  [=====]  |                   *
+                *        |  | ### |  |  / \\  |  | ### |  |                   *
+                *        |  |_____|  | /___\\ |  |_____|  |                   *
+                *        |  |     |  ||     ||  |     |  |                   *
+                *        +--+-----+--++-----++--+-----+--+                   *
+                *                                                            *
+                *              PROPERTY MANAGEMENT PLATFORM                  *
+                *                                                            *
+                **************************************************************
+                *                                                            *
+                *    >>  STATUS .............................  [ UP ]  <<     *
+                *    >>  SERVICE ................  AUTH SERVICE         <<     *
+                *    >>  HEALTH ........................  PASSING       <<     *
+                *                                                            *
+                **************************************************************
+                """;
     }
 
     private String getHtmlResponse() {
@@ -31,26 +55,26 @@ public class HomeController {
                     <meta charset="UTF-8">
                     <title>Premisave Auth Service</title>
                     <style>
-                        body { 
-                            font-family: monospace, Arial, sans-serif; 
-                            text-align: center; 
-                            margin-top: 60px; 
+                        body {
+                            font-family: monospace, Arial, sans-serif;
+                            text-align: center;
+                            margin-top: 60px;
                             background: #f8fafc;
                             color: #1e2937;
                         }
-                        h1 { 
-                            color: #1e40af; 
+                        h1 {
+                            color: #1e40af;
                             font-size: 2.8rem;
                             margin-bottom: 10px;
                         }
-                        .subtitle { 
-                            color: #334155; 
-                            font-size: 1.4rem; 
+                        .subtitle {
+                            color: #334155;
+                            font-size: 1.4rem;
                             margin-bottom: 40px;
                         }
-                        .status { 
-                            color: #166534; 
-                            font-size: 1.35rem; 
+                        .status {
+                            color: #166534;
+                            font-size: 1.35rem;
                             font-weight: bold;
                             letter-spacing: 2px;
                         }
