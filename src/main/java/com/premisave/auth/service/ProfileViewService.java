@@ -2,6 +2,7 @@ package com.premisave.auth.service;
 
 import com.premisave.auth.dto.ProfileViewResponse;
 import com.premisave.auth.dto.ProfileViewStats;
+import com.premisave.auth.dto.WhoIViewedResponse;
 import com.premisave.auth.entity.ProfileView;
 import com.premisave.auth.entity.User;
 import com.premisave.auth.repository.ProfileViewRepository;
@@ -62,6 +63,31 @@ public class ProfileViewService {
         User user = getCurrentUser();
         List<ProfileView> views = profileViewRepository.findTop20ByTargetIdOrderByViewedAtDesc(new ObjectId(user.getId()));
         return views.stream().map(this::convertToResponse).collect(Collectors.toList());
+    }
+
+    /**
+     * Get profiles that the current user has viewed (Who I Viewed)
+     */
+    public List<WhoIViewedResponse> getWhoIViewed() {
+        User user = getCurrentUser();
+        ObjectId userId = new ObjectId(user.getId());
+        
+        List<ProfileView> views = profileViewRepository.findTop20ByViewerIdOrderByViewedAtDesc(userId);
+        
+        return views.stream()
+                .map(view -> {
+                    User target = view.getTarget();
+                    return new WhoIViewedResponse(
+                        target.getId(),
+                        target.getFirstName() + " " + target.getLastName(),
+                        target.getProfilePictureUrl(),
+                        target.getDisplayUsername(),
+                        view.getViewedAt(),
+                        view.getDeviceType(),
+                        view.getSource()
+                    );
+                })
+                .collect(Collectors.toList());
     }
 
     public ProfileViewStats getProfileViewStats() {
