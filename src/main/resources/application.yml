@@ -63,6 +63,10 @@ rate-limit:
 email:
   support: ${SUPPORT_EMAIL:thepeacemakerske@gmail.com}
 
+# ── Profile Views Configuration ──
+profile-views:
+  max-history-size: 20
+
 # ── Logging ──
 logging:
   level:

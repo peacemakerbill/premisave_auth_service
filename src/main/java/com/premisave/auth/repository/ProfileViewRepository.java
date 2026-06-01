@@ -2,6 +2,7 @@ package com.premisave.auth.repository;
 
 import com.premisave.auth.entity.ProfileView;
 import org.bson.types.ObjectId;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.data.mongodb.repository.Query;
 
@@ -17,15 +18,17 @@ public interface ProfileViewRepository extends MongoRepository<ProfileView, Stri
     @Query(value = "{'target': ?0}", sort = "{'viewedAt': -1}")
     List<ProfileView> findTop20ByTargetIdOrderByViewedAtDesc(ObjectId targetId);
 
-    @Query(value = "{'viewer': ?0}", sort = "{'viewedAt': -1}")
-    List<ProfileView> findTop20ByViewerIdOrderByViewedAtDesc(ObjectId viewerId);
-
     @Query(value = "{'target': ?0}", count = true)
     long countByTargetId(ObjectId targetId);
 
     @Query(value = "{'target': ?0, 'viewedAt': {$gte: ?1}}", count = true)
     long countViewsInLastDays(ObjectId targetId, LocalDateTime since);
 
+    // Method for "Who I Viewed" with configurable limit
+    default List<ProfileView> findRecentViewsByViewerId(ObjectId viewerId, int limit) {
+        return findAllByViewerIdOrderByViewedAtDesc(viewerId, PageRequest.of(0, limit));
+    }
+
     @Query(value = "{'viewer': ?0}", sort = "{'viewedAt': -1}")
-    List<ProfileView> findByViewerIdOrderByViewedAtDesc(ObjectId viewerId);
+    List<ProfileView> findAllByViewerIdOrderByViewedAtDesc(ObjectId viewerId, org.springframework.data.domain.Pageable pageable);
 }

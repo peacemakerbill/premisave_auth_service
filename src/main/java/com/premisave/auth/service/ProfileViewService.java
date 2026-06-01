@@ -10,6 +10,7 @@ import com.premisave.auth.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,6 +23,9 @@ public class ProfileViewService {
 
     private final ProfileViewRepository profileViewRepository;
     private final UserRepository userRepository;
+
+    @Value("${profile-views.max-history-size:20}")
+    private int maxHistorySize;
 
     public ProfileViewService(ProfileViewRepository profileViewRepository, UserRepository userRepository) {
         this.profileViewRepository = profileViewRepository;
@@ -67,12 +71,14 @@ public class ProfileViewService {
 
     /**
      * Get profiles that the current user has viewed (Who I Viewed)
+     * Uses maxHistorySize from application.yml (default: 20)
      */
     public List<WhoIViewedResponse> getWhoIViewed() {
         User user = getCurrentUser();
         ObjectId userId = new ObjectId(user.getId());
         
-        List<ProfileView> views = profileViewRepository.findTop20ByViewerIdOrderByViewedAtDesc(userId);
+        // Use the configurable limit from application.yml
+        List<ProfileView> views = profileViewRepository.findRecentViewsByViewerId(userId, maxHistorySize);
         
         return views.stream()
                 .map(view -> {

@@ -2,6 +2,7 @@ package com.premisave.auth.controller;
 
 import com.premisave.auth.dto.ProfileViewResponse;
 import com.premisave.auth.dto.ProfileViewStats;
+import com.premisave.auth.dto.WhoIViewedResponse;
 import com.premisave.auth.service.ProfileViewService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,16 @@ public class ProfileViewController {
     @GetMapping("/who-viewed-me")
     public ResponseEntity<List<ProfileViewResponse>> getWhoViewedMe() {
         return ResponseEntity.ok(profileViewService.getWhoViewedMyProfile());
+    }
+
+    /**
+     * Get profiles I have viewed (Who I Viewed)
+     * Returns number of profiles configured in application.yml (profile-views.max-history-size)
+     * Default is 20 if not configured
+     */
+    @GetMapping("/who-i-viewed")
+    public ResponseEntity<List<WhoIViewedResponse>> getWhoIViewed() {
+        return ResponseEntity.ok(profileViewService.getWhoIViewed());
     }
 
     /**
