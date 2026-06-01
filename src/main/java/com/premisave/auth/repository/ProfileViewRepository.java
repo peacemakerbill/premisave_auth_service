@@ -17,6 +17,9 @@ public interface ProfileViewRepository extends MongoRepository<ProfileView, Stri
     @Query(value = "{'target': ?0}", sort = "{'viewedAt': -1}")
     List<ProfileView> findTop20ByTargetIdOrderByViewedAtDesc(ObjectId targetId);
 
+    @Query(value = "{'viewer': ?0}", sort = "{'viewedAt': -1}")
+    List<ProfileView> findTop20ByViewerIdOrderByViewedAtDesc(ObjectId viewerId);
+
     @Query(value = "{'target': ?0}", count = true)
     long countByTargetId(ObjectId targetId);
 

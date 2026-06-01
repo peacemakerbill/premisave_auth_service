@@ -20,8 +20,8 @@ public class ProfileViewRepositoryImpl implements ProfileViewRepositoryCustom {
     @Override
     public int countUniqueViewers(String targetId) {
         Aggregation aggregation = Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("target").is(new ObjectId(targetId))),
-                Aggregation.group("$viewer"),
+                Aggregation.match(Criteria.where("target.$id").is(new ObjectId(targetId))),
+                Aggregation.group("viewer"),
                 Aggregation.count().as("uniqueCount")
         );
 
