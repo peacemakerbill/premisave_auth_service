@@ -27,9 +27,9 @@ public class ProfileViewController {
      */
     @PostMapping("/{targetId}")
     public ResponseEntity<ProfileViewResponse> recordView(
-            @PathVariable String targetId, 
+            @PathVariable String targetId,
             HttpServletRequest request) {
-        
+
         ProfileViewResponse response = profileViewService.recordProfileView(targetId, request);
         return ResponseEntity.ok(response);
     }
@@ -44,8 +44,6 @@ public class ProfileViewController {
 
     /**
      * Get profiles I have viewed (Who I Viewed)
-     * Returns number of profiles configured in application.yml (profile-views.max-history-size)
-     * Default is 20 if not configured
      */
     @GetMapping("/who-i-viewed")
     public ResponseEntity<List<WhoIViewedResponse>> getWhoIViewed() {
@@ -53,10 +51,34 @@ public class ProfileViewController {
     }
 
     /**
-     * Get my profile view statistics
+     * Get my own profile view statistics
+     */
+    @GetMapping("/my-stats")
+    public ResponseEntity<ProfileViewStats> getMyStats() {
+        return ResponseEntity.ok(profileViewService.getMyProfileViewStats());
+    }
+
+    /**
+     * Get stats — returns current user's stats if no userId provided,
+     * or another user's public stats if userId query param is supplied.
+     * GET /profile/views/stats
+     * GET /profile/views/stats?userId=abc123
      */
     @GetMapping("/stats")
-    public ResponseEntity<ProfileViewStats> getStats() {
-        return ResponseEntity.ok(profileViewService.getProfileViewStats());
+    public ResponseEntity<ProfileViewStats> getStats(
+            @RequestParam(required = false) String userId) {
+
+        if (userId == null || userId.isBlank()) {
+            return ResponseEntity.ok(profileViewService.getMyProfileViewStats());
+        }
+        return ResponseEntity.ok(profileViewService.getOtherUserProfileViewStats(userId));
+    }
+
+    /**
+     * Get another user's profile view statistics (Public - limited info)
+     */
+    @GetMapping("/stats/{userId}")
+    public ResponseEntity<ProfileViewStats> getUserStats(@PathVariable String userId) {
+        return ResponseEntity.ok(profileViewService.getOtherUserProfileViewStats(userId));
     }
 }

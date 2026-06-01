@@ -71,40 +71,63 @@ public class ProfileViewService {
 
     /**
      * Get profiles that the current user has viewed (Who I Viewed)
-     * Uses maxHistorySize from application.yml (default: 20)
      */
     public List<WhoIViewedResponse> getWhoIViewed() {
         User user = getCurrentUser();
         ObjectId userId = new ObjectId(user.getId());
-        
-        // Use the configurable limit from application.yml
+
         List<ProfileView> views = profileViewRepository.findRecentViewsByViewerId(userId, maxHistorySize);
-        
+
         return views.stream()
                 .map(view -> {
                     User target = view.getTarget();
                     return new WhoIViewedResponse(
-                        target.getId(),
-                        target.getFirstName() + " " + target.getLastName(),
-                        target.getProfilePictureUrl(),
-                        target.getDisplayUsername(),
-                        view.getViewedAt(),
-                        view.getDeviceType(),
-                        view.getSource()
+                            target.getId(),
+                            target.getFirstName() + " " + target.getLastName(),
+                            target.getProfilePictureUrl(),
+                            target.getDisplayUsername(),
+                            view.getViewedAt(),
+                            view.getDeviceType(),
+                            view.getSource()
                     );
                 })
                 .collect(Collectors.toList());
     }
 
-    public ProfileViewStats getProfileViewStats() {
+    /**
+     * Get profile view statistics for current user (full stats)
+     */
+    public ProfileViewStats getMyProfileViewStats() {
         User user = getCurrentUser();
         ObjectId userId = new ObjectId(user.getId());
+
         long total = profileViewRepository.countByTargetId(userId);
         long last7Days = profileViewRepository.countViewsInLastDays(userId, LocalDateTime.now().minusDays(7));
         long last30Days = profileViewRepository.countViewsInLastDays(userId, LocalDateTime.now().minusDays(30));
         int uniqueViewers = profileViewRepository.countUniqueViewers(user.getId());
 
-        return new ProfileViewStats(total, last7Days, last30Days, uniqueViewers, "Profile statistics retrieved successfully");
+        return new ProfileViewStats(total, last7Days, last30Days, uniqueViewers, "Your profile statistics retrieved successfully");
+    }
+
+    /**
+     * Get profile view statistics for another user (public stats)
+     * Only returns total views - privacy focused
+     */
+    public ProfileViewStats getOtherUserProfileViewStats(String userId) {
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        ObjectId targetId = new ObjectId(targetUser.getId());
+
+        long totalViews = profileViewRepository.countByTargetId(targetId);
+
+        return new ProfileViewStats(
+                totalViews,
+                0L,   // Don't expose daily stats for other users
+                0L,   // Don't expose monthly stats for other users
+                0,    // Don't expose unique viewers for other users
+                "Profile statistics for " + targetUser.getDisplayUsername()
+        );
     }
 
     private User getCurrentUser() {
