@@ -2,6 +2,7 @@ package com.premisave.auth.controller;
 
 import com.premisave.auth.dto.ProfileViewResponse;
 import com.premisave.auth.dto.ProfileViewStats;
+import com.premisave.auth.dto.PublicProfileViewStats;
 import com.premisave.auth.dto.WhoIViewedResponse;
 import com.premisave.auth.service.ProfileViewService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -59,15 +60,13 @@ public class ProfileViewController {
     }
 
     /**
-     * Get stats — returns current user's stats if no userId provided,
-     * or another user's public stats if userId query param is supplied.
+     * Get stats — returns current user's full stats if no userId provided,
+     * or another user's public stats (totalViews only) if userId is supplied.
      * GET /profile/views/stats
      * GET /profile/views/stats?userId=abc123
      */
     @GetMapping("/stats")
-    public ResponseEntity<ProfileViewStats> getStats(
-            @RequestParam(required = false) String userId) {
-
+    public ResponseEntity<?> getStats(@RequestParam(required = false) String userId) {
         if (userId == null || userId.isBlank()) {
             return ResponseEntity.ok(profileViewService.getMyProfileViewStats());
         }
@@ -75,10 +74,10 @@ public class ProfileViewController {
     }
 
     /**
-     * Get another user's profile view statistics (Public - limited info)
+     * Get another user's public profile view statistics (totalViews only)
      */
     @GetMapping("/stats/{userId}")
-    public ResponseEntity<ProfileViewStats> getUserStats(@PathVariable String userId) {
+    public ResponseEntity<PublicProfileViewStats> getUserStats(@PathVariable String userId) {
         return ResponseEntity.ok(profileViewService.getOtherUserProfileViewStats(userId));
     }
 }

@@ -2,6 +2,7 @@ package com.premisave.auth.service;
 
 import com.premisave.auth.dto.ProfileViewResponse;
 import com.premisave.auth.dto.ProfileViewStats;
+import com.premisave.auth.dto.PublicProfileViewStats;
 import com.premisave.auth.dto.WhoIViewedResponse;
 import com.premisave.auth.entity.ProfileView;
 import com.premisave.auth.entity.User;
@@ -106,26 +107,21 @@ public class ProfileViewService {
         long last30Days = profileViewRepository.countViewsInLastDays(userId, LocalDateTime.now().minusDays(30));
         int uniqueViewers = profileViewRepository.countUniqueViewers(user.getId());
 
-        return new ProfileViewStats(total, last7Days, last30Days, uniqueViewers, "Your profile statistics retrieved successfully");
+        return new ProfileViewStats(total, last7Days, last30Days, uniqueViewers, "My profile view statistics retrieved successfully");
     }
 
     /**
      * Get profile view statistics for another user (public stats)
-     * Only returns total views - privacy focused
+     * Only returns totalViews - privacy focused
      */
-    public ProfileViewStats getOtherUserProfileViewStats(String userId) {
+    public PublicProfileViewStats getOtherUserProfileViewStats(String userId) {
         User targetUser = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        ObjectId targetId = new ObjectId(targetUser.getId());
+        long totalViews = profileViewRepository.countByTargetId(new ObjectId(targetUser.getId()));
 
-        long totalViews = profileViewRepository.countByTargetId(targetId);
-
-        return new ProfileViewStats(
+        return new PublicProfileViewStats(
                 totalViews,
-                0L,   // Don't expose daily stats for other users
-                0L,   // Don't expose monthly stats for other users
-                0,    // Don't expose unique viewers for other users
                 "Profile statistics for " + targetUser.getDisplayUsername()
         );
     }
