@@ -34,9 +34,6 @@ public class SecurityConfig {
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
-    @Value("${backend.url:http://localhost:8080}")
-    private String backendUrl;
-
     public SecurityConfig(UserDetailsServiceImpl userDetailsService,
                           JwtAuthenticationFilter jwtAuthFilter,
                           PasswordEncoder passwordEncoder) {
@@ -51,29 +48,17 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
                 .requestMatchers("/", "/health", "/auth/**", "/oauth2/**", 
                                "/error", "/swagger-ui/**", "/v3/api-docs/**", 
                                "/test/**").permitAll()
                 
-                // Social endpoints
                 .requestMatchers("/social/**").authenticated()
-                
-                // Location endpoints
                 .requestMatchers("/location/**").authenticated()
-                
-                // Admin-only endpoints
                 .requestMatchers("/admin/**").hasRole("ADMIN")
-                
-                // All other endpoints require authentication
                 .anyRequest().authenticated()
             )
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            .exceptionHandling(exception -> exception
-                .accessDeniedHandler(accessDeniedHandler())
-            )
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(exception -> exception.accessDeniedHandler(accessDeniedHandler()))
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -90,21 +75,37 @@ public class SecurityConfig {
                   "timestamp": "%s",
                   "status": 403,
                   "error": "Forbidden",
-                  "message": "You are not authorized to access this resource. Only users with ADMIN role are allowed."
+                  "message": "You are not authorized to access this resource."
                 }
                 """.formatted(LocalDateTime.now()));
         };
     }
 
+    /**
+     * CORS Configuration - OPEN FOR DEVELOPMENT
+     * Allows any frontend (any port, any domain) to connect
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(frontendUrl, backendUrl));
+
+        // === OPEN FOR DEVELOPMENT ===
+        configuration.setAllowedOriginPatterns(List.of("*"));   // Allows ALL origins
+        // OR use this if you want to be more specific:
+        // configuration.setAllowedOrigins(List.of("*"));
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With"));
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "X-Requested-With",
+            "X-CSRF-Token"
+        ));
         configuration.setExposedHeaders(List.of("Authorization"));
-        configuration.setAllowCredentials(true);
-        configuration.setMaxAge(3600L);
+        
+        // Important: Set to true only if you need cookies/auth headers
+        configuration.setAllowCredentials(true);   
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
