@@ -11,6 +11,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/profile")
 public class ProfileController {
@@ -29,14 +31,37 @@ public class ProfileController {
     }
 
     /**
-     * Get public profile of another user
-     * Allows logged-in users to view other users' public profiles
+     * public profile of another user
      */
     @GetMapping("/user/{userId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserDto> getUserPublicProfile(@PathVariable String userId) {
         UserDto userDto = profileService.getUserPublicProfile(userId);
         return ResponseEntity.ok(userDto);
+    }
+
+    /**
+     * NEW: Search users by name, username, email, etc.
+     */
+    @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<UserDto>> searchUsers(@RequestParam String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        
+        List<UserDto> users = profileService.searchUsers(query.trim());
+        return ResponseEntity.ok(users);
+    }
+
+    /**
+     * List all active users (for browsing/discovery)
+     */
+    @GetMapping("/all")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<UserDto>> getAllUsers() {
+        List<UserDto> users = profileService.getAllUsers();
+        return ResponseEntity.ok(users);
     }
 
     @PutMapping("/update")

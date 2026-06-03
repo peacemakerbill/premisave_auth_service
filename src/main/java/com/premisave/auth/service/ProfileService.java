@@ -16,8 +16,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class ProfileService {
@@ -44,7 +46,7 @@ public class ProfileService {
 	}
 
 	/**
-	 * Parse Spring's max-file-size property (supports 10MB, 5KB, etc.)
+	 * Parse Spring's max-file-size property
 	 */
 	private long parseMaxFileSize() {
 		if (maxFileSizeStr == null || maxFileSizeStr.isEmpty()) {
@@ -62,7 +64,6 @@ public class ProfileService {
 			} else if (value.endsWith("B")) {
 				return Long.parseLong(value.replace("B", "").trim());
 			} else {
-				// Assume bytes if no unit
 				return Long.parseLong(value);
 			}
 		} catch (Exception e) {
@@ -72,7 +73,7 @@ public class ProfileService {
 	}
 
 	/**
-	 * Upload profile picture - Synchronous
+	 * Upload profile picture
 	 */
 	public ProfileUploadResponse uploadProfilePic(MultipartFile file) {
 		try {
@@ -97,17 +98,16 @@ public class ProfileService {
 				deleteOldProfilePicture(user.getProfilePictureUrl());
 			}
 
-			// Generate unique public ID - WITHOUT duplicating folder
 			String publicId = "user_" + user.getId() + "_" + System.currentTimeMillis();
 
-			// Upload new image with optimization
 			@SuppressWarnings("rawtypes")
-			Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap("public_id", publicId,
-					"folder", "premisave/profile-photos", "transformation", "w_400,h_400,c_fill,q_auto,f_auto"));
+			Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.asMap(
+					"public_id", publicId,
+					"folder", "premisave/profile-photos",
+					"transformation", "w_400,h_400,c_fill,q_auto,f_auto"));
 
 			String newUrl = (String) uploadResult.get("secure_url");
 
-			// Update user
 			user.setProfilePictureUrl(newUrl);
 			userRepository.save(user);
 
@@ -119,29 +119,19 @@ public class ProfileService {
 		}
 	}
 
-	/**
-	 * Deletes old profile picture from Cloudinary
-	 */
 	private void deleteOldProfilePicture(String oldUrl) {
-		if (oldUrl == null || oldUrl.isEmpty()) {
-			return;
-		}
+		if (oldUrl == null || oldUrl.isEmpty()) return;
 
 		try {
 			String publicId = extractPublicIdFromUrl(oldUrl);
 			if (publicId != null) {
-				@SuppressWarnings("rawtypes")
-				Map result = cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-				System.out.println("Old profile picture deleted successfully: " + publicId);
+				cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
 			}
 		} catch (Exception e) {
 			System.err.println("Failed to delete old profile picture: " + e.getMessage());
 		}
 	}
 
-	/**
-	 * Extracts Cloudinary public_id from URL
-	 */
 	private String extractPublicIdFromUrl(String url) {
 		try {
 			String[] parts = url.split("/");
@@ -150,9 +140,7 @@ public class ProfileService {
 
 			for (String part : parts) {
 				if (foundUpload) {
-					if (publicId.length() > 0) {
-						publicId.append("/");
-					}
+					if (publicId.length() > 0) publicId.append("/");
 					publicId.append(part);
 				}
 				if ("upload".equals(part)) {
@@ -164,7 +152,6 @@ public class ProfileService {
 			if (id.contains(".")) {
 				id = id.substring(0, id.lastIndexOf("."));
 			}
-
 			return id.isEmpty() ? null : id;
 		} catch (Exception e) {
 			return null;
@@ -172,28 +159,22 @@ public class ProfileService {
 	}
 
 	public UserDto getCurrentUserProfile() {
-		try {
-			Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-			String email = authentication.getName();
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		String email = authentication.getName();
 
-			User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new RuntimeException("User not found"));
 
-			return convertToDto(user);
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to get user profile: " + e.getMessage());
-		}
+		return convertToDto(user);
 	}
 
-	/**
-	 * Get public profile of another user (hides sensitive data)
-	 */
 	public UserDto getUserPublicProfile(String userId) {
 		User user = userRepository.findById(userId)
 				.orElseThrow(() -> new RuntimeException("User not found"));
 
 		UserDto dto = convertToDto(user);
 		
-		// Hide sensitive information for public viewing
+		// Hide sensitive information
 		dto.setEmail(null);
 		dto.setPhoneNumber(null);
 		dto.setAddress1(null);
@@ -203,11 +184,48 @@ public class ProfileService {
 		return dto;
 	}
 
+	/**
+	 * Search users (public safe)
+	 */
+	public List<UserDto> searchUsers(String query) {
+		List<User> users = userRepository.searchUsers(query);
+		
+		return users.stream()
+				.filter(user -> user.isActive() && !user.isArchived())
+				.map(this::convertToPublicDto)
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Get all active users for browsing
+	 */
+	public List<UserDto> getAllUsers() {
+		List<User> users = userRepository.findByActiveTrueAndArchivedFalse();
+		
+		return users.stream()
+				.map(this::convertToPublicDto)
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Convert to public-safe UserDto
+	 */
+	private UserDto convertToPublicDto(User user) {
+		UserDto dto = convertToDto(user);
+		dto.setEmail(null);
+		dto.setPhoneNumber(null);
+		dto.setAddress1(null);
+		dto.setAddress2(null);
+		dto.setPassword(null);
+		return dto;
+	}
+
 	public void updateProfile(ProfileUpdateRequest request) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String email = authentication.getName();
 
-		User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new RuntimeException("User not found"));
 
 		if (request.getUsername() != null && !request.getUsername().equals(user.getUsername())) {
 			if (userRepository.existsByUsername(request.getUsername())) {
@@ -216,20 +234,13 @@ public class ProfileService {
 			user.setUsername(request.getUsername());
 		}
 
-		if (request.getFirstName() != null)
-			user.setFirstName(request.getFirstName());
-		if (request.getMiddleName() != null)
-			user.setMiddleName(request.getMiddleName());
-		if (request.getLastName() != null)
-			user.setLastName(request.getLastName());
-		if (request.getPhoneNumber() != null)
-			user.setPhoneNumber(request.getPhoneNumber());
-		if (request.getAddress1() != null)
-			user.setAddress1(request.getAddress1());
-		if (request.getAddress2() != null)
-			user.setAddress2(request.getAddress2());
-		if (request.getCountry() != null)
-			user.setCountry(request.getCountry());
+		if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
+		if (request.getMiddleName() != null) user.setMiddleName(request.getMiddleName());
+		if (request.getLastName() != null) user.setLastName(request.getLastName());
+		if (request.getPhoneNumber() != null) user.setPhoneNumber(request.getPhoneNumber());
+		if (request.getAddress1() != null) user.setAddress1(request.getAddress1());
+		if (request.getAddress2() != null) user.setAddress2(request.getAddress2());
+		if (request.getCountry() != null) user.setCountry(request.getCountry());
 
 		if (request.getLanguage() != null) {
 			try {
@@ -246,7 +257,8 @@ public class ProfileService {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String email = authentication.getName();
 
-		User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
+		User user = userRepository.findByEmail(email)
+				.orElseThrow(() -> new RuntimeException("User not found"));
 
 		if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
 			throw new RuntimeException("Current password is incorrect");
