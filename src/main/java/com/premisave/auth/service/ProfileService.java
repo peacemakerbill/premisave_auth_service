@@ -184,6 +184,25 @@ public class ProfileService {
 		}
 	}
 
+	/**
+	 * Get public profile of another user (hides sensitive data)
+	 */
+	public UserDto getUserPublicProfile(String userId) {
+		User user = userRepository.findById(userId)
+				.orElseThrow(() -> new RuntimeException("User not found"));
+
+		UserDto dto = convertToDto(user);
+		
+		// Hide sensitive information for public viewing
+		dto.setEmail(null);
+		dto.setPhoneNumber(null);
+		dto.setAddress1(null);
+		dto.setAddress2(null);
+		dto.setPassword(null);
+		
+		return dto;
+	}
+
 	public void updateProfile(ProfileUpdateRequest request) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		String email = authentication.getName();

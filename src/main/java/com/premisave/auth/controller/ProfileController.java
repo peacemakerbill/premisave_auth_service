@@ -28,6 +28,17 @@ public class ProfileController {
         return ResponseEntity.ok(userDto);
     }
 
+    /**
+     * Get public profile of another user
+     * Allows logged-in users to view other users' public profiles
+     */
+    @GetMapping("/user/{userId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDto> getUserPublicProfile(@PathVariable String userId) {
+        UserDto userDto = profileService.getUserPublicProfile(userId);
+        return ResponseEntity.ok(userDto);
+    }
+
     @PutMapping("/update")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<String> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
