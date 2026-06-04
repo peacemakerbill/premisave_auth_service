@@ -112,8 +112,7 @@ public class ProfileService {
         userRepository.save(user);
     }
 
-    // ==================== REST OF THE FILE (NO CHANGES) ====================
-
+    
     public ProfileUploadResponse uploadProfilePic(MultipartFile file) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
