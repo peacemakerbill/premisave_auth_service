@@ -8,6 +8,8 @@ import com.premisave.auth.service.SocialService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -67,5 +69,32 @@ public class SocialController {
     @GetMapping("/stats/{userId}")
     public ResponseEntity<UserInteractionDto> getUserStats(@PathVariable String userId) {
         return ResponseEntity.ok(socialService.getUserStats(userId));
+    }
+
+    // ====================  ENDPOINTS FOR FRONTEND STATUS ====================
+
+    @GetMapping("/my-likes")
+    public ResponseEntity<List<String>> getMyLikes() {
+        String userId = getCurrentUserId();
+        List<String> likedIds = socialService.getUserLikedIds(userId);
+        return ResponseEntity.ok(likedIds);
+    }
+
+    @GetMapping("/my-following")
+    public ResponseEntity<List<String>> getMyFollowing() {
+        String userId = getCurrentUserId();
+        List<String> followingIds = socialService.getUserFollowingIds(userId);
+        return ResponseEntity.ok(followingIds);
+    }
+
+    /**
+     * Helper method to get current authenticated user ID
+     */
+    private String getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = authentication.getName();
+
+        // Fetch user directly from repository to avoid private method issues
+        return socialService.getUserByEmail(email).getId();
     }
 }

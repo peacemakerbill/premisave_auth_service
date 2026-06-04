@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -38,9 +39,15 @@ public class SocialService {
         this.userRepository = userRepository;
     }
 
-    private User getCurrentUser() {
+    // ====================== HELPER ======================
+    public User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String email = auth.getName();
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    public User getUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
@@ -203,12 +210,10 @@ public class SocialService {
         return SocialActionResponse.success("DELETE_REVIEW", "Review deleted successfully");
     }
 
-    // ====================== GET REVIEWS FOR A USER ======================
     public List<Review> getUserReviews(String targetId) {
         return reviewRepository.findByTargetId(targetId);
     }
 
-    // ====================== USER STATS ======================
     public UserInteractionDto getUserStats(String userId) {
         long followers = followerRepository.countByUserId(userId);
         long following = followerRepository.countByFollowerId(userId);
@@ -223,5 +228,21 @@ public class SocialService {
         dto.setAverageRating(avgRating != null ? avgRating : 0.0);
         dto.setTotalReviews(totalReviews);
         return dto;
+    }
+
+    // ====================== METHODS FOR FRONTEND STATUS ======================
+
+    public List<String> getUserLikedIds(String userId) {
+        List<Like> likes = likeRepository.findByUserId(userId);
+        return likes.stream()
+                .map(Like::getTargetId)
+                .collect(Collectors.toList());
+    }
+
+    public List<String> getUserFollowingIds(String userId) {
+        List<Follower> follows = followerRepository.findByFollowerId(userId);
+        return follows.stream()
+                .map(f -> f.getUser().getId())
+                .collect(Collectors.toList());
     }
 }
