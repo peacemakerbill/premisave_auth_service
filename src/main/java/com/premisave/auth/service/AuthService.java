@@ -54,12 +54,12 @@ public class AuthService {
         this.redisTemplate = redisTemplate;
     }
 
-    /**
-     * Registers a new user and sends account activation email.
-     */
     public AuthResponse signup(SignupRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
+        }
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username already taken");
         }
 
         User user = new User();
@@ -96,9 +96,6 @@ public class AuthService {
         return response;
     }
 
-    /**
-     * Authenticates user and returns JWT token on successful login.
-     */
     public AuthResponse signin(AuthRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -135,9 +132,6 @@ public class AuthService {
         }
     }
 
-    /**
-     * Logs out the current user by blacklisting their JWT token
-     */
     public LogoutResponse logout(String authHeader) {
         try {
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -146,12 +140,11 @@ public class AuthService {
 
             String jwt = authHeader.substring(7);
 
-            String email = jwtService.extractUsername(jwt);
-            if (email == null) {
+            String username = jwtService.extractUsername(jwt);
+            if (username == null) {
                 return new LogoutResponse("Invalid token", false);
             }
 
-            // Blacklist token until it expires
             Date expiration = jwtService.extractExpiration(jwt);
             long expirationTime = expiration.getTime() - System.currentTimeMillis();
 
@@ -164,8 +157,7 @@ public class AuthService {
                 );
             }
 
-            // Clear user cache
-            User user = userRepository.findByEmail(email).orElse(null);
+            User user = userRepository.findByEmail(username).orElse(null);
             if (user != null) {
                 redisTemplate.delete("user:" + user.getId());
             }
@@ -177,9 +169,6 @@ public class AuthService {
         }
     }
 
-    /**
-     * Refreshes expired JWT token
-     */
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         try {
             String username = jwtService.extractUsername(request.getRefreshToken());
@@ -210,9 +199,6 @@ public class AuthService {
         }
     }
 
-    /**
-     * Verifies user account using activation token.
-     */
     public void verifyAccount(String tokenStr) {
         Token token = tokenRepository.findByToken(tokenStr)
                 .orElseThrow(() -> new RuntimeException("Invalid or expired token"));
@@ -229,9 +215,6 @@ public class AuthService {
         tokenRepository.save(token);
     }
 
-    /**
-     * Resends account activation email.
-     */
     public void resendActivation(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -244,9 +227,6 @@ public class AuthService {
         emailService.sendVerificationEmail(email, activationToken);
     }
 
-    /**
-     * Initiates password reset process
-     */
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("No account found with this email"));
@@ -255,9 +235,6 @@ public class AuthService {
         emailService.sendResetPasswordEmail(user.getEmail(), resetToken);
     }
 
-    /**
-     * Completes password reset
-     */
     public void confirmResetPassword(ResetPasswordConfirmRequest request) {
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new RuntimeException("New passwords do not match");
@@ -284,9 +261,6 @@ public class AuthService {
         redisTemplate.delete("user:" + user.getId());
     }
 
-    /**
-     * Change password for authenticated user
-     */
     public void changePassword(ChangePasswordRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) auth.getPrincipal();
@@ -305,9 +279,6 @@ public class AuthService {
         redisTemplate.delete("user:" + user.getId());
     }
 
-    /**
-     * Generates and saves activation or reset password token.
-     */
     private String generateToken(User user, TokenType type) {
         String tokenValue = UUID.randomUUID().toString();
 

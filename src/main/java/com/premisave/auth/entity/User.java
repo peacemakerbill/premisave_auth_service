@@ -3,8 +3,6 @@ package com.premisave.auth.entity;
 import com.premisave.auth.enums.Language;
 import com.premisave.auth.enums.Role;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
@@ -27,18 +25,14 @@ public class User implements UserDetails {
     @Id
     private String id;
 
-    @Getter
-    @Setter
     private String username;
-    
+
     private String firstName;
     private String middleName;
     private String lastName;
-    
-    @Getter
-    @Setter
+
     private String email;
-    
+
     private String phoneNumber;
     private String address1;
     private String address2;
@@ -74,20 +68,14 @@ public class User implements UserDetails {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
-    // Spring Security needs this to return the login identifier (email)
+    // Spring Security login uses EMAIL (safe & stable)
     @Override
     public String getUsername() {
-        return email;  // Return email for Spring Security compatibility
+        return email;
     }
-    
-    // Custom getter for the actual username field
+
     public String getDisplayUsername() {
-        return username;
-    }
-    
-    // Custom setter for the actual username field
-    public void setDisplayUsername(String username) {
-        this.username = username;
+        return username != null ? username : email;
     }
 
     @Override

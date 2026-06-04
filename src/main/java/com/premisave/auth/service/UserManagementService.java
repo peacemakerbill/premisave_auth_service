@@ -26,23 +26,20 @@ public class UserManagementService {
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
         
-        // Configure ModelMapper to handle our custom mappings
         configureModelMapper();
     }
     
     private void configureModelMapper() {
-        // Custom mapping for User -> UserDto
         modelMapper.createTypeMap(User.class, UserDto.class)
             .addMappings(mapper -> {
-                mapper.map(User::getDisplayUsername, UserDto::setUsername);
+                mapper.map(User::getUsername, UserDto::setUsername);   // Updated
                 mapper.map(User::getEmail, UserDto::setEmail);
                 mapper.skip(UserDto::setPassword);
             });
             
-        // Custom mapping for UserDto -> User
         modelMapper.createTypeMap(UserDto.class, User.class)
             .addMappings(mapper -> {
-                mapper.map(UserDto::getUsername, User::setDisplayUsername);
+                mapper.map(UserDto::getUsername, User::setUsername);   // Updated
                 mapper.map(UserDto::getEmail, User::setEmail);
                 mapper.skip(User::setPassword);
             });
@@ -68,10 +65,7 @@ public class UserManagementService {
         }
         
         User user = new User();
-        
-        if (userDto.getUsername() != null) {
-            user.setDisplayUsername(userDto.getUsername());
-        }
+        user.setUsername(userDto.getUsername());
         user.setEmail(userDto.getEmail());
         user.setFirstName(userDto.getFirstName());
         user.setMiddleName(userDto.getMiddleName());
@@ -111,11 +105,11 @@ public class UserManagementService {
             user.setEmail(userDto.getEmail());
         }
         
-        if (userDto.getUsername() != null && !user.getDisplayUsername().equals(userDto.getUsername())) {
+        if (userDto.getUsername() != null && !user.getUsername().equals(userDto.getUsername())) {
             if (userRepository.findByUsername(userDto.getUsername()).isPresent()) {
                 throw new RuntimeException("Username already exists");
             }
-            user.setDisplayUsername(userDto.getUsername());
+            user.setUsername(userDto.getUsername());
         }
         
         if (userDto.getFirstName() != null) user.setFirstName(userDto.getFirstName());
@@ -295,20 +289,15 @@ public class UserManagementService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Check if user is trying to change their own role (optional security)
-        // You can add this if needed using SecurityContext
-
         try {
             com.premisave.auth.enums.Role newRole = com.premisave.auth.enums.Role.valueOf(role.toUpperCase().trim());
             
-            // Check if user already has this role
             if (user.getRole() == newRole) {
                 throw new RuntimeException("User is already a " + newRole.name() + ". No changes made.");
             }
 
-            // Prevent demoting the last ADMIN (security measure)
             if (user.getRole() == Role.ADMIN && newRole != Role.ADMIN) {
-                long adminCount = userRepository.countByRole(Role.ADMIN); // You'll need to add this query
+                long adminCount = userRepository.countByRole(Role.ADMIN);
                 if (adminCount <= 1) {
                     throw new RuntimeException("Cannot demote the last ADMIN user for security reasons.");
                 }
@@ -343,7 +332,7 @@ public class UserManagementService {
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
-        dto.setUsername(user.getDisplayUsername());
+        dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         dto.setFirstName(user.getFirstName());
         dto.setMiddleName(user.getMiddleName());
