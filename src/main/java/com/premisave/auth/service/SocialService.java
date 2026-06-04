@@ -2,6 +2,7 @@ package com.premisave.auth.service;
 
 import com.premisave.auth.dto.SocialActionRequest;
 import com.premisave.auth.dto.SocialActionResponse;
+import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.dto.UserInteractionDto;
 import com.premisave.auth.entity.Follower;
 import com.premisave.auth.entity.Like;
@@ -28,15 +29,18 @@ public class SocialService {
     private final FollowerRepository followerRepository;
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final ProfileService profileService;
 
     public SocialService(LikeRepository likeRepository,
                          FollowerRepository followerRepository,
                          ReviewRepository reviewRepository,
-                         UserRepository userRepository) {
+                         UserRepository userRepository,
+                         ProfileService profileService) {
         this.likeRepository = likeRepository;
         this.followerRepository = followerRepository;
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
+        this.profileService = profileService;
     }
 
     // ====================== HELPER ======================
@@ -230,19 +234,45 @@ public class SocialService {
         return dto;
     }
 
-    // ====================== METHODS FOR FRONTEND STATUS ======================
+    // ====================== FULL USER DATA FOR FRONTEND ======================
 
-    public List<String> getUserLikedIds(String userId) {
-        List<Like> likes = likeRepository.findByUserId(userId);
-        return likes.stream()
+    public List<UserDto> getMyLikedUsers() {
+        User currentUser = getCurrentUser();
+        List<Like> likes = likeRepository.findByUserId(currentUser.getId());
+
+        List<String> targetIds = likes.stream()
                 .map(Like::getTargetId)
+                .collect(Collectors.toList());
+
+        if (targetIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<User> likedUsers = userRepository.findAllById(targetIds);
+
+        return likedUsers.stream()
+                .filter(user -> user.isActive() && !user.isArchived())
+                .map(profileService::convertToPublicDto)
                 .collect(Collectors.toList());
     }
 
-    public List<String> getUserFollowingIds(String userId) {
-        List<Follower> follows = followerRepository.findByFollowerId(userId);
-        return follows.stream()
+    public List<UserDto> getMyFollowingUsers() {
+        User currentUser = getCurrentUser();
+        List<Follower> follows = followerRepository.findByFollowerId(currentUser.getId());
+
+        List<String> targetIds = follows.stream()
                 .map(f -> f.getUser().getId())
+                .collect(Collectors.toList());
+
+        if (targetIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<User> followingUsers = userRepository.findAllById(targetIds);
+
+        return followingUsers.stream()
+                .filter(user -> user.isActive() && !user.isArchived())
+                .map(profileService::convertToPublicDto)
                 .collect(Collectors.toList());
     }
 }

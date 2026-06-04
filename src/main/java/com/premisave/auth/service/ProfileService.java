@@ -208,9 +208,10 @@ public class ProfileService {
 	}
 
 	/**
-	 * Convert to public-safe UserDto
+	 * Convert to public-safe UserDto (hides sensitive fields)
+	 * Made public so it can be used by SocialService
 	 */
-	private UserDto convertToPublicDto(User user) {
+	public UserDto convertToPublicDto(User user) {
 		UserDto dto = convertToDto(user);
 		dto.setEmail(null);
 		dto.setPhoneNumber(null);
