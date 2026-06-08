@@ -73,8 +73,14 @@ public class AuthController {
      */
     @PostMapping("/resend-activation")
     public ResponseEntity<String> resendActivation(@RequestParam String email) {
-        authService.resendActivation(email);
-        return ResponseEntity.ok("Activation email resent successfully");
+        try {
+            authService.resendActivation(email);
+            return ResponseEntity.ok("Activation email resent successfully. Please check your inbox.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Failed to resend activation email. Please try again.");
+        }
     }
 
     /**

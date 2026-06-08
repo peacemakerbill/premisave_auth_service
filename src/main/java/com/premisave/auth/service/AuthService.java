@@ -216,11 +216,19 @@ public class AuthService {
     }
 
     public void resendActivation(String email) {
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (email == null || email.trim().isEmpty() || !email.contains("@")) {
+            throw new RuntimeException("Please provide a valid email address");
+        }
+
+        User user = userRepository.findByEmail(email.trim().toLowerCase())
+                .orElseThrow(() -> new RuntimeException("No account found with this email"));
 
         if (user.isVerified()) {
-            throw new RuntimeException("Account is already verified");
+            throw new RuntimeException("Account is already verified. You can proceed to login.");
+        }
+
+        if (!user.isActive()) {
+            throw new RuntimeException("Account is deactivated. Please contact support.");
         }
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
