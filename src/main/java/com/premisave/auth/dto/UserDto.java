@@ -40,10 +40,10 @@ public class UserDto {
     // Authorization
     private Role role;
 
-    // Account Status
-    private boolean active;
-    private boolean verified;
-    private boolean archived;
+    // Account Status (boxed Boolean so null = "not provided" vs false = "explicitly set to false")
+    private Boolean active;
+    private Boolean verified;
+    private Boolean archived;
 
     // Security (should always be null in responses)
     private String password;

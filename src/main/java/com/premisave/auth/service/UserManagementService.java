@@ -32,14 +32,14 @@ public class UserManagementService {
     private void configureModelMapper() {
         modelMapper.createTypeMap(User.class, UserDto.class)
             .addMappings(mapper -> {
-                mapper.map(User::getUsername, UserDto::setUsername);   // Updated
+                mapper.map(User::getUsername, UserDto::setUsername);
                 mapper.map(User::getEmail, UserDto::setEmail);
                 mapper.skip(UserDto::setPassword);
             });
             
         modelMapper.createTypeMap(UserDto.class, User.class)
             .addMappings(mapper -> {
-                mapper.map(UserDto::getUsername, User::setUsername);   // Updated
+                mapper.map(UserDto::getUsername, User::setUsername);
                 mapper.map(UserDto::getEmail, User::setEmail);
                 mapper.skip(User::setPassword);
             });
@@ -77,9 +77,9 @@ public class UserManagementService {
         user.setLanguage(userDto.getLanguage());
         user.setProfilePictureUrl(userDto.getProfilePictureUrl());
         user.setRole(userDto.getRole());
-        user.setActive(userDto.isActive());
-        user.setVerified(userDto.isVerified());
-        user.setArchived(userDto.isArchived());
+        user.setActive(userDto.getActive() != null && userDto.getActive());
+        user.setVerified(userDto.getVerified() != null && userDto.getVerified());
+        user.setArchived(userDto.getArchived() != null && userDto.getArchived());
         
         if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
@@ -123,9 +123,9 @@ public class UserManagementService {
         if (userDto.getProfilePictureUrl() != null) user.setProfilePictureUrl(userDto.getProfilePictureUrl());
         if (userDto.getRole() != null) user.setRole(userDto.getRole());
         
-        user.setActive(userDto.isActive());
-        user.setVerified(userDto.isVerified());
-        user.setArchived(userDto.isArchived());
+        if (userDto.getActive() != null) user.setActive(userDto.getActive());
+        if (userDto.getVerified() != null) user.setVerified(userDto.getVerified());
+        if (userDto.getArchived() != null) user.setArchived(userDto.getArchived());
         
         if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
