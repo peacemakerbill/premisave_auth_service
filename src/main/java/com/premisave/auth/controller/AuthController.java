@@ -2,6 +2,7 @@ package com.premisave.auth.controller;
 
 import com.premisave.auth.dto.*;
 import com.premisave.auth.service.AuthService;
+import com.premisave.auth.service.OAuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -12,65 +13,63 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final OAuthService oAuthService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, OAuthService oAuthService) {
         this.authService = authService;
+        this.oAuthService = oAuthService;
     }
 
-    /**
-     * User Registration
-     */
+    /** User Registration */
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
-        AuthResponse response = authService.signup(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(authService.signup(request));
     }
 
-    /**
-     * User Login
-     */
+    /** User Login */
     @PostMapping("/signin")
     public ResponseEntity<AuthResponse> signin(@Valid @RequestBody AuthRequest request) {
-        AuthResponse response = authService.signin(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(authService.signin(request));
     }
 
     /**
-     * User Logout - Blacklists the JWT token
+     * OAuth Sign-in / Sign-up (Google & Facebook)
+     *
+     * POST /auth/oauth
+     * Body: { "provider": "google", "token": "<ID token from Google Sign-In SDK>" }
+     *   or: { "provider": "facebook", "token": "<access token from Facebook Login SDK>" }
+     *
+     * Returns the same AuthResponse as regular signin — a JWT ready to use.
      */
+    @PostMapping("/oauth")
+    public ResponseEntity<AuthResponse> oauthSignin(@Valid @RequestBody OAuthRequest request) {
+        return ResponseEntity.ok(oAuthService.handleOAuth(request));
+    }
+
+    /** Logout — blacklists the JWT */
     @PostMapping("/logout")
     public ResponseEntity<LogoutResponse> logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         LogoutResponse response = authService.logout(authHeader);
-        
-        if (response.isSuccess()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
+        return response.isSuccess()
+                ? ResponseEntity.ok(response)
+                : ResponseEntity.badRequest().body(response);
     }
 
-    /**
-     * Refresh Token
-     */
+    /** Refresh Token */
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        AuthResponse response = authService.refreshToken(request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(authService.refreshToken(request));
     }
 
-    /**
-     * Verify Account using token
-     */
+    /** Verify account via email token */
     @GetMapping("/verify/{token}")
     public ResponseEntity<String> verifyAccount(@PathVariable String token) {
         authService.verifyAccount(token);
         return ResponseEntity.ok("Account verified successfully. You can now login.");
     }
 
-    /**
-     * Resend Activation Email
-     */
+    /** Resend activation email */
     @PostMapping("/resend-activation")
     public ResponseEntity<String> resendActivation(@RequestParam String email) {
         try {
@@ -83,27 +82,21 @@ public class AuthController {
         }
     }
 
-    /**
-     * Forgot Password - Send reset link
-     */
+    /** Forgot Password — sends reset link */
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
         return ResponseEntity.ok("Password reset link sent to your email");
     }
 
-    /**
-     * Reset Password using token
-     */
+    /** Reset Password using token */
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordConfirmRequest request) {
         authService.confirmResetPassword(request);
         return ResponseEntity.ok("Password reset successfully");
     }
 
-    /**
-     * Change Password (Authenticated user)
-     */
+    /** Change Password (authenticated user) */
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);

@@ -26,7 +26,7 @@ spring:
             enable: true
             required: true
 
-  # ── File Upload Configuration ──
+  # ── File Upload ──
   servlet:
     multipart:
       enabled: true
@@ -43,6 +43,16 @@ frontend:
 
 backend:
   url: http://localhost:8080
+
+# ── OAuth2 Credentials ──
+# Google: https://console.cloud.google.com  → APIs & Services → Credentials → Create OAuth 2.0 Client ID
+# Facebook: https://developers.facebook.com → My Apps → Add App → Facebook Login
+oauth:
+  google:
+    client-id: YOUR_GOOGLE_CLIENT_ID        # e.g. 123456789-abc.apps.googleusercontent.com
+  facebook:
+    app-id: YOUR_FACEBOOK_APP_ID            # numeric app id
+    app-secret: YOUR_FACEBOOK_APP_SECRET    # used for token debug endpoint (optional hardening)
 
 # ── External Services ──
 cloudinary:
@@ -63,7 +73,7 @@ rate-limit:
 email:
   support: ${SUPPORT_EMAIL:thepeacemakerske@gmail.com}
 
-# ── Profile Views Configuration ──
+# ── Profile Views ──
 profile-views:
   max-history-size: 20
 
