@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import com.premisave.auth.entity.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -28,29 +29,37 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
+    public String extractUserId(String token) {
+        return extractClaim(token, claims -> claims.get("userId", String.class));
+    }
+
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
-    public String generateToken(UserDetails userDetails) {
-        return generateToken(new HashMap<>(), userDetails, expiration);
-    }
+    // Generate token with userId
+    public String generateToken(User user) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("userId", user.getId());
+        claims.put("roles", user.getRole() != null ? user.getRole().name() : "CLIENT");
+        claims.put("email", user.getEmail());
 
-    public String generateRefreshToken(UserDetails userDetails) {
-        // Generate refresh token with the same expiration as access token (30 days)
-        return generateToken(new HashMap<>(), userDetails, expiration);
+        return generateToken(claims, user, expiration);
     }
 
     public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails, long expirationTime) {
-        return Jwts
-                .builder()
+        return Jwts.builder()
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public String generateRefreshToken(UserDetails userDetails) {
+        return generateToken(new HashMap<>(), userDetails, expiration * 30); // 30x longer for refresh
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
@@ -68,8 +77,7 @@ public class JwtService {
 
     private Claims extractAllClaims(String token) {
         try {
-            return Jwts
-                    .parserBuilder()
+            return Jwts.parserBuilder()
                     .setSigningKey(getSignInKey())
                     .build()
                     .parseClaimsJws(token)
@@ -84,13 +92,13 @@ public class JwtService {
             byte[] keyBytes = Decoders.BASE64.decode(secret);
             
             if (keyBytes.length < 32) {
-                byte[] paddedKeyBytes = new byte[32];
-                System.arraycopy(keyBytes, 0, paddedKeyBytes, 0, Math.min(keyBytes.length, 32));
-                keyBytes = paddedKeyBytes;
+                byte[] padded = new byte[32];
+                System.arraycopy(keyBytes, 0, padded, 0, keyBytes.length);
+                keyBytes = padded;
             } else if (keyBytes.length > 32) {
-                byte[] truncatedKeyBytes = new byte[32];
-                System.arraycopy(keyBytes, 0, truncatedKeyBytes, 0, 32);
-                keyBytes = truncatedKeyBytes;
+                byte[] truncated = new byte[32];
+                System.arraycopy(keyBytes, 0, truncated, 0, 32);
+                keyBytes = truncated;
             }
             
             return Keys.hmacShaKeyFor(keyBytes);

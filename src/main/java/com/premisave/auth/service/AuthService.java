@@ -91,7 +91,7 @@ public class AuthService {
         emailService.sendVerificationEmail(user.getEmail(), activationToken);
 
         AuthResponse response = new AuthResponse();
-        response.setToken(jwtService.generateToken(user));
+        response.setToken(jwtService.generateToken(user));   // Now includes userId
         response.setRole(user.getRole().name());
         return response;
     }
@@ -118,7 +118,7 @@ public class AuthService {
             redisTemplate.opsForValue().set("user:" + user.getId(), user);
 
             AuthResponse response = new AuthResponse();
-            response.setToken(jwtService.generateToken(user));
+            response.setToken(jwtService.generateToken(user));   // Now includes userId
             response.setRole(user.getRole().name());
             return response;
             
@@ -190,7 +190,7 @@ public class AuthService {
             redisTemplate.opsForValue().set("user:" + user.getId(), user);
             
             AuthResponse response = new AuthResponse();
-            response.setToken(jwtService.generateToken(user));
+            response.setToken(jwtService.generateToken(user));   // Now includes userId
             response.setRole(user.getRole().name());
             return response;
             
