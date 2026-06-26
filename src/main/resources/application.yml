@@ -5,19 +5,21 @@ spring:
   # ── Data Stores ──
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      repositories:
+        enabled: false  # Prevents Redis from claiming MongoDB repositories
 
-  # ── MongoDB ──
+  # ── MongoDB (Boot 4: spring.mongodb, not spring.data.mongodb) ──
   mongodb:
-    uri: mongodb://localhost:27017/premisave-auth
+    uri: ${MONGODB_URI:mongodb://localhost:27017/premisave-auth}
 
   # ── Mail (Gmail SMTP) ──
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: thepeacemakerske@gmail.com
-    password: "nyea rbvz wkzp ksaz"
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:thepeacemakerske@gmail.com}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -33,37 +35,41 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
+  cloud:
+    discovery:
+      enabled: false
+
 # ── Server ──
 server:
   port: 8080
 
 # ── Application URLs ──
 frontend:
-  url: http://localhost:3000
+  url: ${FRONTEND_URL:http://localhost:3000}
 
 backend:
-  url: http://localhost:8080
+  url: ${BACKEND_URL:http://localhost:8080}
 
 # ── OAuth2 Credentials ──
 # Google: https://console.cloud.google.com  → APIs & Services → Credentials → Create OAuth 2.0 Client ID
 # Facebook: https://developers.facebook.com → My Apps → Add App → Facebook Login
 oauth:
   google:
-    client-id: YOUR_GOOGLE_CLIENT_ID        # e.g. 123456789-abc.apps.googleusercontent.com
+    client-id: ${GOOGLE_CLIENT_ID:YOUR_GOOGLE_CLIENT_ID}
   facebook:
-    app-id: YOUR_FACEBOOK_APP_ID            # numeric app id
-    app-secret: YOUR_FACEBOOK_APP_SECRET    # used for token debug endpoint (optional hardening)
+    app-id: ${FACEBOOK_APP_ID:YOUR_FACEBOOK_APP_ID}
+    app-secret: ${FACEBOOK_APP_SECRET:YOUR_FACEBOOK_APP_SECRET}
 
 # ── External Services ──
 cloudinary:
-  cloud-name: thepeacemakersllc
-  api-key: 929659223288334
-  api-secret: nAsBdgfXx86u7-Y8X2VnLa-2FbQ
+  cloud-name: ${CLOUDINARY_CLOUD_NAME:thepeacemakersllc}
+  api-key: ${CLOUDINARY_API_KEY:929659223288334}
+  api-secret: ${CLOUDINARY_API_SECRET:nAsBdgfXx86u7-Y8X2VnLa-2FbQ}
 
 # ── JWT ──
 jwt:
-  secret: eW91ci12ZXJ5LXNlY3VyZS1qd3Qtc2VjcmV0LWtleS0zMi1ieXRlcyE=
-  expiration: 2592000000
+  secret: ${JWT_SECRET:eW91ci12ZXJ5LXNlY3VyZS1qd3Qtc2VjcmV0LWtleS0zMi1ieXRlcyE=}
+  expiration: ${JWT_EXPIRATION:2592000000}
 
 # ── Rate Limiting ──
 rate-limit:
@@ -80,5 +86,7 @@ profile-views:
 # ── Logging ──
 logging:
   level:
-    com.premisave.auth: DEBUG
-    org.springframework.data.mongodb: DEBUG
+    "[com.premisave.auth]": DEBUG
+    "[org.springframework.data.mongodb]": DEBUG
+    "[org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport]": ERROR
+    "[org.springframework.cloud.commons.util.InetUtils]": ERROR

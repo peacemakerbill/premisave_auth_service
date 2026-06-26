@@ -1,0 +1,106 @@
+{
+  "properties": [
+    {
+      "name": "frontend.url",
+      "type": "java.lang.String",
+      "description": "Frontend application URL used for CORS allowed-origins and OAuth2 redirect configuration.",
+      "defaultValue": "http://localhost:3000"
+    },
+    {
+      "name": "backend.url",
+      "type": "java.lang.String",
+      "description": "Backend base URL used for generating self-referencing links and OAuth2 callback URLs.",
+      "defaultValue": "http://localhost:8080"
+    },
+    {
+      "name": "oauth.google.client-id",
+      "type": "java.lang.String",
+      "description": "Google OAuth2 client ID from Google Cloud Console (APIs & Services → Credentials)."
+    },
+    {
+      "name": "oauth.facebook.app-id",
+      "type": "java.lang.String",
+      "description": "Facebook OAuth2 app ID from Meta Developer Console."
+    },
+    {
+      "name": "oauth.facebook.app-secret",
+      "type": "java.lang.String",
+      "description": "Facebook OAuth2 app secret used for token debug endpoint verification."
+    },
+    {
+      "name": "cloudinary.cloud-name",
+      "type": "java.lang.String",
+      "description": "Cloudinary account cloud name."
+    },
+    {
+      "name": "cloudinary.api-key",
+      "type": "java.lang.String",
+      "description": "Cloudinary API key."
+    },
+    {
+      "name": "cloudinary.api-secret",
+      "type": "java.lang.String",
+      "description": "Cloudinary API secret."
+    },
+    {
+      "name": "jwt.secret",
+      "type": "java.lang.String",
+      "description": "Base64-encoded secret key used to sign and verify JWT tokens. Must match across all services."
+    },
+    {
+      "name": "jwt.expiration",
+      "type": "java.lang.Long",
+      "description": "JWT token expiration duration in milliseconds. Default is 30 days (2592000000).",
+      "defaultValue": 2592000000
+    },
+    {
+      "name": "rate-limit.requests-per-minute",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of requests allowed per minute per client before rate limiting kicks in.",
+      "defaultValue": 20
+    },
+    {
+      "name": "email.support",
+      "type": "java.lang.String",
+      "description": "Support email address used as the sender for outgoing application emails.",
+      "defaultValue": "thepeacemakerske@gmail.com"
+    },
+    {
+      "name": "profile-views.max-history-size",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of profile view history entries to retain per user.",
+      "defaultValue": 20
+    },
+    {
+      "name": "spring.cloud.discovery.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Disables Spring Cloud service discovery (Eureka/Consul). Set to false when running without a service registry.",
+      "defaultValue": false
+    }
+  ],
+  "hints": [
+    {
+      "name": "logging.level.values",
+      "values": [
+        {"value": "TRACE"},
+        {"value": "DEBUG"},
+        {"value": "INFO"},
+        {"value": "WARN"},
+        {"value": "ERROR"},
+        {"value": "FATAL"},
+        {"value": "OFF"}
+      ]
+    },
+    {
+      "name": "logging.level.keys",
+      "values": [
+        {"value": "root", "description": "Root logger level."},
+        {"value": "com.premisave.auth", "description": "All Premisave auth application classes."},
+        {"value": "org.springframework.data.mongodb", "description": "MongoDB data layer."},
+        {"value": "org.springframework.security", "description": "Spring Security."},
+        {"value": "org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport", "description": "Suppresses Redis/MongoDB repository conflict warnings."},
+        {"value": "org.springframework.cloud.commons.util.InetUtils", "description": "Suppresses hostname resolution warnings from Spring Cloud."}
+      ]
+    }
+  ]
+}

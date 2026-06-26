@@ -20,11 +20,8 @@ import java.util.List;
 public class SocialController {
 
     private final SocialService socialService;
-    private final ProfileService profileService;
-
     public SocialController(SocialService socialService, ProfileService profileService) {
         this.socialService = socialService;
-        this.profileService = profileService;
     }
 
     @PostMapping("/like")

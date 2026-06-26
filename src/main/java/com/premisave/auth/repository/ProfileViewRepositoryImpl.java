@@ -17,7 +17,8 @@ public class ProfileViewRepositoryImpl implements ProfileViewRepositoryCustom {
 
     private final MongoTemplate mongoTemplate;
 
-    @Override
+    @SuppressWarnings("rawtypes")
+	@Override
     public int countUniqueViewers(String targetId) {
         Aggregation aggregation = Aggregation.newAggregation(
                 Aggregation.match(Criteria.where("target").is(new ObjectId(targetId))),

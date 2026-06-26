@@ -100,7 +100,8 @@ public class OAuthService {
     //  Facebook — exchange access token against Graph API
     // ─────────────────────────────────────────────────────────────
 
-    private OAuthUserInfo verifyFacebookToken(String accessToken) {
+    @SuppressWarnings("rawtypes")
+	private OAuthUserInfo verifyFacebookToken(String accessToken) {
         try {
             String url = "https://graph.facebook.com/me"
                     + "?fields=id,first_name,last_name,email,picture.type(large)"
