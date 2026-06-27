@@ -18,8 +18,8 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:thepeacemakerske@gmail.com}
-    password: ${MAIL_PASSWORD}
+    username: ${GMAIL_USERNAME:thepeacemakerske@gmail.com}
+    password: ${GMAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -73,7 +73,7 @@ jwt:
 
 # ── Rate Limiting ──
 rate-limit:
-  requests-per-minute: 20
+  requests-per-minute: ${RATE_LIMIT_REQUESTS_PER_MINUTE:20}
 
 # ── Email ──
 email:
