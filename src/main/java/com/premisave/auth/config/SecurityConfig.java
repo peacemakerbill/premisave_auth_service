@@ -1,6 +1,5 @@
 package com.premisave.auth.config;
 
-import com.premisave.auth.security.ApiKeyFilter;
 import com.premisave.auth.security.JwtAuthenticationFilter;
 import com.premisave.auth.security.UserDetailsServiceImpl;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +29,6 @@ public class SecurityConfig {
 
     private final UserDetailsServiceImpl userDetailsService;
     private final JwtAuthenticationFilter jwtAuthFilter;
-    private final ApiKeyFilter apiKeyFilter;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${frontend.url:http://localhost:3000}")
@@ -38,11 +36,9 @@ public class SecurityConfig {
 
     public SecurityConfig(UserDetailsServiceImpl userDetailsService,
                           JwtAuthenticationFilter jwtAuthFilter,
-                          ApiKeyFilter apiKeyFilter,
                           PasswordEncoder passwordEncoder) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthFilter = jwtAuthFilter;
-        this.apiKeyFilter = apiKeyFilter;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -54,8 +50,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/health", "/auth/**", "/oauth2/**",
                                "/error", "/swagger-ui/**", "/v3/api-docs/**",
-                               "/test/**", "/profile/public/directory").permitAll()
-
+                               "/test/**", "/profile/public/directory",
+                               "/internal/**").permitAll()
+                
                 .requestMatchers("/social/**").authenticated()
                 .requestMatchers("/location/**").authenticated()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -64,7 +61,6 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exception -> exception.accessDeniedHandler(accessDeniedHandler()))
             .authenticationProvider(authenticationProvider())
-            .addFilterBefore(apiKeyFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -105,8 +101,7 @@ public class SecurityConfig {
             "Content-Type",
             "Accept",
             "X-Requested-With",
-            "X-CSRF-Token",
-            "X-API-Key"
+            "X-CSRF-Token"
         ));
         configuration.setExposedHeaders(List.of("Authorization"));
         

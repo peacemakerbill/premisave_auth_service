@@ -27,7 +27,8 @@ public class ApiKeyFilter extends OncePerRequestFilter {
 
     /** Endpoints guarded by this filter (prefix-matched) */
     private static final String[] PROTECTED_PATHS = {
-            "/profile/public/directory"
+            "/profile/public/directory",
+            "/internal/"
     };
 
     @Value("${app.api-key}")
