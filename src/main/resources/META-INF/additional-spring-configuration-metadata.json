@@ -72,6 +72,11 @@
       "defaultValue": 20
     },
     {
+      "name": "app.api-key",
+      "type": "java.lang.String",
+      "description": "Shared secret API key required on the X-API-Key header to access protected public endpoints (e.g. /profile/public/directory). Generate with: openssl rand -hex 32. Set via the API_KEY environment variable in production — never commit the real value."
+    },
+    {
       "name": "spring.cloud.discovery.enabled",
       "type": "java.lang.Boolean",
       "description": "Disables Spring Cloud service discovery (Eureka/Consul). Set to false when running without a service registry.",

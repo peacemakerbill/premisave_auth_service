@@ -83,6 +83,12 @@ email:
 profile-views:
   max-history-size: 20
 
+# ── API Key (public endpoints guard) ──
+# Generate with: openssl rand -hex 32
+# Set via environment variable in production — never commit the real value.
+app:
+  api-key: ${API_KEY:00183e19c295366cf171c0d449d8b5ca46291573c9d1643e1e441b0bf571d1c7}
+
 # ── Logging ──
 logging:
   level:
