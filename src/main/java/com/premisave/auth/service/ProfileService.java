@@ -4,6 +4,7 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import com.premisave.auth.dto.ProfileUpdateRequest;
 import com.premisave.auth.dto.ProfileUploadResponse;
+import com.premisave.auth.dto.UserDirectoryDto;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.entity.User;
 import com.premisave.auth.repository.UserRepository;
@@ -273,6 +274,15 @@ public class ProfileService {
         dto.setAddress2(null);
         dto.setPassword(null);
         return dto;
+    }
+
+    public List<UserDirectoryDto> getPublicUserDirectory() {
+        return userRepository.findByActiveTrueAndArchivedFalse().stream()
+                .map(user -> new UserDirectoryDto(
+                        user.getId(),
+                        user.getEmail(),
+                        user.getPhoneNumber()))
+                .collect(Collectors.toList());
     }
 
     public void updatePassword(String currentPassword, String newPassword, String confirmPassword) {

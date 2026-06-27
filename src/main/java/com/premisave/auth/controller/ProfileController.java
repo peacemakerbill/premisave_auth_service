@@ -3,6 +3,7 @@ package com.premisave.auth.controller;
 import com.premisave.auth.dto.PasswordChangeRequest;
 import com.premisave.auth.dto.ProfileUpdateRequest;
 import com.premisave.auth.dto.ProfileUploadResponse;
+import com.premisave.auth.dto.UserDirectoryDto;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.service.ProfileService;
 import jakarta.validation.Valid;
@@ -62,6 +63,15 @@ public class ProfileController {
     public ResponseEntity<List<UserDto>> getAllUsers() {
         List<UserDto> users = profileService.getAllUsers();
         return ResponseEntity.ok(users);
+    }
+
+    /**
+     * Public user directory — no auth required.
+     * Returns id, email, and phone number for all active, non-archived users.
+     */
+    @GetMapping("/public/directory")
+    public ResponseEntity<List<UserDirectoryDto>> getPublicUserDirectory() {
+        return ResponseEntity.ok(profileService.getPublicUserDirectory());
     }
 
     @PutMapping("/update")
