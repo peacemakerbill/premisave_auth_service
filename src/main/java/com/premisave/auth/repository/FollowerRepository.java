@@ -15,4 +15,7 @@ public interface FollowerRepository extends MongoRepository<Follower, String> {
     long countByUserId(String userId);      // Followers count
     long countByFollowerId(String userId);  // Following count
     List<Follower> findByFollowerId(String followerId);
+
+    // Who follows me — inbound
+    List<Follower> findByUserId(String userId);
 }

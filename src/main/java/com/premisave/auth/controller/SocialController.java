@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/social")
@@ -81,5 +82,49 @@ public class SocialController {
     public ResponseEntity<List<UserDto>> getMyFollowing() {
         List<UserDto> followingUsers = socialService.getMyFollowingUsers();
         return ResponseEntity.ok(followingUsers);
+    }
+
+    // ── Inbound: who liked / follows / reviewed ME ────────────────────────────
+
+    @GetMapping("/my-likers")
+    public ResponseEntity<List<UserDto>> getMyLikers() {
+        return ResponseEntity.ok(socialService.getMyLikers());
+    }
+
+    @GetMapping("/my-followers")
+    public ResponseEntity<List<UserDto>> getMyFollowers() {
+        return ResponseEntity.ok(socialService.getMyFollowers());
+    }
+
+    @GetMapping("/my-reviews")
+    public ResponseEntity<List<Review>> getMyReviews() {
+        return ResponseEntity.ok(socialService.getMyReviews());
+    }
+
+    @GetMapping("/my-written-reviews")
+    public ResponseEntity<List<Review>> getMyWrittenReviews() {
+        return ResponseEntity.ok(socialService.getMyWrittenReviews());
+    }
+
+    // ── Relationship status checks ────────────────────────────────────────────
+
+    @GetMapping("/like/status/{targetId}")
+    public ResponseEntity<Map<String, Boolean>> getLikeStatus(@PathVariable String targetId) {
+        return ResponseEntity.ok(Map.of("liked", socialService.didILikeUser(targetId)));
+    }
+
+    @GetMapping("/follow/status/{targetId}")
+    public ResponseEntity<Map<String, Boolean>> getFollowStatus(@PathVariable String targetId) {
+        return ResponseEntity.ok(Map.of("following", socialService.doIFollowUser(targetId)));
+    }
+
+    @GetMapping("/review/status/{targetId}")
+    public ResponseEntity<Map<String, Boolean>> getReviewStatus(@PathVariable String targetId) {
+        return ResponseEntity.ok(Map.of("reviewed", socialService.didIReviewUser(targetId)));
+    }
+
+    @GetMapping("/follow/mutual/{targetId}")
+    public ResponseEntity<Map<String, Boolean>> getMutualFollowStatus(@PathVariable String targetId) {
+        return ResponseEntity.ok(Map.of("mutual", socialService.isMutualFollow(targetId)));
     }
 }

@@ -275,4 +275,77 @@ public class SocialService {
                 .map(profileService::convertToPublicDto)
                 .collect(Collectors.toList());
     }
-}
+
+    // ====================== INBOUND: WHO LIKED / FOLLOWS / REVIEWED ME ======================
+
+    public List<UserDto> getMyLikers() {
+        User currentUser = getCurrentUser();
+        List<Like> likes = likeRepository.findByTargetId(currentUser.getId());
+
+        List<String> likerIds = likes.stream()
+                .map(like -> like.getUser().getId())
+                .collect(Collectors.toList());
+
+        if (likerIds.isEmpty()) {
+            return List.of();
+        }
+
+        return userRepository.findAllById(likerIds).stream()
+                .filter(user -> user.isActive() && !user.isArchived())
+                .map(profileService::convertToPublicDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<UserDto> getMyFollowers() {
+        User currentUser = getCurrentUser();
+        List<Follower> followers = followerRepository.findByUserId(currentUser.getId());
+
+        List<String> followerIds = followers.stream()
+                .map(f -> f.getFollower().getId())
+                .collect(Collectors.toList());
+
+        if (followerIds.isEmpty()) {
+            return List.of();
+        }
+
+        return userRepository.findAllById(followerIds).stream()
+                .filter(user -> user.isActive() && !user.isArchived())
+                .map(profileService::convertToPublicDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<Review> getMyReviews() {
+        User currentUser = getCurrentUser();
+        return reviewRepository.findByTargetId(currentUser.getId());
+    }
+
+    public List<Review> getMyWrittenReviews() {
+        User currentUser = getCurrentUser();
+        return reviewRepository.findByUserId(currentUser.getId());
+    }
+
+    // ====================== RELATIONSHIP STATUS CHECKS ======================
+
+    public boolean didILikeUser(String targetId) {
+        User currentUser = getCurrentUser();
+        return likeRepository.findByUserIdAndTargetId(currentUser.getId(), targetId).isPresent();
+    }
+
+    public boolean doIFollowUser(String targetId) {
+        User currentUser = getCurrentUser();
+        // followerRepository: findByUserIdAndFollowerId(userId=target, followerId=me)
+        return followerRepository.findByUserIdAndFollowerId(targetId, currentUser.getId()).isPresent();
+    }
+
+    public boolean didIReviewUser(String targetId) {
+        User currentUser = getCurrentUser();
+        return reviewRepository.findByUserIdAndTargetId(currentUser.getId(), targetId).isPresent();
+    }
+
+    public boolean isMutualFollow(String targetId) {
+        User currentUser = getCurrentUser();
+        String myId = currentUser.getId();
+        boolean iFollowThem = followerRepository.findByUserIdAndFollowerId(targetId, myId).isPresent();
+        boolean theyFollowMe = followerRepository.findByUserIdAndFollowerId(myId, targetId).isPresent();
+        return iFollowThem && theyFollowMe;
+    }}

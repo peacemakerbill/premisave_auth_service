@@ -16,4 +16,7 @@ public interface LikeRepository extends MongoRepository<Like, String> {
     long countByUserId(String userId);
 
     List<Like> findByUserId(String userId);
+
+    // Who liked me — inbound
+    List<Like> findByTargetId(String targetId);
 }

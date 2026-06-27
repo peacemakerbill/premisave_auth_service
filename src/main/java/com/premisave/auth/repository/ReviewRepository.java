@@ -13,6 +13,9 @@ public interface ReviewRepository extends MongoRepository<Review, String> {
 
     List<Review> findByTargetId(String targetId);
 
+    // Reviews I wrote — outbound
+    List<Review> findByUserId(String userId);
+
     long countByTargetId(String targetId);
 
     @Aggregation(pipeline = {
