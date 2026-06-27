@@ -280,8 +280,10 @@ public class ProfileService {
         return userRepository.findByActiveTrueAndArchivedFalse().stream()
                 .map(user -> new UserDirectoryDto(
                         user.getId(),
+                        (user.getFirstName() + " " + (user.getMiddleName() != null ? user.getMiddleName() + " " : "") + user.getLastName()).trim(),
                         user.getEmail(),
-                        user.getPhoneNumber()))
+                        user.getPhoneNumber(),
+                        user.getProfilePictureUrl()))
                 .collect(Collectors.toList());
     }
 
