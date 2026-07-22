@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 @JsonPropertyOrder({
     "id", "username", "email",
-    "firstName", "middleName", "lastName",
+    "firstName", "middleName", "lastName", "fullName",
     "phoneNumber", "country", "address1", "address2",
     "language", "profilePictureUrl",
     "role",
@@ -47,4 +47,27 @@ public class UserDto {
 
     // Security (should always be null in responses)
     private String password;
+
+    /**
+     * Computed convenience field for cross-service consumers (e.g.
+     * property-service's own UserDto, deserialized from /profile/me) that
+     * expect a single fullName rather than firstName/middleName/lastName.
+     * No backing field — Jackson serializes this as "fullName" automatically
+     * because it's a public no-arg getter following bean convention.
+     */
+    public String getFullName() {
+        StringBuilder sb = new StringBuilder();
+        if (firstName != null && !firstName.isBlank()) {
+            sb.append(firstName.trim());
+        }
+        if (middleName != null && !middleName.isBlank()) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(middleName.trim());
+        }
+        if (lastName != null && !lastName.isBlank()) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(lastName.trim());
+        }
+        return sb.length() > 0 ? sb.toString() : null;
+    }
 }
