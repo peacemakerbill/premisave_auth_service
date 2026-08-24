@@ -242,10 +242,6 @@ public class ProfileService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         UserDto dto = convertToDto(user);
-        dto.setEmail(null);
-        dto.setPhoneNumber(null);
-        dto.setAddress1(null);
-        dto.setAddress2(null);
         dto.setPassword(null);
 
         return dto;
