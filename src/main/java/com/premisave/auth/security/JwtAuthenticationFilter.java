@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -49,7 +51,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String userEmail = jwtService.extractUsername(jwt);
+        // Malformed/garbage tokens (wrong signature, not a JWT at all, etc.)
+        // throw here - catch and treat as "not authenticated" rather than
+        // letting it crash the request with a raw 500. This is a normal,
+        // expected condition (any client can send a bad token), not a bug,
+        // so it's handled the same way a missing Authorization header is
+        // handled above: let the request continue unauthenticated, and
+        // Spring Security's own authorization rules return 401/403 for
+        // any protected endpoint naturally.
+        String userEmail = null;
+        try {
+            userEmail = jwtService.extractUsername(jwt);
+        } catch (Exception e) {
+            log.warn("Rejected malformed/invalid JWT: {}", e.getMessage());
+        }
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
