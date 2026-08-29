@@ -1,5 +1,6 @@
 package com.premisave.auth.controller;
 
+import com.premisave.auth.dto.UserDetailsInternalResponse;
 import com.premisave.auth.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -8,14 +9,24 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 /**
- * Internal-only endpoint for cross-service user validation.
+ * Internal-only endpoints for cross-service user validation/lookup.
  *
- * Protected by ApiKeyFilter (X-API-Key header) — not exposed to end users.
- * Called by the wallet service during M-Pesa C2B validation to confirm
- * that the email typed at the M-Pesa prompt belongs to a real, active account.
+ * Protected by ApiKeyFilter (X-API-Key header) — not exposed to end
+ * users. Called by the wallet service: validate-email during M-Pesa C2B
+ * validation, and {email}/details to resolve a real name for transfer/
+ * payment notification emails (see AuthServiceClient in the wallet
+ * service).
  *
- * Safaricom requires a response within 8 seconds — this endpoint is designed
- * to be as fast as possible (single indexed DB lookup, no heavy computation).
+ * SECURITY NOTE on why {email}/details lives here specifically, under
+ * /internal/users, rather than at /auth/users/{email}/details (where the
+ * wallet service's AuthServiceClient interface originally — and
+ * incorrectly — pointed before this fix): AuthController's own /auth/**
+ * path space has to allow unauthenticated requests (signup, signin,
+ * etc.), so anything placed there risks being reachable with no auth at
+ * all. Every genuinely internal, service-to-service endpoint in this
+ * controller shares the same ApiKeyFilter protection and the same
+ * /internal/users prefix — deliberately, so there's one consistent place
+ * cross-service lookups live, not one path convention per endpoint.
  */
 @Slf4j
 @RestController
@@ -72,6 +83,41 @@ public class InternalUserValidationController {
                 .orElseGet(() -> {
                     log.warn("C2B validation: no account found for — {}", email);
                     return validationResponse(false, "NOT_FOUND");
+                });
+    }
+
+    /**
+     * Returns full user details for cross-service consumption — id,
+     * email, role, active/verified status, and name fields (firstName/
+     * middleName/lastName plus a computed fullName, same pattern as
+     * UserDto.getFullName()). Currently used by the wallet service to
+     * resolve a real name for transfer/payment notification emails.
+     *
+     * GET /internal/users/{email}/details
+     * Header: X-API-Key: <secret>
+     *
+     * Returns 404 if no user exists with this email — the wallet
+     * service's own AuthServiceClient declares this call as
+     * Optional<UserDetailsDto>, so a 404 here correctly resolves to an
+     * empty Optional on the caller's side via Feign's standard handling,
+     * rather than needing a wrapped "found" boolean the way
+     * validate-email above does.
+     */
+    @GetMapping("/{email}/details")
+    public ResponseEntity<UserDetailsInternalResponse> getUserDetails(@PathVariable String email) {
+        log.debug("Internal user-details lookup requested for: {}", email);
+
+        if (email == null || email.isBlank() || !email.contains("@")) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        return userRepository.findByEmail(email.trim().toLowerCase())
+                .map(user -> ResponseEntity.ok(new UserDetailsInternalResponse(
+                        user.getId(), user.getEmail(), user.getRole(), user.isActive(), user.isVerified(),
+                        user.getFirstName(), user.getMiddleName(), user.getLastName())))
+                .orElseGet(() -> {
+                    log.debug("User-details lookup: no account found for — {}", email);
+                    return ResponseEntity.notFound().build();
                 });
     }
 
