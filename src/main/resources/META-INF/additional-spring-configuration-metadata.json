@@ -15,7 +15,7 @@
     {
       "name": "oauth.google.client-id",
       "type": "java.lang.String",
-      "description": "Google OAuth2 client ID from Google Cloud Console (APIs & Services → Credentials)."
+      "description": "Google OAuth2 client ID(s) from Google Cloud Console (APIs & Services → Credentials). Comma-separate several IDs (e.g. web, Android, iOS) to accept ID tokens issued to any of them."
     },
     {
       "name": "oauth.facebook.app-id",
@@ -25,7 +25,17 @@
     {
       "name": "oauth.facebook.app-secret",
       "type": "java.lang.String",
-      "description": "Facebook OAuth2 app secret used for token debug endpoint verification."
+      "description": "Facebook app secret, used to verify access tokens with /debug_token and to sign Graph API calls with appsecret_proof."
+    },
+    {
+      "name": "oauth.github.client-id",
+      "type": "java.lang.String",
+      "description": "GitHub OAuth App client ID (GitHub → Settings → Developer settings → OAuth Apps)."
+    },
+    {
+      "name": "oauth.github.client-secret",
+      "type": "java.lang.String",
+      "description": "GitHub OAuth App client secret, used to exchange authorization codes and check access tokens."
     },
     {
       "name": "cloudinary.cloud-name",
@@ -87,24 +97,56 @@
     {
       "name": "logging.level.values",
       "values": [
-        {"value": "TRACE"},
-        {"value": "DEBUG"},
-        {"value": "INFO"},
-        {"value": "WARN"},
-        {"value": "ERROR"},
-        {"value": "FATAL"},
-        {"value": "OFF"}
+        {
+          "value": "TRACE"
+        },
+        {
+          "value": "DEBUG"
+        },
+        {
+          "value": "INFO"
+        },
+        {
+          "value": "WARN"
+        },
+        {
+          "value": "ERROR"
+        },
+        {
+          "value": "FATAL"
+        },
+        {
+          "value": "OFF"
+        }
       ]
     },
     {
       "name": "logging.level.keys",
       "values": [
-        {"value": "root", "description": "Root logger level."},
-        {"value": "com.premisave.auth", "description": "All Premisave auth application classes."},
-        {"value": "org.springframework.data.mongodb", "description": "MongoDB data layer."},
-        {"value": "org.springframework.security", "description": "Spring Security."},
-        {"value": "org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport", "description": "Suppresses Redis/MongoDB repository conflict warnings."},
-        {"value": "org.springframework.cloud.commons.util.InetUtils", "description": "Suppresses hostname resolution warnings from Spring Cloud."}
+        {
+          "value": "root",
+          "description": "Root logger level."
+        },
+        {
+          "value": "com.premisave.auth",
+          "description": "All Premisave auth application classes."
+        },
+        {
+          "value": "org.springframework.data.mongodb",
+          "description": "MongoDB data layer."
+        },
+        {
+          "value": "org.springframework.security",
+          "description": "Spring Security."
+        },
+        {
+          "value": "org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport",
+          "description": "Suppresses Redis/MongoDB repository conflict warnings."
+        },
+        {
+          "value": "org.springframework.cloud.commons.util.InetUtils",
+          "description": "Suppresses hostname resolution warnings from Spring Cloud."
+        }
       ]
     }
   ]

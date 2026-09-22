@@ -1,9 +1,5 @@
 package com.premisave.auth.service;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
 import com.premisave.auth.dto.AuthResponse;
 import com.premisave.auth.dto.OAuthRequest;
 import com.premisave.auth.dto.OAuthUserInfo;
@@ -12,200 +8,288 @@ import com.premisave.auth.enums.Language;
 import com.premisave.auth.enums.Role;
 import com.premisave.auth.repository.UserRepository;
 import com.premisave.auth.security.JwtService;
+import com.premisave.auth.service.oauth.OAuthProviderClient;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-@Service
+/**
+ * Social sign-up and sign-in (Google, Facebook, GitHub).
+ *
+ * Resolution order for an incoming social login:
+ *   1. a user already linked to this provider account (provider id)
+ *   2. an existing user with the same, provider-verified email — linked on the spot
+ *   3. otherwise a new CLIENT account is created, already verified
+ *
+ * The provider's profile picture is copied to Cloudinary whenever the user
+ * has no picture hosted by us yet, so it is captured on sign-up and repaired
+ * on later sign-ins if an earlier import failed.
+ */
 @Slf4j
+@Service
 public class OAuthService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
-    private final RestTemplate restTemplate;
-
-    @Value("${oauth.google.client-id}")
-    private String googleClientId;
+    private final PasswordEncoder passwordEncoder;
+    private final ProfilePictureStorage pictureStorage;
+    private final Map<String, OAuthProviderClient> clients;
 
     public OAuthService(UserRepository userRepository,
-                        JwtService jwtService) {
+                        JwtService jwtService,
+                        PasswordEncoder passwordEncoder,
+                        ProfilePictureStorage pictureStorage,
+                        List<OAuthProviderClient> providerClients) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
-        this.restTemplate = new RestTemplate();
+        this.passwordEncoder = passwordEncoder;
+        this.pictureStorage = pictureStorage;
+        this.clients = providerClients.stream()
+                .collect(Collectors.toUnmodifiableMap(OAuthProviderClient::provider, Function.identity()));
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Entry point — routes to the correct provider verifier
+    //  Entry point
     // ─────────────────────────────────────────────────────────────
 
     public AuthResponse handleOAuth(OAuthRequest request) {
-        String provider = request.getProvider().toLowerCase().trim();
+        String provider = request.getProvider().trim().toLowerCase(Locale.ROOT);
 
-        OAuthUserInfo userInfo = switch (provider) {
-            case "google"   -> verifyGoogleToken(request.getToken());
-            case "facebook" -> verifyFacebookToken(request.getToken());
-            default -> throw new RuntimeException("Unsupported OAuth provider: " + provider);
-        };
-
-        User user = findOrCreateUser(userInfo);
-
-        AuthResponse response = new AuthResponse();
-        response.setToken(jwtService.generateToken(user));
-        response.setRole(user.getRole().name());
-        return response;
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    //  Google — verify ID token using Google's library
-    // ─────────────────────────────────────────────────────────────
-
-    private OAuthUserInfo verifyGoogleToken(String idTokenString) {
-        try {
-            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                    new NetHttpTransport(), GsonFactory.getDefaultInstance())
-                    .setAudience(Collections.singletonList(googleClientId))
-                    .build();
-
-            GoogleIdToken idToken = verifier.verify(idTokenString);
-            if (idToken == null) {
-                throw new RuntimeException("Invalid Google token — verification failed");
-            }
-
-            GoogleIdToken.Payload payload = idToken.getPayload();
-
-            return OAuthUserInfo.builder()
-                    .providerId(payload.getSubject())
-                    .email(payload.getEmail())
-                    .firstName((String) payload.get("given_name"))
-                    .lastName((String) payload.get("family_name"))
-                    .profilePictureUrl((String) payload.get("picture"))
-                    .provider("google")
-                    .build();
-
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Google token verification error: " + e.getMessage(), e);
+        OAuthProviderClient client = clients.get(provider);
+        if (client == null) {
+            throw new RuntimeException("Unsupported OAuth provider: " + provider
+                    + ". Supported providers: google, facebook, github");
         }
-    }
 
-    // ─────────────────────────────────────────────────────────────
-    //  Facebook — exchange access token against Graph API
-    // ─────────────────────────────────────────────────────────────
-
-    @SuppressWarnings("rawtypes")
-	private OAuthUserInfo verifyFacebookToken(String accessToken) {
-        try {
-            String url = "https://graph.facebook.com/me"
-                    + "?fields=id,first_name,last_name,email,picture.type(large)"
-                    + "&access_token=" + accessToken;
-
-            ResponseEntity<Map> responseEntity = restTemplate.getForEntity(url, Map.class);
-            Map<?, ?> body = responseEntity.getBody();
-
-            if (body == null || body.containsKey("error")) {
-                throw new RuntimeException("Invalid Facebook token — Graph API rejected it");
-            }
-
-            String email = (String) body.get("email");
-            if (email == null || email.isBlank()) {
-                // Facebook can withhold email if user hasn't granted permission
-                throw new RuntimeException(
-                        "Facebook did not return an email address. "
-                        + "Please ensure the 'email' permission is granted in your Facebook app.");
-            }
-
-            // Extract nested picture URL safely
-            String pictureUrl = null;
-            Object pictureObj = body.get("picture");
-            if (pictureObj instanceof Map<?, ?> picMap) {
-                Object dataObj = picMap.get("data");
-                if (dataObj instanceof Map<?, ?> dataMap) {
-                    pictureUrl = (String) dataMap.get("url");
-                }
-            }
-
-            return OAuthUserInfo.builder()
-                    .providerId((String) body.get("id"))
-                    .email(email)
-                    .firstName((String) body.get("first_name"))
-                    .lastName((String) body.get("last_name"))
-                    .profilePictureUrl(pictureUrl)
-                    .provider("facebook")
-                    .build();
-
-        } catch (RuntimeException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException("Facebook token verification error: " + e.getMessage(), e);
+        OAuthUserInfo info = client.fetchUser(request);
+        if (isBlank(info.getProviderId())) {
+            throw new RuntimeException("The " + provider + " account id could not be determined");
         }
+        if (isBlank(info.getEmail())) {
+            throw new RuntimeException("The " + provider + " account did not provide an email address");
+        }
+
+        User user = findOrCreateUser(info);
+        user.setLastLoginAt(LocalDateTime.now());
+        user = userRepository.save(user);
+
+        log.info("OAuth sign-in via {} for user {}", provider, user.getId());
+        return new AuthResponse(jwtService.generateToken(user), user.getRole().name());
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  Upsert: find existing user by email, or create a new one
+    //  Account resolution
     // ─────────────────────────────────────────────────────────────
 
     private User findOrCreateUser(OAuthUserInfo info) {
-        Optional<User> existing = userRepository.findByEmail(info.getEmail());
+        String provider = info.getProvider();
+        String providerId = info.getProviderId();
+        String rawEmail = info.getEmail().trim();
+        String email = rawEmail.toLowerCase(Locale.ROOT);
 
-        if (existing.isPresent()) {
-            User user = existing.get();
-
-            // Keep profile picture in sync if user doesn't have one
-            if (user.getProfilePictureUrl() == null
-                    && info.getProfilePictureUrl() != null) {
-                user.setProfilePictureUrl(info.getProfilePictureUrl());
-                userRepository.save(user);
-            }
-
-            if (!user.isActive()) {
-                throw new RuntimeException("Account is deactivated. Please contact support.");
-            }
-
-            // If account exists but was registered with email/password,
-            // we still let them in — the email match is authoritative.
+        // 1. Already linked to this provider account
+        Optional<User> linked = findByProviderId(provider, providerId);
+        if (linked.isPresent()) {
+            User user = linked.get();
+            ensureCanSignIn(user);
+            syncProfile(user, info);
             return user;
         }
 
-        // ── New user — auto-create and sign in ──
+        // 2. Existing account with the same verified email → link it
+        Optional<User> byEmail = userRepository.findByEmail(email);
+        if (byEmail.isEmpty() && !email.equals(rawEmail)) {
+            byEmail = userRepository.findByEmail(rawEmail);
+        }
+        if (byEmail.isPresent()) {
+            User user = byEmail.get();
+            ensureCanSignIn(user);
+
+            String existingId = getProviderId(user, provider);
+            if (existingId != null && !existingId.equals(providerId)) {
+                throw new RuntimeException("This email is already linked to a different "
+                        + displayName(provider) + " account");
+            }
+            setProviderId(user, provider, providerId);
+
+            // The provider has confirmed ownership of this email
+            if (!user.isVerified()) {
+                user.setVerified(true);
+            }
+
+            syncProfile(user, info);
+            log.info("Linked {} account to existing user {}", provider, user.getId());
+            return user;
+        }
+
+        // 3. New user
+        return createUser(info, email);
+    }
+
+    private User createUser(OAuthUserInfo info, String email) {
+        NameParts names = resolveNames(info, email);
+
         User user = new User();
-        user.setEmail(info.getEmail());
-        user.setFirstName(info.getFirstName());
-        user.setLastName(info.getLastName());
-        user.setProfilePictureUrl(info.getProfilePictureUrl());
+        user.setEmail(email);
+        user.setFirstName(names.first());
+        user.setLastName(names.last());
+        user.setUsername(resolveUniqueUsername(baseUsername(info, email)));
         user.setRole(Role.CLIENT);
         user.setActive(true);
-        user.setVerified(true);   // OAuth provider already verified the email
+        user.setVerified(true);   // The provider has verified the email
         user.setArchived(false);
         user.setLanguage(Language.ENGLISH);
 
-        // Generate a unique username from the email prefix
-        String baseUsername = info.getEmail().split("@")[0].replaceAll("[^a-zA-Z0-9_]", "");
-        user.setUsername(resolveUniqueUsername(baseUsername));
+        // Social accounts have no usable password; store an encoded random one
+        user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+        setProviderId(user, info.getProvider(), info.getProviderId());
 
-        // OAuth users have no password — set a random unguessable one
-        user.setPassword(UUID.randomUUID().toString());
-
+        // Save first so the picture can be stored under the user's id
         user = userRepository.save(user);
-        log.info("New OAuth user created: {} via {}", user.getEmail(), info.getProvider());
+
+        if (!isBlank(info.getProfilePictureUrl())) {
+            user.setProfilePictureUrl(pictureStorage.importFromUrl(info.getProfilePictureUrl(), user.getId()));
+        }
+
+        log.info("New user {} created via {}", user.getId(), info.getProvider());
         return user;
     }
 
-    /**
-     * Appends a numeric suffix if the desired username is already taken.
-     * e.g. "johndoe" → "johndoe2" → "johndoe3"
-     */
+    /** Fills gaps only — never overwrites names or a picture the user already has on Cloudinary. */
+    private void syncProfile(User user, OAuthUserInfo info) {
+        NameParts names = resolveNames(info, user.getEmail());
+        if (isBlank(user.getFirstName())) {
+            user.setFirstName(names.first());
+        }
+        if (isBlank(user.getLastName()) && !isBlank(names.last())) {
+            user.setLastName(names.last());
+        }
+
+        if (!isBlank(info.getProfilePictureUrl()) && !pictureStorage.isHostedByUs(user.getProfilePictureUrl())) {
+            user.setProfilePictureUrl(pictureStorage.importFromUrl(info.getProfilePictureUrl(), user.getId()));
+        }
+    }
+
+    private void ensureCanSignIn(User user) {
+        if (user.isArchived()) {
+            throw new RuntimeException("This account has been archived. Please contact support.");
+        }
+        if (!user.isActive()) {
+            throw new RuntimeException("Account is deactivated. Please contact support.");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  Provider id fields on User
+    // ─────────────────────────────────────────────────────────────
+
+    private Optional<User> findByProviderId(String provider, String providerId) {
+        return switch (provider) {
+            case "google" -> userRepository.findByGoogleId(providerId);
+            case "facebook" -> userRepository.findByFacebookId(providerId);
+            case "github" -> userRepository.findByGithubId(providerId);
+            default -> Optional.empty();
+        };
+    }
+
+    private String getProviderId(User user, String provider) {
+        return switch (provider) {
+            case "google" -> user.getGoogleId();
+            case "facebook" -> user.getFacebookId();
+            case "github" -> user.getGithubId();
+            default -> null;
+        };
+    }
+
+    private void setProviderId(User user, String provider, String providerId) {
+        switch (provider) {
+            case "google" -> user.setGoogleId(providerId);
+            case "facebook" -> user.setFacebookId(providerId);
+            case "github" -> user.setGithubId(providerId);
+            default -> throw new IllegalArgumentException("Unknown provider: " + provider);
+        }
+    }
+
+    private String displayName(String provider) {
+        return switch (provider) {
+            case "google" -> "Google";
+            case "facebook" -> "Facebook";
+            case "github" -> "GitHub";
+            default -> provider;
+        };
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  Names and usernames
+    // ─────────────────────────────────────────────────────────────
+
+    private record NameParts(String first, String last) {
+    }
+
+    /** Uses first/last name when given, otherwise splits the full name, otherwise the email prefix. */
+    private NameParts resolveNames(OAuthUserInfo info, String email) {
+        String first = trimToNull(info.getFirstName());
+        String last = trimToNull(info.getLastName());
+
+        if (first == null && last == null) {
+            String full = trimToNull(info.getFullName());
+            if (full != null) {
+                int split = full.lastIndexOf(' ');
+                if (split > 0) {
+                    first = full.substring(0, split).trim();
+                    last = full.substring(split + 1).trim();
+                } else {
+                    first = full;
+                }
+            }
+        }
+
+        if (first == null) {
+            first = email.split("@")[0];
+        }
+        return new NameParts(first, last);
+    }
+
+    private String baseUsername(OAuthUserInfo info, String email) {
+        String base = !isBlank(info.getUsernameHint()) ? info.getUsernameHint() : email.split("@")[0];
+
+        // Same character set ProfileUpdateRequest allows: letters, digits, dot, underscore, hyphen
+        base = base.replaceAll("[^a-zA-Z0-9_.-]", "");
+        if (base.length() < 3) {
+            base = base + "user";
+        }
+        if (base.length() > 40) {
+            base = base.substring(0, 40);
+        }
+        return base;
+    }
+
+    /** Appends a numeric suffix if taken: "johndoe" → "johndoe2" → "johndoe3". */
     private String resolveUniqueUsername(String base) {
-        if (!userRepository.existsByUsername(base)) return base;
+        if (!userRepository.existsByUsername(base)) {
+            return base;
+        }
         int suffix = 2;
-        while (userRepository.existsByUsername(base + suffix)) suffix++;
+        while (userRepository.existsByUsername(base + suffix)) {
+            suffix++;
+        }
         return base + suffix;
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
+    private static String trimToNull(String value) {
+        return isBlank(value) ? null : value.trim();
     }
 }

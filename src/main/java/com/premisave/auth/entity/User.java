@@ -8,6 +8,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.DocumentReference;
 import org.springframework.security.core.GrantedAuthority;
@@ -46,6 +47,16 @@ public class User implements UserDetails {
     private boolean active = true;
     private boolean verified = false;
     private boolean archived = false;
+
+    // === SOCIAL SIGN-IN LINKS (provider account ids) ===
+    @Indexed(unique = true, sparse = true)
+    private String googleId;
+
+    @Indexed(unique = true, sparse = true)
+    private String facebookId;
+
+    @Indexed(unique = true, sparse = true)
+    private String githubId;
 
     // === AUDIT FIELDS ===
     @CreatedDate

@@ -1,15 +1,13 @@
 package com.premisave.auth.service;
 
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
 import com.premisave.auth.dto.ProfileUpdateRequest;
 import com.premisave.auth.dto.ProfileUploadResponse;
 import com.premisave.auth.dto.UserDirectoryDto;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.entity.User;
 import com.premisave.auth.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,28 +20,33 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class ProfileService {
 
     private final UserRepository userRepository;
-    private final Cloudinary cloudinary;
+    private final ProfilePictureStorage pictureStorage;
     private final PasswordEncoder passwordEncoder;
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = new HashSet<>(
             Arrays.asList("image/jpeg", "image/png", "image/gif", "image/webp"));
 
-    @Value("${spring.servlet.multipart.max-file-size:10MB}")
-    private String maxFileSizeStr;
-    @Value("${cloudinary.cloud-name}")
-    private String cloudName;
+    private final String maxFileSizeStr;
+    private final long maxFileSizeBytes;
 
-
-    private long maxFileSizeBytes;
-
-    public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder) {
+    /*
+     * max-file-size is injected through the constructor: with field
+     * injection it is still null while the constructor runs, so the
+     * configured limit was never actually parsed.
+     */
+    public ProfileService(UserRepository userRepository,
+                          ProfilePictureStorage pictureStorage,
+                          PasswordEncoder passwordEncoder,
+                          @Value("${spring.servlet.multipart.max-file-size:10MB}") String maxFileSizeStr) {
         this.userRepository = userRepository;
-        this.cloudinary = cloudinary;
+        this.pictureStorage = pictureStorage;
         this.passwordEncoder = passwordEncoder;
+        this.maxFileSizeStr = maxFileSizeStr;
         this.maxFileSizeBytes = parseMaxFileSize();
     }
 
@@ -66,7 +69,7 @@ public class ProfileService {
                 return Long.parseLong(value);
             }
         } catch (Exception e) {
-            System.err.println("Failed to parse max-file-size: " + maxFileSizeStr + ". Using 10MB default.");
+            log.warn("Failed to parse max-file-size: {}. Using 10MB default.", maxFileSizeStr);
             return 10 * 1024 * 1024;
         }
     }
@@ -111,9 +114,10 @@ public class ProfileService {
     }
 
     /**
-     * Validates the file eagerly (fast, in-thread), then fires the actual
-     * Cloudinary upload on a background thread via @Async.
-     * The caller gets an immediate acknowledgement response.
+     * Validates the file eagerly (fast, in-thread), saves the final CDN URL
+     * immediately, and hands the actual Cloudinary upload to
+     * ProfilePictureStorage.uploadAsync, which runs on a background thread.
+     * The caller gets an immediate response with the new URL.
      */
     public ProfileUploadResponse uploadProfilePic(MultipartFile file) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -141,90 +145,19 @@ public class ProfileService {
             return new ProfileUploadResponse("Failed to read file: " + e.getMessage(), null, false);
         }
 
-        // Pre-compute the public ID and final CDN URL deterministically.
-        // Cloudinary's URL structure is fixed: https://res.cloudinary.com/{cloud}/image/upload/{folder}/{publicId}
-        // We know this before the upload happens, so we can persist and return it immediately.
-        String publicId = "user_" + user.getId() + "_" + System.currentTimeMillis();
-        String folder = "premisave/profile-photos";
-        String precomputedUrl = String.format(
-                "https://res.cloudinary.com/%s/image/upload/w_400,h_400,c_fill,q_auto,f_auto/%s/%s",
-                cloudName, folder, publicId);
+        // The delivery URL is deterministic, so it can be saved before the upload finishes
+        String publicId = pictureStorage.newPublicId(user.getId());
+        String newUrl = pictureStorage.deliveryUrl(publicId);
 
-        // Persist the URL immediately so the client can use it right away
-        String oldUrl = user.getProfilePictureUrl();
-        user.setProfilePictureUrl(precomputedUrl);
+        String previousUrl = user.getProfilePictureUrl();
+        user.setProfilePictureUrl(newUrl);
         userRepository.save(user);
 
-        // Upload to Cloudinary in the background — client already has the URL
-        uploadToCloudinaryAsync(oldUrl, fileBytes, publicId, folder, user.getId());
+        // Separate bean, so @Async applies. Deletes the previous picture on success,
+        // reverts the user's URL on failure.
+        pictureStorage.uploadAsync(fileBytes, publicId, user.getId(), previousUrl);
 
-        return new ProfileUploadResponse("Profile picture uploaded successfully", precomputedUrl, true);
-    }
-
-    /**
-     * Runs on a background thread via @EnableAsync.
-     * The URL is already saved — this just ensures the image actually lands on Cloudinary.
-     * If it fails, the stored URL will 404 until a retry; log accordingly.
-     */
-    @Async
-    public void uploadToCloudinaryAsync(String oldUrl, byte[] fileBytes,
-                                         String publicId, String folder, String userId) {
-        try {
-            if (oldUrl != null && !oldUrl.isEmpty()) {
-                deleteOldProfilePicture(oldUrl);
-            }
-
-            cloudinary.uploader().upload(fileBytes, ObjectUtils.asMap(
-                    "public_id", publicId,
-                    "folder", folder,
-                    "transformation", "w_400,h_400,c_fill,q_auto,f_auto"));
-
-        } catch (Exception e) {
-            System.err.println("Async Cloudinary upload failed for user " + userId + ": " + e.getMessage());
-        }
-    }
-
-    private void deleteOldProfilePicture(String oldUrl) {
-        if (oldUrl == null || oldUrl.isEmpty()) return;
-
-        try {
-            String publicId = extractPublicIdFromUrl(oldUrl);
-            if (publicId != null) {
-                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to delete old profile picture: " + e.getMessage());
-        }
-    }
-
-    private String extractPublicIdFromUrl(String url) {
-        try {
-            String[] parts = url.split("/");
-            boolean foundUpload = false;
-            StringBuilder publicId = new StringBuilder();
-
-            for (String part : parts) {
-                if (foundUpload) {
-                    if (publicId.length() > 0) publicId.append("/");
-                    publicId.append(part);
-                }
-                if ("upload".equals(part)) {
-                    foundUpload = true;
-                }
-            }
-
-            String id = publicId.toString();
-            // Skip version segment (e.g. "v1234567890")
-            if (id.startsWith("v") && id.contains("/")) {
-                id = id.substring(id.indexOf("/") + 1);
-            }
-            if (id.contains(".")) {
-                id = id.substring(0, id.lastIndexOf("."));
-            }
-            return id.isEmpty() ? null : id;
-        } catch (Exception e) {
-            return null;
-        }
+        return new ProfileUploadResponse("Profile picture uploaded successfully", newUrl, true);
     }
 
     public UserDto getCurrentUserProfile() {

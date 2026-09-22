@@ -33,13 +33,16 @@ public class AuthController {
     }
 
     /**
-     * OAuth Sign-in / Sign-up (Google & Facebook)
+     * OAuth Sign-in / Sign-up (Google, Facebook & GitHub)
      *
      * POST /auth/oauth
-     * Body: { "provider": "google", "token": "<ID token from Google Sign-In SDK>" }
-     *   or: { "provider": "facebook", "token": "<access token from Facebook Login SDK>" }
+     * Body: { "provider": "google",   "token": "<ID token from Google Sign-In>" }
+     *   or: { "provider": "facebook", "token": "<access token from Facebook Login>" }
+     *   or: { "provider": "github",   "code": "<authorization code>", "redirectUri": "<redirect_uri used>" }
      *
-     * Returns the same AuthResponse as regular signin — a JWT ready to use.
+     * Creates the account on first sign-in (verified, role CLIENT) and copies the
+     * provider's profile picture to Cloudinary. Returns the same AuthResponse as
+     * regular signin — a JWT ready to use.
      */
     @PostMapping("/oauth")
     public ResponseEntity<AuthResponse> oauthSignin(@Valid @RequestBody OAuthRequest request) {
