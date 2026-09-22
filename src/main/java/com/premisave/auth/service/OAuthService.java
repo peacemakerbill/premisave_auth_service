@@ -105,7 +105,7 @@ public class OAuthService {
             return user;
         }
 
-        // 2. Existing account with the same verified email → link it
+        // 2. Existing account with the same verified email: link it
         Optional<User> byEmail = userRepository.findByEmail(email);
         if (byEmail.isEmpty() && !email.equals(rawEmail)) {
             byEmail = userRepository.findByEmail(rawEmail);
@@ -273,7 +273,7 @@ public class OAuthService {
         return base;
     }
 
-    /** Appends a numeric suffix if taken: "johndoe" → "johndoe2" → "johndoe3". */
+    /** Appends a numeric suffix if taken: "johndoe", then "johndoe2", then "johndoe3". */
     private String resolveUniqueUsername(String base) {
         if (!userRepository.existsByUsername(base)) {
             return base;

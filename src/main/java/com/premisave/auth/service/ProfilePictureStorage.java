@@ -183,7 +183,7 @@ public class ProfilePictureStorage {
      *
      * .../image/upload/w_400,h_400,c_fill,q_auto,f_auto/premisave/profile-photos/user_1_2
      * .../image/upload/v1712345678/premisave/profile-photos/user_1_2.jpg
-     *   both → premisave/profile-photos/user_1_2
+     *   both resolve to premisave/profile-photos/user_1_2
      */
     String extractPublicId(String url) {
         int uploadIndex = url.indexOf("/upload/");

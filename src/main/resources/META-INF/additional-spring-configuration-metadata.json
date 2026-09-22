@@ -15,7 +15,7 @@
     {
       "name": "oauth.google.client-id",
       "type": "java.lang.String",
-      "description": "Google OAuth2 client ID(s) from Google Cloud Console (APIs & Services → Credentials). Comma-separate several IDs (e.g. web, Android, iOS) to accept ID tokens issued to any of them."
+      "description": "Google OAuth2 client ID(s) from Google Cloud Console (APIs & Services, Credentials). Comma-separate several IDs (e.g. web, Android, iOS) to accept ID tokens issued to any of them."
     },
     {
       "name": "oauth.facebook.app-id",
@@ -30,7 +30,7 @@
     {
       "name": "oauth.github.client-id",
       "type": "java.lang.String",
-      "description": "GitHub OAuth App client ID (GitHub → Settings → Developer settings → OAuth Apps)."
+      "description": "GitHub OAuth App client ID (GitHub, Settings, Developer settings, OAuth Apps)."
     },
     {
       "name": "oauth.github.client-secret",

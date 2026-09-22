@@ -34,13 +34,20 @@ public class GoogleOAuthClient implements OAuthProviderClient {
 
     private final GoogleIdTokenVerifier verifier;
 
+    /** False when oauth.google.client-id is unset — Google sign-in is then disabled, not a startup failure. */
+    private final boolean configured;
+
     public GoogleOAuthClient(@Value("${oauth.google.client-id}") String clientIds) {
         List<String> audience = Arrays.stream(clientIds.split(","))
                 .map(String::trim)
                 .filter(id -> !id.isEmpty())
                 .toList();
+        this.configured = !audience.isEmpty();
 
-        // Built once: the verifier caches Google's public signing keys.
+        // Built once (even when unconfigured, with an empty audience — an
+        // empty audience makes every token fail verification, so this never
+        // accidentally accepts a token). The verifier caches Google's public
+        // signing keys.
         this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
                 .setAudience(audience)
                 .build();
@@ -53,6 +60,10 @@ public class GoogleOAuthClient implements OAuthProviderClient {
 
     @Override
     public OAuthUserInfo fetchUser(OAuthRequest request) {
+        if (!configured) {
+            throw new RuntimeException("Google sign-in is not configured on this server");
+        }
+
         String idTokenString = request.getToken();
         if (isBlank(idTokenString)) {
             throw new RuntimeException("Google sign-in requires the Google ID token in 'token'");

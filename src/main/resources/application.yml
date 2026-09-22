@@ -51,29 +51,41 @@ backend:
   url: ${BACKEND_URL:http://localhost:8080}
 
 # ── OAuth2 Credentials ──
-# Google: https://console.cloud.google.com  → APIs & Services → Credentials → Create OAuth 2.0 Client ID
-#         (comma-separate several client IDs, e.g. web,android,ios)
-# Facebook: https://developers.facebook.com → My Apps → Add App → Facebook Login
-# GitHub: https://github.com/settings/developers → OAuth Apps → New OAuth App
+# Every provider below is OPTIONAL and independent: leave its variables
+# unset (or delete them from .env) and the service still starts — that
+# one provider is simply unavailable via POST /auth/oauth until it is
+# configured. A blank default here is required for that: it guarantees
+# these placeholders always resolve, so a missing credential can never
+# by itself fail application startup.
+# Google:   https://console.cloud.google.com (APIs & Services, Credentials, Create OAuth 2.0 Client ID)
+#           (comma-separate several client IDs, e.g. web-id,android-id,ios-id)
+# Facebook: https://developers.facebook.com (My Apps, Add App, Facebook Login)
+# GitHub:   https://github.com/settings/developers (OAuth Apps, New OAuth App)
 oauth:
   google:
-    client-id: ${GOOGLE_CLIENT_ID}
+    client-id: ${GOOGLE_CLIENT_ID:}
   facebook:
-    app-id: ${FACEBOOK_APP_ID}
-    app-secret: ${FACEBOOK_APP_SECRET}
+    app-id: ${FACEBOOK_APP_ID:}
+    app-secret: ${FACEBOOK_APP_SECRET:}
   github:
-    client-id: ${GITHUB_CLIENT_ID}
-    client-secret: ${GITHUB_CLIENT_SECRET}
+    client-id: ${GITHUB_CLIENT_ID:}
+    client-secret: ${GITHUB_CLIENT_SECRET:}
 
 # ── External Services ──
+# No defaults: these are real account credentials and must come from
+# .env or the environment. Required — profile-picture upload and social
+# sign-in picture import fail to start without them.
 cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME:thepeacemakersllc}
-  api-key: ${CLOUDINARY_API_KEY:929659223288334}
-  api-secret: ${CLOUDINARY_API_SECRET:nAsBdgfXx86u7-Y8X2VnLa-2FbQ}
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
 
 # ── JWT ──
+# No default secret: every Premisave service that validates these tokens
+# must share the exact same JWT_SECRET, so a hardcoded fallback here would
+# either leak (if committed) or silently diverge from the other services.
 jwt:
-  secret: ${JWT_SECRET:eW91ci12ZXJ5LXNlY3VyZS1qd3Qtc2VjcmV0LWtleS0zMi1ieXRlcyE=}
+  secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:2592000000}
 
 # ── Rate Limiting ──
@@ -90,9 +102,10 @@ profile-views:
 
 # ── API Key (public endpoints guard) ──
 # Generate with: openssl rand -hex 32
-# Set via environment variable in production — never commit the real value.
+# No default: must be identical to INTERNAL_API_KEY in the wallet service
+# and any other service calling this one's /internal/** endpoints.
 app:
-  api-key: ${API_KEY:00183e19c295366cf171c0d449d8b5ca46291573c9d1643e1e441b0bf571d1c7}
+  api-key: ${API_KEY}
 
 # ── Logging ──
 logging:

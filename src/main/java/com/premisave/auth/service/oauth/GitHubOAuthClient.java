@@ -30,6 +30,10 @@ import static com.premisave.auth.service.oauth.OAuthUtils.isBlank;
  *
  * Alternative: an access token in "token". It is only accepted after GitHub
  * confirms (via the check-token API) that it was issued to this app.
+ *
+ * oauth.github.client-id / client-secret are optional: if either is unset,
+ * this client reports itself as unconfigured and GitHub sign-in is
+ * refused with a clear message rather than the service failing to start.
  */
 @Slf4j
 @Component
@@ -55,6 +59,10 @@ public class GitHubOAuthClient implements OAuthProviderClient {
         this.clientSecret = clientSecret.trim();
     }
 
+    private boolean configured() {
+        return !clientId.isEmpty() && !clientSecret.isEmpty();
+    }
+
     @Override
     public String provider() {
         return "github";
@@ -62,6 +70,10 @@ public class GitHubOAuthClient implements OAuthProviderClient {
 
     @Override
     public OAuthUserInfo fetchUser(OAuthRequest request) {
+        if (!configured()) {
+            throw new RuntimeException("GitHub sign-in is not configured on this server");
+        }
+
         String accessToken;
         if (!isBlank(request.getCode())) {
             accessToken = exchangeCode(request.getCode().trim(), request.getRedirectUri());

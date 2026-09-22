@@ -27,6 +27,10 @@ import static com.premisave.auth.service.oauth.OAuthUtils.isBlank;
  * issued to this app — without that check, a token issued to any other
  * Facebook app could be replayed here to sign in as its owner. The profile
  * is then read with an appsecret_proof.
+ *
+ * oauth.facebook.app-id / app-secret are optional: if either is unset,
+ * this client reports itself as unconfigured and Facebook sign-in is
+ * refused with a clear message rather than the service failing to start.
  */
 @Slf4j
 @Component
@@ -48,6 +52,10 @@ public class FacebookOAuthClient implements OAuthProviderClient {
         this.appSecret = appSecret.trim();
     }
 
+    private boolean configured() {
+        return !appId.isEmpty() && !appSecret.isEmpty();
+    }
+
     @Override
     public String provider() {
         return "facebook";
@@ -55,6 +63,10 @@ public class FacebookOAuthClient implements OAuthProviderClient {
 
     @Override
     public OAuthUserInfo fetchUser(OAuthRequest request) {
+        if (!configured()) {
+            throw new RuntimeException("Facebook sign-in is not configured on this server");
+        }
+
         String accessToken = request.getToken();
         if (isBlank(accessToken)) {
             throw new RuntimeException("Facebook sign-in requires the Facebook access token in 'token'");
