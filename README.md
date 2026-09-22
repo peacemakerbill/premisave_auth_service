@@ -5,7 +5,7 @@
 <h1 align="center">Premisave Auth Service: Authentication, Identity &amp; User Management API</h1>
 
 <p align="center">
-  <b>A Spring Boot 4 &amp; MongoDB microservice that issues and revokes the JWTs every other Premisave service trusts, and owns user accounts, profiles, social interactions, and location history for the Premisave property platform.</b>
+  <b>A Spring Boot 4 &amp; MongoDB microservice that issues and revokes the JWTs every other Premisave service trusts, signs users in with email and password or with Google, Facebook and GitHub, and owns user accounts, profiles, social interactions, and location history for the Premisave property platform.</b>
 </p>
 
 <p align="center">
@@ -29,6 +29,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Google-Sign--In-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google Sign-In" />
   <img src="https://img.shields.io/badge/Facebook-Login-1877F2?style=for-the-badge&logo=facebook&logoColor=white" alt="Facebook Login" />
+  <img src="https://img.shields.io/badge/GitHub-OAuth-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub OAuth" />
   <img src="https://img.shields.io/badge/Cloudinary-Media-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white" alt="Cloudinary" />
   <img src="https://img.shields.io/badge/Gmail-SMTP-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail SMTP" />
   <img src="https://img.shields.io/badge/JJWT-0.12.6-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JJWT 0.12.6" />
@@ -90,7 +91,7 @@
 Concretely, it:
 
 - registers users with email and password, verifies their address by email, and handles forgotten and changed passwords,
-- signs users in with Google or Facebook by verifying the provider's token server-side, creating the account on first login,
+- signs users in with Google, Facebook or GitHub by verifying the provider's credential server-side, creating the account on first login and importing its profile picture,
 - issues signed JWTs carrying the user's ID, email, and role, and revokes them on logout through a Redis blacklist,
 - owns the user profile (names, contact details, language, profile picture on Cloudinary),
 - provides the social layer used across the platform: likes, follows, star-rated reviews, and "who viewed my profile",
@@ -103,7 +104,7 @@ Concretely, it:
 | | |
 |---|---|
 | **Email and password accounts** | Signup, activation by emailed link (24-hour token), resend activation, forgot and reset password, change password. |
-| **Social sign-in** | Google (ID token verified with Google's verifier and your client ID) and Facebook (access token checked against the Graph API). New users are created and marked verified automatically. |
+| **Social sign-in** | Google (ID token verified with Google's verifier and your client ID), Facebook (access token checked with the Graph API's debug_token endpoint to confirm it belongs to your app, then read with appsecret_proof), and GitHub (authorization code exchanged server-side, or a client-supplied token checked against GitHub's check-token API). New users are created verified, with a unique username and their provider picture imported to Cloudinary. Signing in again with an email that already exists links the provider to that account. Each provider is independently optional: the service starts normally with any subset configured. |
 | **Stateless JWT auth** | HS256-signed tokens with `userId`, `email`, and `roles` claims, shared by every Premisave service. |
 | **Real logout** | Logged-out tokens are blacklisted in Redis until their natural expiry. |
 | **Profiles** | Self profile, public profile of another user (contact details stripped), search, and discovery listing. |
@@ -140,7 +141,8 @@ Concretely, it:
 - **One identity provider for the whole platform.** Other services never store passwords or run login flows; they validate this service's JWTs with the shared secret and read the `userId` and `roles` claims.
 - **Email is the login identity.** `User.getUsername()` returns the email address for Spring Security, so the JWT subject is always the email. The display username is a separate, editable field.
 - **Two separate trust boundaries.** End users authenticate with JWTs. Service-to-service calls use a shared `X-API-Key` on `/internal/**`, handled by its own filter, so the two never mix.
-- **OAuth by token verification, not redirects.** The frontend completes Google or Facebook login with the provider's own SDK and sends the resulting token to `POST /auth/oauth`. This keeps the backend stateless and works identically for web and Flutter clients.
+- **OAuth by credential verification, not backend redirects.** The frontend completes the sign-in itself — Google and Facebook's own SDKs, or GitHub's OAuth App authorization flow — and sends the resulting token or code to `POST /auth/oauth`. Every client secret stays server-side; only Google's client ID and GitHub's client ID are ever exposed to a frontend. This keeps the backend stateless and works identically for web and Flutter clients.
+- **One client class per provider.** `GoogleOAuthClient`, `FacebookOAuthClient` and `GitHubOAuthClient` each implement the same small interface and are the only things that know a given provider's API shape. Adding a fourth provider means adding one more implementation, not touching the other three.
 
 ## Authentication flows
 
@@ -190,27 +192,39 @@ sequenceDiagram
 
 Every request passes through `JwtAuthenticationFilter`, which rejects blacklisted tokens with `401` before validating the signature and expiry.
 
-### Google and Facebook sign-in
+### Google, Facebook and GitHub sign-in
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant U as User (web or Flutter)
-    participant P as Google / Facebook SDK
+    participant P as Google / Facebook / GitHub
     participant AS as Auth Service
     participant DB as MongoDB
+    participant C as Cloudinary
 
     U->>P: Sign in with provider
-    P-->>U: Google ID token or Facebook access token
-    U->>AS: POST /auth/oauth { provider, token }
+    P-->>U: Google ID token, Facebook access token, or GitHub code
+    U->>AS: POST /auth/oauth { provider, token or code }
     alt Google
-        AS->>AS: Verify ID token signature and audience (GOOGLE_CLIENT_ID)
+        AS->>AS: Verify ID token signature, audience and email_verified
     else Facebook
-        AS->>P: GET graph.facebook.com/me with the access token
+        AS->>P: GET /debug_token (confirms the token belongs to this app)
+        AS->>P: GET /me with an appsecret_proof
+    else GitHub
+        AS->>P: Exchange the authorization code for an access token
+        AS->>P: GET /user and /user/emails (verified email only)
     end
-    AS->>DB: Find user by email, or create one (verified, role CLIENT)
+    AS->>DB: Find user by linked provider id, else by email (and link it), else create one
+    opt New user, or no Cloudinary picture yet
+        AS->>C: Import the provider's profile picture
+    end
     AS-->>U: JWT and role
 ```
+
+Each provider is independently optional. `oauth.google.client-id`, `oauth.facebook.app-id`/`app-secret`, and `oauth.github.client-id`/`client-secret` all default to blank, so the service starts with any subset configured; requesting an unconfigured provider returns a clear error instead of the service failing to boot.
+
+Signing in with a provider whose email already matches an existing account links that provider to the account (and marks it verified) rather than creating a duplicate. A provider picture is copied into Cloudinary — not linked directly — because some providers' picture URLs (Facebook's in particular) are signed and expire.
 
 ### Password reset
 
@@ -240,7 +254,7 @@ Any service that validates these tokens must use the **same `JWT_SECRET` and the
 - **Redis** running locally or hosted
 - A Gmail account with an **App Password** (or any SMTP server)
 - A Cloudinary account
-- A Google OAuth client ID and a Facebook app, if you want social sign-in
+- Optional: a Google OAuth client ID, a Facebook app, or a GitHub OAuth App, for social sign-in — the service runs fine with none, some, or all of these configured
 
 ```bash
 # 1. Clone
@@ -251,44 +265,14 @@ cd premisave_auth_service
 docker run -d --name auth-mongo -p 27017:27017 mongo:8
 docker run -d --name auth-redis -p 6379:6379 redis:7
 
-# 3. Create your .env (see below), then run
+# 3. Copy the environment template, fill it in, then run
+cp .env.example .env
 mvn spring-boot:run
 ```
 
-Create a `.env` file next to `pom.xml`:
+`.env` is loaded automatically at startup and holds every setting listed in `.env.example`: `MONGODB_URI`, `REDIS_HOST`/`REDIS_PORT`, `JWT_SECRET`, `JWT_EXPIRATION`, `API_KEY`, `FRONTEND_URL`, `BACKEND_URL`, the Gmail SMTP settings, the Cloudinary credentials, and the three optional OAuth provider settings. Generate `JWT_SECRET` with `openssl rand -base64 32` and `API_KEY` with `openssl rand -hex 32` — both are required, with no built-in default, so the service refuses to start without them.
 
-```properties
-# Core
-MONGODB_URI=mongodb://localhost:27017/premisave-auth
-REDIS_HOST=localhost
-REDIS_PORT=6379
-JWT_SECRET=<Base64 secret, identical across every Premisave service>
-JWT_EXPIRATION=2592000000
-API_KEY=<shared internal key, same value as INTERNAL_API_KEY in the wallet service>
-
-# URLs
-FRONTEND_URL=http://localhost:3000
-BACKEND_URL=http://localhost:8080
-
-# Mail
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-GMAIL_USERNAME=you@gmail.com
-GMAIL_PASSWORD=<Gmail App Password>
-SUPPORT_EMAIL=you@gmail.com
-
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=...
-CLOUDINARY_API_KEY=...
-CLOUDINARY_API_SECRET=...
-
-# Social sign-in
-GOOGLE_CLIENT_ID=...
-FACEBOOK_APP_ID=...
-FACEBOOK_APP_SECRET=...
-```
-
-> **Important:** write `.env` values without quotes and without trailing spaces. Generate secrets with `openssl rand -base64 32` (JWT) and `openssl rand -hex 32` (API key).
+`.env` itself must never be committed; only `.env.example` is meant to be tracked. Write values without quotes and without trailing spaces.
 
 When the service is healthy you will see lines like:
 
@@ -331,10 +315,13 @@ Every setting lives in `src/main/resources/application.yml` and can be overridde
 | `MAIL_HOST` / `MAIL_PORT` | `smtp.gmail.com` / `587` | no | SMTP server (STARTTLS). |
 | `GMAIL_USERNAME` / `GMAIL_PASSWORD` | none | **yes** | SMTP credentials. For Gmail, use an App Password. |
 | `SUPPORT_EMAIL` | none | no | Support address shown in email footers. |
-| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | none | **yes** | Cloudinary credentials for profile pictures. |
-| `GOOGLE_CLIENT_ID` | none | yes, for Google sign-in | Audience checked when verifying Google ID tokens. |
-| `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | none | yes, for Facebook sign-in | Facebook app credentials. |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | none | **yes** | Cloudinary credentials, used for both manual profile-picture uploads and importing an OAuth provider's picture. No built-in default. |
+| `GOOGLE_CLIENT_ID` | blank (disabled) | no | Audience checked when verifying Google ID tokens. Comma-separate several client IDs (web, Android, iOS) to accept a token issued to any of them. Leave unset to disable Google sign-in without affecting anything else. |
+| `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | blank (disabled) | no | Facebook app credentials, used to confirm a token belongs to this app (`/debug_token`) and to sign Graph API calls (`appsecret_proof`). Leave both unset to disable Facebook sign-in. |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | blank (disabled) | no | GitHub OAuth App credentials, used to exchange an authorization code and to verify a client-supplied token belongs to this app. Leave both unset to disable GitHub sign-in. |
 | `RATE_LIMIT_REQUESTS_PER_MINUTE` | `20` | no | Bucket capacity and refill rate for rate-limited endpoints. |
+
+`JWT_SECRET`, `API_KEY`, and the three Cloudinary variables have no default in `application.yml` and must come from `.env` or the environment — the service fails to start without them. The three OAuth providers are the opposite: each defaults to blank and is simply unavailable via `/auth/oauth` until configured, so a missing or misconfigured provider can never take down the whole service.
 
 Also configurable in `application.yml`: `spring.servlet.multipart.max-file-size` (default `10MB`) and `profile-views.max-history-size` (default `20`).
 
@@ -358,7 +345,7 @@ Base URL (local): `http://localhost:8080`
 |---|---|---|
 | `POST` | `/auth/signup` | Register. Sends an activation email. Rate limited. |
 | `POST` | `/auth/signin` | Email and password login. Rate limited. |
-| `POST` | `/auth/oauth` | Google or Facebook sign-in with a provider token. |
+| `POST` | `/auth/oauth` | Google, Facebook or GitHub sign-in. Creates and links accounts, imports the provider picture. |
 | `POST` | `/auth/logout` | Blacklist the bearer token. |
 | `POST` | `/auth/refresh` | Exchange a still-valid token for a fresh one. |
 | `GET` | `/auth/verify/{token}` | Verify an account from the emailed link. |
@@ -403,7 +390,17 @@ Response (`200`):
 { "provider": "facebook", "token": "<access token from Facebook Login>" }
 ```
 
-Returns the same `AuthResponse` shape as signin.
+```json
+{ "provider": "github", "code": "<authorization code>", "redirectUri": "<redirect_uri used to request the code>" }
+```
+
+GitHub also accepts an access token directly instead of a code:
+
+```json
+{ "provider": "github", "token": "<GitHub access token issued to this OAuth app>" }
+```
+
+Returns the same `AuthResponse` shape as signin. An unconfigured or misused provider returns `400` with a plain message, for example `"Facebook sign-in is not configured on this server"` or `"This email is already linked to a different Google account"`.
 
 ### Profile
 
@@ -549,44 +546,53 @@ A user can sign in only when `active` and `verified` are both true. Archived use
 ## Going live
 
 1. **Serve over HTTPS** behind a reverse proxy or load balancer.
-2. **Set strong secrets** for `JWT_SECRET` and `API_KEY` outside git, identical across every Premisave service that shares them.
-3. **Remove every credential fallback from `application.yml`** so the service fails fast if a secret is missing, and rotate anything that was ever committed.
+2. **Use freshly generated secrets for `JWT_SECRET`, `API_KEY`, and the Cloudinary credentials in production's `.env`.** `application.yml` no longer ships with a fallback for any of these, so a deployment fails fast if one is missing — but that only protects you from a missing secret, not a reused one. Never reuse a value that was ever committed to git or pasted anywhere outside your own secret store.
+3. **Fix the signup role field before allowing public registration.** `POST /auth/signup` currently honours a client-supplied `role`, so anyone can self-register as `ADMIN`. See Roadmap.
 4. **Restrict CORS.** The default configuration allows every origin for development. Limit it to your real frontend domains.
 5. **Change the seeded administrator's password** on first boot.
 6. **Turn down logging.** Disable `mail.debug` and set `com.premisave.auth` and Spring Data MongoDB logging back to `INFO`.
 7. **Restrict `/internal/**`** at the network layer where possible, in addition to the API key.
+8. **Register production redirect URIs** with each OAuth provider you enable — GitHub in particular rejects a code exchange whose `redirectUri` doesn't exactly match what's registered on the OAuth App.
 
 ## Security notes
 
-- **Passwords** are hashed with BCrypt. OAuth-created accounts get a random, unguessable password.
+- **Passwords** are hashed with BCrypt. OAuth-created accounts get a random, BCrypt-encoded password no one knows.
 - **JWTs** are stateless and signed with HS256. Logout adds the token to a Redis blacklist for the rest of its lifetime.
 - **Malformed tokens** are logged and treated as unauthenticated rather than causing a server error.
 - **Internal API key** authentication is handled by a dedicated filter on `/internal/**` and `/profile/public/directory` only.
-- **Google ID tokens** are verified for signature and audience. Facebook tokens are verified by calling the Graph API.
+- **Google ID tokens** are verified for signature, audience and `email_verified` before the email is trusted.
+- **Facebook access tokens** are checked with `/debug_token` to confirm they were issued to this app — not just that they're valid — before anything else runs, so a token from a different Facebook app can't be replayed here.
+- **GitHub authorization codes** are exchanged for an access token entirely server-side; the client secret never reaches the frontend. A client-supplied token is only accepted after GitHub's check-token API confirms it belongs to this app.
+- **Archived and deactivated accounts** are blocked from every sign-in path, including OAuth, not just email and password.
+- **No secrets ship with defaults.** `JWT_SECRET`, `API_KEY`, and the Cloudinary credentials must come from the environment; the service won't start with a placeholder in their place.
 - **Reset and activation tokens** are random UUIDs, single use, and expire after 24 hours.
 - **Role-based access** protects `/admin/**`, and every user-facing controller requires authentication.
 - **Stateless sessions** with no server-side session state, so the service scales horizontally.
+
+**Known gap:** `SignupRequest.role` is honoured as sent by the client, so `POST /auth/signup` currently lets anyone self-assign any role, including `ADMIN`. Fix before going live by ignoring the field and always assigning `Role.CLIENT` server-side (see Roadmap).
 
 ## Project structure
 
 ```
 premisave_auth_service/
 ├── src/main/java/com/premisave/auth/
-│   ├── config/          # Security, Redis, Mongo auditing, mail, Cloudinary, async, rate limiting, admin seeding
+│   ├── config/          # Security, Redis, Mongo auditing, mail, Cloudinary, async, rate limiting, OAuth RestClient, admin seeding
 │   ├── controller/      # Auth, profile, profile views, social, location, admin, internal, home
-│   ├── dto/             # Request and response DTOs
-│   ├── entity/          # User, Token, Like, Follower, Review, ProfileView, UserLocation
+│   ├── dto/             # Request and response DTOs, including OAuthRequest/OAuthUserInfo
+│   ├── entity/          # User (with googleId/facebookId/githubId), Token, Like, Follower, Review, ProfileView, UserLocation
 │   ├── enums/           # Role, TokenType, Language
 │   ├── exception/       # Global exception handler
 │   ├── repository/      # Spring Data MongoDB repositories
 │   ├── security/        # JWT service and filter, API key filter, UserDetailsService
-│   ├── service/         # Business logic, OAuth verification, email
+│   ├── service/         # Business logic, email, profile picture storage
+│   │   └── oauth/       # OAuthProviderClient + one implementation per provider (Google, Facebook, GitHub)
 │   ├── util/            # Rate limiter interceptor
 │   └── PremisaveAuthServiceApplication.java
 ├── src/main/resources/
 │   ├── application.yml
 │   ├── templates/       # activation-email.html, reset-password-email.html
 │   └── META-INF/additional-spring-configuration-metadata.json
+├── .env.example         # Committable environment template — copy to .env and fill in
 └── pom.xml
 ```
 
@@ -623,6 +629,30 @@ They must use the same `JWT_SECRET` and derive the key the same way (Base64-deco
 </details>
 
 <details>
+<summary><b>The service won't start: "Could not resolve placeholder ..."</b></summary>
+
+`JWT_SECRET`, `API_KEY`, and the three `CLOUDINARY_*` variables have no default and are required — the service refuses to start without them. Copy `.env.example` to `.env` and fill in real values; the three OAuth providers are the only settings that are genuinely optional.
+</details>
+
+<details>
+<summary><b>400 "&lt;Provider&gt; sign-in is not configured on this server"</b></summary>
+
+That provider's environment variables are unset (blank by default), so the service started fine but that one sign-in method is disabled. Set `GOOGLE_CLIENT_ID`, or both `FACEBOOK_APP_ID`/`FACEBOOK_APP_SECRET`, or both `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`, and restart.
+</details>
+
+<details>
+<summary><b>400 "This email is already linked to a different &lt;Provider&gt; account"</b></summary>
+
+An account with that email already exists and is linked to a different provider account than the one signing in — for example, they signed up with Google, and a different GitHub account happens to share the same email. This is a genuine conflict; there's no automatic resolution.
+</details>
+
+<details>
+<summary><b>GitHub sign-in fails with "did not return a verified email"</b></summary>
+
+Request the `user:email` scope when starting the GitHub OAuth flow, and make sure the GitHub account has at least one verified email address. A public profile email that isn't verified is not accepted.
+</details>
+
+<details>
 <summary><b>429 Too Many Requests on signin or signup</b></summary>
 
 The rate-limited endpoints share one token bucket sized by `RATE_LIMIT_REQUESTS_PER_MINUTE`. Wait a minute or raise the limit for local testing.
@@ -644,8 +674,10 @@ Some `@RequestParam`s rely on compiled parameter names. Maven builds with `-para
 
 Real, currently-known gaps and follow-ups, not commitments:
 
+- [ ] `POST /auth/signup` trusts the client-supplied `role`, allowing self-registration as `ADMIN` — ignore the field and always assign `Role.CLIENT` server-side
 - [ ] Issue dedicated long-lived refresh tokens at signin (the response field exists but is not populated yet)
 - [ ] Per-client rate limiting backed by Redis instead of a single in-memory bucket shared by all callers
+- [ ] An unlink/manage-connections endpoint for social accounts — currently a linked Google, Facebook or GitHub account can't be removed via the API
 - [ ] Lock CORS down to configured origins instead of allowing every origin
 - [ ] Email the temporary password on admin password reset instead of a fixed default
 - [ ] Align password rules across signup, reset, change, and admin flows
@@ -699,7 +731,7 @@ Found a bug or have a question? [Open an issue](https://github.com/peacemakerbil
 <details>
 <summary>Search keywords</summary>
 
-Spring Boot authentication microservice · Spring Security 7 JWT · stateless JWT authentication Java · JWT logout Redis blacklist · Spring Boot 4 auth service · MongoDB user management Spring Boot · Google Sign-In backend verification Java · Facebook Login Graph API Java · OAuth token verification Spring Boot · email verification Spring Boot · password reset flow Java · Cloudinary Spring Boot upload · Bucket4j rate limiting · microservice identity provider · internal API key service-to-service auth · role-based access control Spring Security · social features API followers likes reviews · profile views API · Flutter backend authentication · property management platform Kenya · Premisave
+Spring Boot authentication microservice · Spring Security 7 JWT · stateless JWT authentication Java · JWT logout Redis blacklist · Spring Boot 4 auth service · MongoDB user management Spring Boot · Google Sign-In backend verification Java · Facebook Login Graph API Java · GitHub OAuth App Java · OAuth account linking Spring Boot · OAuth token verification Spring Boot · email verification Spring Boot · password reset flow Java · Cloudinary Spring Boot upload · Bucket4j rate limiting · microservice identity provider · internal API key service-to-service auth · role-based access control Spring Security · social features API followers likes reviews · profile views API · Flutter backend authentication · property management platform Kenya · Premisave
 
 </details>
 
