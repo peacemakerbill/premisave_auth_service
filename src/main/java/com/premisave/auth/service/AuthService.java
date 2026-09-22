@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -150,10 +151,9 @@ public class AuthService {
 
             if (expirationTime > 0) {
                 redisTemplate.opsForValue().set(
-                    "blacklist:" + jwt, 
-                    true, 
-                    expirationTime, 
-                    java.util.concurrent.TimeUnit.MILLISECONDS
+                    "blacklist:" + jwt,
+                    true,
+                    Duration.ofMillis(expirationTime)
                 );
             }
 

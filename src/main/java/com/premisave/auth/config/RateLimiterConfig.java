@@ -18,14 +18,14 @@ public class RateLimiterConfig {
 
     @SuppressWarnings("deprecation")
 	@Bean
-    public Bucket rateLimiterBucket(RedisClient redisClient) {
+    Bucket rateLimiterBucket(RedisClient redisClient) {
         Refill refill = Refill.intervally(requestsPerMinute, Duration.ofMinutes(1));
         Bandwidth bandwidth = Bandwidth.classic(requestsPerMinute, refill);
         return Bucket.builder().addLimit(bandwidth).build();
     }
 
     @Bean
-    public RedisClient redisClient(@Value("${spring.data.redis.host}") String host,
+    RedisClient redisClient(@Value("${spring.data.redis.host}") String host,
                                    @Value("${spring.data.redis.port}") int port) {
         return RedisClient.create("redis://" + host + ":" + port);
     }

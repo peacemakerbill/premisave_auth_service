@@ -43,7 +43,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
@@ -67,7 +67,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AccessDeniedHandler accessDeniedHandler() {
+    AccessDeniedHandler accessDeniedHandler() {
         return (request, response, accessDeniedException) -> {
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -87,7 +87,7 @@ public class SecurityConfig {
      * Allows any frontend (any port, any domain) to connect
      */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // === OPEN FOR DEVELOPMENT ===
@@ -114,14 +114,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationProvider authenticationProvider() {
+    AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder);
         return authProvider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 }

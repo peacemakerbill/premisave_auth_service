@@ -39,7 +39,7 @@ public class LocationController {
      */
     @GetMapping("/history")
     public ResponseEntity<List<LocationResponse>> getLocationHistory(
-            @RequestParam(value = "limit", required = false, defaultValue = "100") int limit) {
+            @RequestParam(required = false, defaultValue = "100") int limit) {
         
         if (limit > 500) {
             limit = 500; // Prevent excessive data

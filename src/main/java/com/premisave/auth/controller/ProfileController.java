@@ -42,7 +42,7 @@ public class ProfileController {
     }
 
     /**
-     * NEW: Search users by name, username, email, etc.
+     * Search users by name, username, email, etc.
      */
     @GetMapping("/search")
     @PreAuthorize("isAuthenticated()")
@@ -83,7 +83,7 @@ public class ProfileController {
 
     @PostMapping("/upload-profile-picture")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ProfileUploadResponse> uploadProfilePicture(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<ProfileUploadResponse> uploadProfilePicture(@RequestParam MultipartFile file) {
         ProfileUploadResponse response = profileService.uploadProfilePic(file);
         return ResponseEntity.ok(response);
     }
