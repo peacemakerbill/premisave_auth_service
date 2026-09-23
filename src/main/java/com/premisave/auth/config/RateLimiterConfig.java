@@ -2,7 +2,6 @@ package com.premisave.auth.config;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import io.lettuce.core.RedisClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -16,11 +15,12 @@ public class RateLimiterConfig {
     @Value("${rate-limit.requests-per-minute}")
     private int requestsPerMinute;
 
-    @SuppressWarnings("deprecation")
-	@Bean
+    @Bean
     Bucket rateLimiterBucket(RedisClient redisClient) {
-        Refill refill = Refill.intervally(requestsPerMinute, Duration.ofMinutes(1));
-        Bandwidth bandwidth = Bandwidth.classic(requestsPerMinute, refill);
+        Bandwidth bandwidth = Bandwidth.builder()
+                .capacity(requestsPerMinute)
+                .refillIntervally(requestsPerMinute, Duration.ofMinutes(1))
+                .build();
         return Bucket.builder().addLimit(bandwidth).build();
     }
 
