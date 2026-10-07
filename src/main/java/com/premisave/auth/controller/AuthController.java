@@ -33,23 +33,39 @@ public class AuthController {
     }
 
     /**
-     * OAuth Sign-in / Sign-up (Google, Facebook & GitHub)
+     * Google sign-in / sign-up.
      *
-     * POST /auth/oauth
-     * Body: { "provider": "google",   "token": "<ID token from Google Sign-In>" }
-     *   or: { "provider": "facebook", "token": "<access token from Facebook Login>" }
-     *   or: { "provider": "github",   "code": "<authorization code>", "redirectUri": "<redirect_uri used>" }
-     *
-     * Creates the account on first sign-in (verified, role CLIENT) and copies the
-     * provider's profile picture to Cloudinary. Returns the same AuthResponse as
-     * regular signin — a JWT ready to use.
+     * POST /auth/google
+     * Body: { "token": "<Google ID token>" }
      */
-    @PostMapping("/oauth")
-    public ResponseEntity<AuthResponse> oauthSignin(@Valid @RequestBody OAuthRequest request) {
-        return ResponseEntity.ok(oAuthService.handleOAuth(request));
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleSignin(@Valid @RequestBody SocialLoginRequest request) {
+        return ResponseEntity.ok(oAuthService.handleOAuth("google", request.getToken()));
     }
 
-    /** Logout — blacklists the JWT */
+    /**
+     * Facebook sign-in / sign-up.
+     *
+     * POST /auth/facebook
+     * Body: { "token": "<Facebook user access token>" }
+     */
+    @PostMapping("/facebook")
+    public ResponseEntity<AuthResponse> facebookSignin(@Valid @RequestBody SocialLoginRequest request) {
+        return ResponseEntity.ok(oAuthService.handleOAuth("facebook", request.getToken()));
+    }
+
+    /**
+     * GitHub sign-in / sign-up.
+     *
+     * POST /auth/github
+     * Body: { "token": "<authorization code from the GitHub redirect, or a GitHub access token>" }
+     */
+    @PostMapping("/github")
+    public ResponseEntity<AuthResponse> githubSignin(@Valid @RequestBody SocialLoginRequest request) {
+        return ResponseEntity.ok(oAuthService.handleOAuth("github", request.getToken()));
+    }
+
+    /** Logout: blacklists the JWT */
     @PostMapping("/logout")
     public ResponseEntity<LogoutResponse> logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
@@ -85,7 +101,7 @@ public class AuthController {
         }
     }
 
-    /** Forgot Password — sends reset link */
+    /** Forgot Password: sends reset link */
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());

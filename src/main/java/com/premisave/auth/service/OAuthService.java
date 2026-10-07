@@ -1,7 +1,6 @@
 package com.premisave.auth.service;
 
 import com.premisave.auth.dto.AuthResponse;
-import com.premisave.auth.dto.OAuthRequest;
 import com.premisave.auth.dto.OAuthUserInfo;
 import com.premisave.auth.entity.User;
 import com.premisave.auth.enums.Language;
@@ -57,20 +56,19 @@ public class OAuthService {
                 .collect(Collectors.toUnmodifiableMap(OAuthProviderClient::provider, Function.identity()));
     }
 
-    // ─────────────────────────────────────────────────────────────
     //  Entry point
-    // ─────────────────────────────────────────────────────────────
 
-    public AuthResponse handleOAuth(OAuthRequest request) {
-        String provider = request.getProvider().trim().toLowerCase(Locale.ROOT);
-
+    /**
+     * @param provider "google", "facebook" or "github" (fixed by the endpoint, never sent by the client)
+     * @param token    the credential from the request body
+     */
+    public AuthResponse handleOAuth(String provider, String token) {
         OAuthProviderClient client = clients.get(provider);
         if (client == null) {
-            throw new RuntimeException("Unsupported OAuth provider: " + provider
-                    + ". Supported providers: google, facebook, github");
+            throw new IllegalArgumentException("Unsupported OAuth provider: " + provider);
         }
 
-        OAuthUserInfo info = client.fetchUser(request);
+        OAuthUserInfo info = client.fetchUser(token);
         if (isBlank(info.getProviderId())) {
             throw new RuntimeException("The " + provider + " account id could not be determined");
         }
@@ -86,9 +84,7 @@ public class OAuthService {
         return new AuthResponse(jwtService.generateToken(user), user.getRole().name());
     }
 
-    // ─────────────────────────────────────────────────────────────
     //  Account resolution
-    // ─────────────────────────────────────────────────────────────
 
     private User findOrCreateUser(OAuthUserInfo info) {
         String provider = info.getProvider();
@@ -105,7 +101,7 @@ public class OAuthService {
             return user;
         }
 
-        // 2. Existing account with the same verified email: link it
+        // 2. Existing account with the same verified email to link it
         Optional<User> byEmail = userRepository.findByEmail(email);
         if (byEmail.isEmpty() && !email.equals(rawEmail)) {
             byEmail = userRepository.findByEmail(rawEmail);
@@ -188,9 +184,7 @@ public class OAuthService {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
     //  Provider id fields on User
-    // ─────────────────────────────────────────────────────────────
 
     private Optional<User> findByProviderId(String provider, String providerId) {
         return switch (provider) {
@@ -228,9 +222,7 @@ public class OAuthService {
         };
     }
 
-    // ─────────────────────────────────────────────────────────────
     //  Names and usernames
-    // ─────────────────────────────────────────────────────────────
 
     private record NameParts(String first, String last) {
     }
@@ -273,7 +265,7 @@ public class OAuthService {
         return base;
     }
 
-    /** Appends a numeric suffix if taken: "johndoe", then "johndoe2", then "johndoe3". */
+    /** Appends a numeric suffix if taken: "johndoe" to "johndoe2" to "johndoe3". */
     private String resolveUniqueUsername(String base) {
         if (!userRepository.existsByUsername(base)) {
             return base;

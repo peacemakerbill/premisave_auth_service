@@ -1,6 +1,5 @@
 package com.premisave.auth.service.oauth;
 
-import com.premisave.auth.dto.OAuthRequest;
 import com.premisave.auth.dto.OAuthUserInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,6 +15,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static com.premisave.auth.service.oauth.OAuthUtils.asString;
 import static com.premisave.auth.service.oauth.OAuthUtils.isBlank;
@@ -23,17 +23,22 @@ import static com.premisave.auth.service.oauth.OAuthUtils.isBlank;
 /**
  * GitHub sign-in (GitHub OAuth App).
  *
- * Preferred flow: the frontend redirects the user to
- *   https://github.com/login/oauth/authorize?client_id=...&redirect_uri=...&scope=user:email&state=...
- * and sends the returned "code" plus the same "redirectUri" to POST /auth/oauth.
- * The code is exchanged here, so the client secret never leaves the backend.
+ * The request carries a single "token" value, which is either:
  *
- * Alternative: an access token in "token". It is only accepted after GitHub
- * confirms (via the check-token API) that it was issued to this app.
+ *  1. an authorization code: the frontend sends the user to
+ *       https://github.com/login/oauth/authorize?client_id=...&redirect_uri=...&scope=user:email&state=...
+ *     and posts the returned "code" as the token. GitHub codes are 20
+ *     hexadecimal characters. The code is exchanged here, so the client secret
+ *     never leaves the backend.
+ *  2. an access token (gho_..., or a legacy 40 character hex token). It is only
+ *     accepted after GitHub confirms, through the check-token API, that it was
+ *     issued to this app.
  *
- * oauth.github.client-id / client-secret are optional: if either is unset,
- * this client reports itself as unconfigured and GitHub sign-in is
- * refused with a clear message rather than the service failing to start.
+ * oauth.github.redirect-uri is optional. When set it is sent with the code
+ * exchange and must match the redirect_uri used on the authorize request.
+ *
+ * If the client id or secret is unset, GitHub sign-in is refused with a clear
+ * message and the service still starts.
  */
 @Slf4j
 @Component
@@ -47,16 +52,22 @@ public class GitHubOAuthClient implements OAuthProviderClient {
     private static final ParameterizedTypeReference<Map<String, Object>> MAP = new ParameterizedTypeReference<>() {};
     private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST = new ParameterizedTypeReference<>() {};
 
+    /** GitHub authorization codes are exactly 20 hexadecimal characters. */
+    private static final Pattern AUTH_CODE = Pattern.compile("^[0-9a-fA-F]{20}$");
+
     private final RestClient http;
     private final String clientId;
     private final String clientSecret;
+    private final String redirectUri;
 
     public GitHubOAuthClient(RestClient oauthRestClient,
                              @Value("${oauth.github.client-id}") String clientId,
-                             @Value("${oauth.github.client-secret}") String clientSecret) {
+                             @Value("${oauth.github.client-secret}") String clientSecret,
+                             @Value("${oauth.github.redirect-uri:}") String redirectUri) {
         this.http = oauthRestClient;
         this.clientId = clientId.trim();
         this.clientSecret = clientSecret.trim();
+        this.redirectUri = redirectUri.trim();
     }
 
     private boolean configured() {
@@ -69,19 +80,21 @@ public class GitHubOAuthClient implements OAuthProviderClient {
     }
 
     @Override
-    public OAuthUserInfo fetchUser(OAuthRequest request) {
+    public OAuthUserInfo fetchUser(String token) {
         if (!configured()) {
             throw new RuntimeException("GitHub sign-in is not configured on this server");
         }
+        if (isBlank(token)) {
+            throw new RuntimeException("GitHub sign-in requires the authorization code or access token in 'token'");
+        }
 
+        String value = token.trim();
         String accessToken;
-        if (!isBlank(request.getCode())) {
-            accessToken = exchangeCode(request.getCode().trim(), request.getRedirectUri());
-        } else if (!isBlank(request.getToken())) {
-            accessToken = request.getToken().trim();
-            verifyTokenForThisApp(accessToken);
+        if (AUTH_CODE.matcher(value).matches()) {
+            accessToken = exchangeCode(value);
         } else {
-            throw new RuntimeException("GitHub sign-in requires 'code' (with 'redirectUri') or an access token in 'token'");
+            accessToken = value;
+            verifyTokenForThisApp(accessToken);
         }
 
         Map<String, Object> user;
@@ -118,13 +131,13 @@ public class GitHubOAuthClient implements OAuthProviderClient {
     }
 
     /** Exchanges an authorization code for an access token. */
-    private String exchangeCode(String code, String redirectUri) {
+    private String exchangeCode(String code) {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("client_id", clientId);
         form.add("client_secret", clientSecret);
         form.add("code", code);
         if (!isBlank(redirectUri)) {
-            form.add("redirect_uri", redirectUri.trim());
+            form.add("redirect_uri", redirectUri);
         }
 
         Map<String, Object> body;

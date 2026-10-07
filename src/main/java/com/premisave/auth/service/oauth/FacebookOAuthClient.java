@@ -1,6 +1,5 @@
 package com.premisave.auth.service.oauth;
 
-import com.premisave.auth.dto.OAuthRequest;
 import com.premisave.auth.dto.OAuthUserInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,9 +27,8 @@ import static com.premisave.auth.service.oauth.OAuthUtils.isBlank;
  * Facebook app could be replayed here to sign in as its owner. The profile
  * is then read with an appsecret_proof.
  *
- * oauth.facebook.app-id / app-secret are optional: if either is unset,
- * this client reports itself as unconfigured and Facebook sign-in is
- * refused with a clear message rather than the service failing to start.
+ * If the app id or secret is unset, Facebook sign-in is refused with a clear
+ * message and the service still starts.
  */
 @Slf4j
 @Component
@@ -62,12 +60,10 @@ public class FacebookOAuthClient implements OAuthProviderClient {
     }
 
     @Override
-    public OAuthUserInfo fetchUser(OAuthRequest request) {
+    public OAuthUserInfo fetchUser(String accessToken) {
         if (!configured()) {
             throw new RuntimeException("Facebook sign-in is not configured on this server");
         }
-
-        String accessToken = request.getToken();
         if (isBlank(accessToken)) {
             throw new RuntimeException("Facebook sign-in requires the Facebook access token in 'token'");
         }

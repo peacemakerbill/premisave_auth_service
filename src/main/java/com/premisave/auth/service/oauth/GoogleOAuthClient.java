@@ -4,7 +4,6 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import com.premisave.auth.dto.OAuthRequest;
 import com.premisave.auth.dto.OAuthUserInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +22,9 @@ import static com.premisave.auth.service.oauth.OAuthUtils.isBlank;
  * from Google Identity Services (web) or google_sign_in (Flutter).
  *
  * oauth.google.client-id may hold several comma-separated client IDs
- * (for example web, Android and iOS) — a token issued to any of them is accepted.
+ * (for example web, Android and iOS); a token issued to any of them is accepted.
+ * If it is unset, Google sign-in is refused with a clear message and the
+ * service still starts.
  */
 @Slf4j
 @Component
@@ -33,8 +34,6 @@ public class GoogleOAuthClient implements OAuthProviderClient {
     private static final Pattern SIZE_SUFFIX = Pattern.compile("=s\\d+(-c)?$");
 
     private final GoogleIdTokenVerifier verifier;
-
-    /** False when oauth.google.client-id is unset — Google sign-in is then disabled, not a startup failure. */
     private final boolean configured;
 
     public GoogleOAuthClient(@Value("${oauth.google.client-id}") String clientIds) {
@@ -44,10 +43,9 @@ public class GoogleOAuthClient implements OAuthProviderClient {
                 .toList();
         this.configured = !audience.isEmpty();
 
-        // Built once (even when unconfigured, with an empty audience — an
-        // empty audience makes every token fail verification, so this never
-        // accidentally accepts a token). The verifier caches Google's public
-        // signing keys.
+        // Built once: the verifier caches Google's public signing keys. With an
+        // empty audience every token fails verification, so an unconfigured
+        // client can never accept a token by accident.
         this.verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
                 .setAudience(audience)
                 .build();
@@ -59,12 +57,10 @@ public class GoogleOAuthClient implements OAuthProviderClient {
     }
 
     @Override
-    public OAuthUserInfo fetchUser(OAuthRequest request) {
+    public OAuthUserInfo fetchUser(String idTokenString) {
         if (!configured) {
             throw new RuntimeException("Google sign-in is not configured on this server");
         }
-
-        String idTokenString = request.getToken();
         if (isBlank(idTokenString)) {
             throw new RuntimeException("Google sign-in requires the Google ID token in 'token'");
         }

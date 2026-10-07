@@ -1,6 +1,5 @@
 package com.premisave.auth.service.oauth;
 
-import com.premisave.auth.dto.OAuthRequest;
 import com.premisave.auth.dto.OAuthUserInfo;
 
 /**
@@ -10,8 +9,9 @@ import com.premisave.auth.dto.OAuthUserInfo;
  */
 public interface OAuthProviderClient {
 
-    /** Lower-case provider key matched against OAuthRequest.provider. */
+    /** Lower-case provider key: "google", "facebook" or "github". */
     String provider();
 
-    OAuthUserInfo fetchUser(OAuthRequest request);
+    /** @param token the single credential sent by the client (ID token, access token or GitHub code) */
+    OAuthUserInfo fetchUser(String token);
 }
