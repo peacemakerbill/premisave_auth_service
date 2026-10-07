@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/peacemakerbill">
-    <img src="https://avatars.githubusercontent.com/u/262163756?v=4&s=200" width="110" height="110" alt="Bill Graham Peacemaker (peacemakerbill) GitHub profile picture" />
+    <img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/262163756&w=240&h=240&fit=cover&mask=circle" width="110" height="110" style="border-radius:50%;border:3px solid #1E40AF;" alt="Bill Graham Peacemaker (peacemakerbill) GitHub profile picture" />
   </a>
   <br/>
   <sub>Built by <a href="https://github.com/peacemakerbill"><b>Bill Graham Peacemaker</b></a> (<code>@peacemakerbill</code>) · Backend Developer &amp; API Support Engineer · Nairobi, Kenya</sub>
@@ -141,7 +141,7 @@ Concretely, it:
 - **One identity provider for the whole platform.** Other services never store passwords or run login flows; they validate this service's JWTs with the shared secret and read the `userId` and `roles` claims.
 - **Email is the login identity.** `User.getUsername()` returns the email address for Spring Security, so the JWT subject is always the email. The display username is a separate, editable field.
 - **Two separate trust boundaries.** End users authenticate with JWTs. Service-to-service calls use a shared `X-API-Key` on `/internal/**`, handled by its own filter, so the two never mix.
-- **OAuth by credential verification, not backend redirects.** The frontend completes the sign-in itself — Google and Facebook's own SDKs, or GitHub's OAuth App authorization flow — and sends the resulting token or code to `POST /auth/oauth`. Every client secret stays server-side; only Google's client ID and GitHub's client ID are ever exposed to a frontend. This keeps the backend stateless and works identically for web and Flutter clients.
+- **OAuth by credential verification, not backend redirects.** The frontend completes the sign-in itself, with Google's and Facebook's own SDKs or GitHub's OAuth App authorization flow, and sends the result as a single `token` to that provider's own endpoint: `POST /auth/google`, `POST /auth/facebook` or `POST /auth/github`. There is no provider field in the payload, because the endpoint decides the provider. Every client secret stays server-side; only the public client and app IDs are ever exposed to a frontend. This keeps the backend stateless and works identically for web and Flutter clients.
 - **One client class per provider.** `GoogleOAuthClient`, `FacebookOAuthClient` and `GitHubOAuthClient` each implement the same small interface and are the only things that know a given provider's API shape. Adding a fourth provider means adding one more implementation, not touching the other three.
 
 ## Authentication flows
@@ -205,14 +205,14 @@ sequenceDiagram
 
     U->>P: Sign in with provider
     P-->>U: Google ID token, Facebook access token, or GitHub code
-    U->>AS: POST /auth/oauth { provider, token or code }
+    U->>AS: POST /auth/google, /auth/facebook or /auth/github with a single token
     alt Google
         AS->>AS: Verify ID token signature, audience and email_verified
     else Facebook
         AS->>P: GET /debug_token (confirms the token belongs to this app)
         AS->>P: GET /me with an appsecret_proof
     else GitHub
-        AS->>P: Exchange the authorization code for an access token
+        AS->>P: Exchange the authorization code for an access token, or verify a client-supplied access token
         AS->>P: GET /user and /user/emails (verified email only)
     end
     AS->>DB: Find user by linked provider id, else by email (and link it), else create one
@@ -222,7 +222,7 @@ sequenceDiagram
     AS-->>U: JWT and role
 ```
 
-Each provider is independently optional. `oauth.google.client-id`, `oauth.facebook.app-id`/`app-secret`, and `oauth.github.client-id`/`client-secret` all default to blank, so the service starts with any subset configured; requesting an unconfigured provider returns a clear error instead of the service failing to boot.
+Each provider is independently optional. `oauth.google.client-id`, `oauth.facebook.app-id`/`app-secret`, and `oauth.github.client-id`/`client-secret` (plus the optional `oauth.github.redirect-uri`) all default to blank, so the service starts with any subset configured; requesting an unconfigured provider returns a clear error instead of the service failing to boot.
 
 Signing in with a provider whose email already matches an existing account links that provider to the account (and marks it verified) rather than creating a duplicate. A provider picture is copied into Cloudinary — not linked directly — because some providers' picture URLs (Facebook's in particular) are signed and expire.
 
@@ -319,9 +319,10 @@ Every setting lives in `src/main/resources/application.yml` and can be overridde
 | `GOOGLE_CLIENT_ID` | blank (disabled) | no | Audience checked when verifying Google ID tokens. Comma-separate several client IDs (web, Android, iOS) to accept a token issued to any of them. Leave unset to disable Google sign-in without affecting anything else. |
 | `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | blank (disabled) | no | Facebook app credentials, used to confirm a token belongs to this app (`/debug_token`) and to sign Graph API calls (`appsecret_proof`). Leave both unset to disable Facebook sign-in. |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | blank (disabled) | no | GitHub OAuth App credentials, used to exchange an authorization code and to verify a client-supplied token belongs to this app. Leave both unset to disable GitHub sign-in. |
+| `GITHUB_REDIRECT_URI` | blank | no | Optional. When set, it is sent with the GitHub code exchange and must equal the `redirect_uri` used when the code was requested and the callback URL registered on the OAuth App. |
 | `RATE_LIMIT_REQUESTS_PER_MINUTE` | `20` | no | Bucket capacity and refill rate for rate-limited endpoints. |
 
-`JWT_SECRET`, `API_KEY`, and the three Cloudinary variables have no default in `application.yml` and must come from `.env` or the environment — the service fails to start without them. The three OAuth providers are the opposite: each defaults to blank and is simply unavailable via `/auth/oauth` until configured, so a missing or misconfigured provider can never take down the whole service.
+`JWT_SECRET`, `API_KEY`, and the three Cloudinary variables have no default in `application.yml` and must come from `.env` or the environment — the service fails to start without them. The three OAuth providers are the opposite: each defaults to blank and is simply unavailable at its `/auth/google`, `/auth/facebook` or `/auth/github` endpoint until configured, so a missing or misconfigured provider can never take down the whole service.
 
 Also configurable in `application.yml`: `spring.servlet.multipart.max-file-size` (default `10MB`) and `profile-views.max-history-size` (default `20`).
 
@@ -345,7 +346,9 @@ Base URL (local): `http://localhost:8080`
 |---|---|---|
 | `POST` | `/auth/signup` | Register. Sends an activation email. Rate limited. |
 | `POST` | `/auth/signin` | Email and password login. Rate limited. |
-| `POST` | `/auth/oauth` | Google, Facebook or GitHub sign-in. Creates and links accounts, imports the provider picture. |
+| `POST` | `/auth/google` | Google sign-in or sign-up with a Google ID token. Creates and links accounts, imports the provider picture. |
+| `POST` | `/auth/facebook` | Facebook sign-in or sign-up with a Facebook user access token. |
+| `POST` | `/auth/github` | GitHub sign-in or sign-up with an authorization code or a GitHub access token. |
 | `POST` | `/auth/logout` | Blacklist the bearer token. |
 | `POST` | `/auth/refresh` | Exchange a still-valid token for a fresh one. |
 | `GET` | `/auth/verify/{token}` | Verify an account from the emailed link. |
@@ -380,25 +383,21 @@ Response (`200`):
 }
 ```
 
-#### `POST /auth/oauth`
+#### `POST /auth/google`, `POST /auth/facebook`, `POST /auth/github`
+
+All three endpoints take the same body, a single `token`. There is no `provider` field, because the endpoint decides the provider.
 
 ```json
-{ "provider": "google", "token": "<ID token from Google Sign-In>" }
+{ "token": "<credential from the provider>" }
 ```
 
-```json
-{ "provider": "facebook", "token": "<access token from Facebook Login>" }
-```
+| Endpoint | What `token` holds |
+|---|---|
+| `POST /auth/google` | The Google ID token from Google Identity Services or `google_sign_in`. |
+| `POST /auth/facebook` | The Facebook user access token from the Facebook Login SDK (permissions `public_profile` and `email`). |
+| `POST /auth/github` | The authorization code GitHub returns to your redirect URI, or a GitHub access token issued to this OAuth App. |
 
-```json
-{ "provider": "github", "code": "<authorization code>", "redirectUri": "<redirect_uri used to request the code>" }
-```
-
-GitHub also accepts an access token directly instead of a code:
-
-```json
-{ "provider": "github", "token": "<GitHub access token issued to this OAuth app>" }
-```
+For GitHub, the service tells the two apart by shape: a 20 character hexadecimal value is an authorization code and is exchanged on the server, and anything else is treated as an access token and checked with GitHub to confirm it was issued to this app. A code can be used once and expires in about ten minutes.
 
 Returns the same `AuthResponse` shape as signin. An unconfigured or misused provider returns `400` with a plain message, for example `"Facebook sign-in is not configured on this server"` or `"This email is already linked to a different Google account"`.
 
@@ -514,6 +513,29 @@ curl -s -X POST "$BASE/auth/logout" -H "Authorization: Bearer $TOKEN"
 
 **Collection variables worth saving in Postman:** `base_url_auth`, `jwt_token`, `api_key`, `test_user_id`, `test_user_email`.
 
+### Testing social sign-in
+
+Provider tokens cannot be produced inside Postman, so the repository includes a browser test console, `oauth-test/oauth-test.html`. It has two modes:
+
+- **Sign in with backend** runs the provider login, posts the token to the matching endpoint and shows the JWT that comes back, with a profile check and a logout check.
+- **Token only** runs the provider login and shows the raw token in full, with buttons to copy the token, the request body (`{ "token": "..." }`) and the endpoint URL. Paste it into Postman and send it to `POST /auth/google`, `/auth/facebook` or `/auth/github`.
+
+```bash
+cd oauth-test
+python3 -m http.server 3000
+# then open http://localhost:3000/oauth-test.html
+```
+
+Paste the public IDs into the page (the same values as `GOOGLE_CLIENT_ID`, `FACEBOOK_APP_ID` and `GITHUB_CLIENT_ID`). Never enter a secret there. They are kept in your browser's local storage only; generated tokens live in session storage for the tab and are cleared when it closes.
+
+| Provider | Console setting required |
+|---|---|
+| Google | Add `http://localhost:3000` (and `http://localhost`) to the OAuth Web client's **Authorized JavaScript origins**. While the consent screen is in Testing mode, add your account as a test user. |
+| Facebook | Add the Facebook Login product, allow `localhost`, keep the app in Development mode, and sign in with an account that has a role on the app. |
+| GitHub | Set the OAuth App's **Authorization callback URL** to exactly `http://localhost:3000/oauth-test.html`. |
+
+A GitHub authorization code works only once, so do not use the same code both in Postman and with the page's "Send to backend now" button. Google ID tokens last about an hour and Facebook access tokens are short lived, so generate a fresh token for each test.
+
 ## Roles and access control
 
 | Role | Intended for |
@@ -552,7 +574,7 @@ A user can sign in only when `active` and `verified` are both true. Archived use
 5. **Change the seeded administrator's password** on first boot.
 6. **Turn down logging.** Disable `mail.debug` and set `com.premisave.auth` and Spring Data MongoDB logging back to `INFO`.
 7. **Restrict `/internal/**`** at the network layer where possible, in addition to the API key.
-8. **Register production redirect URIs** with each OAuth provider you enable — GitHub in particular rejects a code exchange whose `redirectUri` doesn't exactly match what's registered on the OAuth App.
+8. **Register production origins and redirect URIs** with each OAuth provider you enable: your frontend origin in Google, your domain in Facebook, and the callback URL in GitHub. If you set `GITHUB_REDIRECT_URI`, it must equal the callback registered on the GitHub OAuth App and the `redirect_uri` your frontend sends to GitHub. Remove the `oauth-test` console from anything you deploy.
 
 ## Security notes
 
@@ -578,7 +600,7 @@ premisave_auth_service/
 ├── src/main/java/com/premisave/auth/
 │   ├── config/          # Security, Redis, Mongo auditing, mail, Cloudinary, async, rate limiting, OAuth RestClient, admin seeding
 │   ├── controller/      # Auth, profile, profile views, social, location, admin, internal, home
-│   ├── dto/             # Request and response DTOs, including OAuthRequest/OAuthUserInfo
+│   ├── dto/             # Request and response DTOs, including SocialLoginRequest/OAuthUserInfo
 │   ├── entity/          # User (with googleId/facebookId/githubId), Token, Like, Follower, Review, ProfileView, UserLocation
 │   ├── enums/           # Role, TokenType, Language
 │   ├── exception/       # Global exception handler
@@ -592,6 +614,8 @@ premisave_auth_service/
 │   ├── application.yml
 │   ├── templates/       # activation-email.html, reset-password-email.html
 │   └── META-INF/additional-spring-configuration-metadata.json
+├── oauth-test/
+│   └── oauth-test.html  # Browser console for testing Google, Facebook and GitHub sign-in
 ├── .env.example         # Committable environment template — copy to .env and fill in
 └── pom.xml
 ```
@@ -653,6 +677,24 @@ Request the `user:email` scope when starting the GitHub OAuth flow, and make sur
 </details>
 
 <details>
+<summary><b>Google shows "Access blocked: no registered origin" (Error 401: invalid_client)</b></summary>
+
+The page's address is not in the OAuth client's **Authorized JavaScript origins**. Add `http://localhost:3000` (and `http://localhost`) to a client of type **Web application**, make sure the client ID on the page is the one you edited, save, wait a few minutes, and hard-refresh. The origin must match the browser address bar exactly, including scheme and port.
+</details>
+
+<details>
+<summary><b>GitHub shows a 404 page when starting sign-in</b></summary>
+
+The `client_id` in the authorize URL is not a valid OAuth App client ID. Copy the short **Client ID** at the top of the OAuth App's page (not the client secret) into both the page and `GITHUB_CLIENT_ID`.
+</details>
+
+<details>
+<summary><b>GitHub says "The redirect_uri is not associated with this application"</b></summary>
+
+The callback URL registered on the OAuth App does not match the one the page sends. Set **Authorization callback URL** to exactly `http://localhost:3000/oauth-test.html` and retry.
+</details>
+
+<details>
 <summary><b>429 Too Many Requests on signin or signup</b></summary>
 
 The rate-limited endpoints share one token bucket sized by `RATE_LIMIT_REQUESTS_PER_MINUTE`. Wait a minute or raise the limit for local testing.
@@ -701,7 +743,7 @@ Found a bug or have a question? [Open an issue](https://github.com/peacemakerbil
   <tr>
     <td align="center" width="180">
       <a href="https://github.com/peacemakerbill">
-        <img src="https://avatars.githubusercontent.com/u/262163756?v=4&s=160" width="120" height="120" alt="Bill Graham Peacemaker, GitHub @peacemakerbill" /><br/>
+        <img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/262163756&w=240&h=240&fit=cover&mask=circle" width="120" height="120" style="border-radius:50%;border:3px solid #1E40AF;" alt="Bill Graham Peacemaker, GitHub @peacemakerbill" /><br/>
         <sub><b>Bill Graham Peacemaker</b></sub>
       </a>
     </td>
