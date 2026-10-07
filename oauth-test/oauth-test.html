@@ -4,114 +4,289 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OAuth Test Console</title>
+<script>
+  try {
+    var savedTheme = localStorage.getItem('oauthTestTheme');
+    if (savedTheme === 'light' || savedTheme === 'dark') { document.documentElement.setAttribute('data-theme', savedTheme); }
+  } catch (e) { }
+</script>
 <style>
+  :root {
+    --bg: #f4f6fb;
+    --surface: #ffffff;
+    --surface2: #f1f5f9;
+    --border: #dfe5ee;
+    --text: #0f172a;
+    --muted: #5b6b82;
+    --accent: #1d4ed8;
+    --accent-text: #ffffff;
+    --good: #15803d;
+    --good-bg: #ecfdf3;
+    --bad: #b91c1c;
+    --bad-bg: #fef2f2;
+    --warn-bg: #fffbeb;
+    --warn-border: #fcd34d;
+    --warn-text: #78350f;
+    --shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 4px 14px rgba(15, 23, 42, 0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1220;
+      --surface: #111a2c;
+      --surface2: #172238;
+      --border: #25324b;
+      --text: #e6ecf6;
+      --muted: #94a3bd;
+      --accent: #5b8def;
+      --accent-text: #0b1220;
+      --good: #4ade80;
+      --good-bg: #0f2a1d;
+      --bad: #f87171;
+      --bad-bg: #2b1316;
+      --warn-bg: #2a2209;
+      --warn-border: #6b560f;
+      --warn-text: #fde68a;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+      --bg: #0b1220;
+      --surface: #111a2c;
+      --surface2: #172238;
+      --border: #25324b;
+      --text: #e6ecf6;
+      --muted: #94a3bd;
+      --accent: #5b8def;
+      --accent-text: #0b1220;
+      --good: #4ade80;
+      --good-bg: #0f2a1d;
+      --bad: #f87171;
+      --bad-bg: #2b1316;
+      --warn-bg: #2a2209;
+      --warn-border: #6b560f;
+      --warn-text: #fde68a;
+      --shadow: none;
+  }
+
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; color: #0f172a; }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
-  h1 { font-size: 22px; margin: 0 0 4px; }
-  .sub { color: #475569; font-size: 14px; margin: 0; }
-  .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-top: 16px; }
-  .card h2 { font-size: 15px; margin: 0 0 4px; }
-  .hint { font-size: 12px; color: #64748b; margin: 0 0 8px; }
-  label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin: 12px 0 4px; }
-  input[type=text] { width: 100%; padding: 9px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font: 13px ui-monospace, Menlo, Consolas, monospace; background: #ffffff; color: #0f172a; }
-  input[readonly] { background: #f8fafc; }
-  button { font: inherit; font-weight: 600; font-size: 14px; border: 0; border-radius: 8px; padding: 9px 16px; cursor: pointer; }
-  .primary { background: #1e40af; color: #ffffff; margin-top: 14px; }
-  .secondary { background: #e2e8f0; color: #0f172a; }
-  .btn-fb { background: #1877f2; color: #ffffff; min-width: 220px; }
-  .btn-gh { background: #24292f; color: #ffffff; min-width: 220px; }
-  .row-provider { display: flex; align-items: center; gap: 16px; padding: 14px 0; border-top: 1px solid #e2e8f0; flex-wrap: wrap; }
-  .row-provider:first-of-type { border-top: 0; }
-  .pname { width: 84px; font-weight: 600; font-size: 14px; }
-  .slot { min-width: 220px; min-height: 40px; display: flex; align-items: center; }
-  .status { font-size: 12px; color: #475569; }
-  .status.bad { color: #b91c1c; }
-  .banner { background: #fef3c7; border: 1px solid #fcd34d; color: #78350f; border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-top: 16px; }
-  pre { margin: 4px 0 0; white-space: pre-wrap; word-break: break-all; font: 12px ui-monospace, Menlo, Consolas, monospace; }
-  .entry { border-left: 4px solid #94a3b8; background: #f8fafc; padding: 8px 12px; margin-bottom: 8px; border-radius: 6px; }
-  .entry.good { border-left-color: #16a34a; }
-  .entry.bad { border-left-color: #dc2626; }
-  .entry-title { font-size: 12px; font-weight: 600; color: #334155; }
-  .toolbar { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
-  .profile { display: flex; gap: 16px; align-items: flex-start; margin-top: 12px; }
-  .avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 1px solid #e2e8f0; background: #f1f5f9; }
-  .line { font-size: 13px; margin-bottom: 4px; }
-  .k { display: inline-block; width: 80px; color: #64748b; }
-  .logbar { display: flex; justify-content: space-between; align-items: center; }
+  html { color-scheme: light dark; }
+  :root[data-theme="light"] { color-scheme: light; }
+  :root[data-theme="dark"] { color-scheme: dark; }
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.45;
+  }
+  code, pre, .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  code { background: var(--surface2); padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 28px 16px 72px; }
+
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0; max-width: 640px; }
+
+  .pill { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 12.5px; color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #94a3b8; }
+  .pill.ok .dot { background: #22c55e; }
+  .pill.ok { color: var(--good); }
+  .pill.bad .dot { background: #ef4444; }
+  .pill.bad { color: var(--bad); }
+  .tools { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .theme-btn { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; font-size: 12.5px; }
+  .pill button { padding: 0; background: none; color: var(--accent); font-size: 12.5px; font-weight: 600; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; margin-top: 18px; box-shadow: var(--shadow); }
+  .card h2 { font-size: 15px; margin: 0; }
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+  .hint { font-size: 12.5px; color: var(--muted); margin: 2px 0 0; }
+
+  .banner { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); border-radius: 10px; padding: 10px 14px; font-size: 13px; margin-top: 18px; }
+
+  details.card > summary { cursor: pointer; font-weight: 600; font-size: 15px; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::after { content: "Show"; font-size: 12px; font-weight: 600; color: var(--accent); }
+  details.card[open] > summary::after { content: "Hide"; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 16px; }
+  @media (max-width: 720px) { .grid2 { grid-template-columns: 1fr; } }
+  .full { grid-column: 1 / -1; }
+
+  label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); margin: 14px 0 5px; }
+  input[type=text] { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; font: 13px ui-monospace, Menlo, Consolas, monospace; background: var(--surface2); color: var(--text); }
+  input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--surface); }
+  input[readonly] { color: var(--muted); }
+  .inline { display: flex; gap: 8px; }
+  .inline input { flex: 1; min-width: 0; }
+
+  button { font: inherit; font-weight: 600; font-size: 13.5px; border: 0; border-radius: 9px; padding: 9px 15px; cursor: pointer; transition: filter 0.12s; }
+  button:hover:not(:disabled) { filter: brightness(0.95); }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .primary { background: var(--accent); color: var(--accent-text); }
+  .ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .small { padding: 6px 11px; font-size: 12.5px; }
+
+  .seg { display: inline-flex; background: var(--surface2); border: 1px solid var(--border); border-radius: 11px; padding: 3px; }
+  .seg button { background: transparent; color: var(--muted); padding: 8px 14px; }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18); }
+
+  .providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; margin-top: 14px; }
+  .pcard { border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--surface2); display: flex; flex-direction: column; gap: 12px; }
+  .phead { display: flex; align-items: center; gap: 10px; }
+  .badge { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; font-weight: 800; font-size: 16px; color: #ffffff; flex: none; }
+  .badge.google { background: #4285f4; }
+  .badge.facebook { background: #1877f2; }
+  .badge.github { background: #24292f; }
+  .pname { font-weight: 700; font-size: 15px; }
+  .pdesc { font-size: 12px; color: var(--muted); }
+  .slot { min-height: 44px; display: flex; align-items: center; }
+  .slot button { width: 100%; padding: 11px 16px; }
+  .btn-fb { background: #1877f2; color: #ffffff; }
+  .btn-gh { background: #24292f; color: #ffffff; }
+  .status { font-size: 12px; color: var(--muted); min-height: 16px; }
+  .status.bad { color: var(--bad); }
+
+  .tlist { display: flex; flex-direction: column; gap: 14px; margin-top: 14px; }
+  .tcard { border: 1px solid var(--border); border-radius: 12px; padding: 14px; background: var(--surface2); }
+  .thead { display: flex; align-items: center; gap: 10px; justify-content: space-between; flex-wrap: wrap; }
+  .tleft { display: flex; align-items: center; gap: 10px; }
+  .tleft .badge { width: 28px; height: 28px; font-size: 13px; border-radius: 8px; }
+  .ttitle { font-weight: 700; font-size: 14px; }
+  .muted { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .tokenbox { margin-top: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); font: 12.5px/1.5 ui-monospace, Menlo, Consolas, monospace; word-break: break-all; white-space: pre-wrap; user-select: all; cursor: text; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .meta b { color: var(--text); font-weight: 600; }
+  .endpoint { margin-top: 10px; font-size: 12.5px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+  .claims { margin: 12px 0 0; padding: 12px; background: var(--surface2); border: 1px solid var(--border); border-radius: 9px; font-size: 12.5px; white-space: pre-wrap; word-break: break-all; }
+
+  .profile { display: flex; gap: 18px; align-items: flex-start; margin-top: 14px; flex-wrap: wrap; }
+  .avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); background: var(--surface2); }
+  .line { font-size: 13px; margin-bottom: 5px; word-break: break-all; }
+  .k { display: inline-block; width: 78px; color: var(--muted); }
+
+  .entry { border: 1px solid var(--border); border-left: 4px solid #94a3b8; background: var(--surface2); padding: 9px 12px; margin-top: 10px; border-radius: 9px; }
+  .entry.good { border-left-color: #22c55e; }
+  .entry.bad { border-left-color: #ef4444; }
+  .entry-title { font-size: 12px; font-weight: 700; }
+  .entry pre { margin: 5px 0 0; white-space: pre-wrap; word-break: break-all; font-size: 12px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>OAuth Test Console</h1>
-  <p class="sub">Runs Google, Facebook and GitHub sign-in against POST /auth/google, /auth/facebook and /auth/github (body: token only) and shows exactly what your backend returns.</p>
+
+  <div class="top">
+    <div>
+      <h1>OAuth Test Console</h1>
+      <p class="sub">Sign in with Google, Facebook and GitHub against your backend, or generate the raw provider token and use it from Postman.</p>
+    </div>
+    <div class="tools">
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle light and dark theme">Dark theme</button>
+      <div class="pill" id="backendPill"><span class="dot"></span><span id="backendText">Checking backend</span><button id="recheckBtn" type="button">Recheck</button></div>
+    </div>
+  </div>
 
   <div id="fileBanner" class="banner" hidden>
     This page was opened from a file. Google, Facebook and GitHub all need a real origin, so serve it instead:
     run <code>python3 -m http.server 3000</code> in this folder and open <code>http://localhost:3000/oauth-test.html</code>.
   </div>
 
-  <div class="card">
-    <h2>Configuration</h2>
+  <details class="card" id="configCard">
+    <summary>Configuration</summary>
     <p class="hint">Public identifiers only. Never paste a client secret or app secret here; those stay in the backend .env.</p>
+    <div class="grid2">
+      <div class="full">
+        <label for="backend">Backend base URL</label>
+        <input type="text" id="backend" placeholder="http://localhost:8080">
+      </div>
+      <div>
+        <label for="googleId">Google client ID (GOOGLE_CLIENT_ID)</label>
+        <input type="text" id="googleId" placeholder="123456789-abc.apps.googleusercontent.com">
+      </div>
+      <div>
+        <label for="facebookId">Facebook app ID (FACEBOOK_APP_ID)</label>
+        <input type="text" id="facebookId" placeholder="1234567890123456">
+      </div>
+      <div>
+        <label for="githubId">GitHub client ID (GITHUB_CLIENT_ID)</label>
+        <input type="text" id="githubId" placeholder="Ov23li... from your OAuth App">
+      </div>
+      <div>
+        <label for="redirectUri">GitHub callback URL to register on your OAuth App</label>
+        <div class="inline">
+          <input type="text" id="redirectUri" readonly>
+          <button class="ghost small" type="button" id="copyRedirectBtn">Copy</button>
+        </div>
+      </div>
+    </div>
+    <button class="primary" id="saveBtn" type="button" style="margin-top:16px">Save and reload</button>
+  </details>
 
-    <label for="backend">Backend base URL</label>
-    <input type="text" id="backend" placeholder="http://localhost:8080">
+  <div class="card">
+    <div class="card-head">
+      <h2>Providers</h2>
+      <div class="seg" role="group" aria-label="Mode">
+        <button type="button" id="modeSignin" aria-pressed="true">Sign in with backend</button>
+        <button type="button" id="modeToken" aria-pressed="false">Token only</button>
+      </div>
+    </div>
+    <p class="hint" id="modeHint"></p>
 
-    <label for="googleId">Google client ID (same value as GOOGLE_CLIENT_ID)</label>
-    <input type="text" id="googleId" placeholder="123456789-abc.apps.googleusercontent.com">
+    <div class="providers">
+      <div class="pcard">
+        <div class="phead"><div class="badge google">G</div><div><div class="pname">Google</div><div class="pdesc">ID token, verified by your backend</div></div></div>
+        <div class="slot" id="googleButton"></div>
+        <div class="status" id="googleStatus"></div>
+      </div>
 
-    <label for="facebookId">Facebook app ID (same value as FACEBOOK_APP_ID)</label>
-    <input type="text" id="facebookId" placeholder="1234567890123456">
+      <div class="pcard">
+        <div class="phead"><div class="badge facebook">f</div><div><div class="pname">Facebook</div><div class="pdesc">User access token</div></div></div>
+        <div class="slot"><button class="btn-fb" type="button" id="facebookBtn">Continue with Facebook</button></div>
+        <div class="status" id="facebookStatus"></div>
+      </div>
 
-    <label for="githubId">GitHub client ID (same value as GITHUB_CLIENT_ID)</label>
-    <input type="text" id="githubId" placeholder="Iv1.abc123 or a 20 character hex string">
-
-    <label for="redirectUri">GitHub callback URL to register on your OAuth App (this page's address)</label>
-    <input type="text" id="redirectUri" readonly>
-
-    <button class="primary" id="saveBtn">Save and reload</button>
+      <div class="pcard">
+        <div class="phead"><div class="badge github">GH</div><div><div class="pname">GitHub</div><div class="pdesc">Authorization code, exchanged by your backend</div></div></div>
+        <div class="slot"><button class="btn-gh" type="button" id="githubBtn">Continue with GitHub</button></div>
+        <div class="status" id="githubStatus"></div>
+      </div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>Sign in</h2>
-    <p class="hint">Each button runs the real provider flow, then sends the result to your backend.</p>
-
-    <div class="row-provider">
-      <div class="pname">Google</div>
-      <div class="slot" id="googleButton"></div>
-      <div class="status" id="googleStatus"></div>
+  <div class="card" id="tokensCard" hidden>
+    <div class="card-head">
+      <h2>Generated provider tokens</h2>
+      <button class="ghost small" type="button" id="clearTokensBtn">Clear all</button>
     </div>
-
-    <div class="row-provider">
-      <div class="pname">Facebook</div>
-      <div class="slot"><button class="btn-fb" id="facebookBtn">Continue with Facebook</button></div>
-      <div class="status" id="facebookStatus"></div>
-    </div>
-
-    <div class="row-provider">
-      <div class="pname">GitHub</div>
-      <div class="slot"><button class="btn-gh" id="githubBtn">Continue with GitHub</button></div>
-      <div class="status" id="githubStatus"></div>
-    </div>
+    <p class="hint">Shown in full. Paste the request body into Postman and send it to the matching endpoint. Provider tokens expire quickly, and a GitHub code works only once.</p>
+    <div class="tlist" id="tokenList"></div>
   </div>
 
   <div class="card" id="sessionCard" hidden>
-    <h2>Signed in</h2>
-    <p class="hint">Claims decoded from the JWT your backend issued.</p>
-    <pre id="claims"></pre>
-    <div class="toolbar">
-      <button class="secondary" id="profileBtn">GET /profile/me</button>
-      <button class="secondary" id="logoutBtn">POST /auth/logout</button>
+    <div class="card-head">
+      <h2>Signed in</h2>
     </div>
+    <p class="hint">The JWT your backend issued.</p>
+    <div class="tokenbox" id="jwtBox"></div>
+    <div class="actions">
+      <button class="ghost small" type="button" id="copyJwtBtn">Copy JWT</button>
+      <button class="ghost small" type="button" id="copyBearerBtn">Copy Authorization header</button>
+      <button class="primary small" type="button" id="profileBtn">GET /profile/me</button>
+      <button class="ghost small" type="button" id="logoutBtn">POST /auth/logout</button>
+    </div>
+    <pre class="claims" id="claims"></pre>
     <div id="profileOut"></div>
   </div>
 
   <div class="card">
-    <div class="logbar">
+    <div class="card-head">
       <h2>Request log</h2>
-      <button class="secondary" id="clearBtn">Clear</button>
+      <button class="ghost small" type="button" id="clearBtn">Clear</button>
     </div>
     <div id="log"></div>
   </div>
@@ -123,10 +298,55 @@
 
   var STORE_KEY = 'oauthTestConfig';
   var STATE_KEY = 'oauthTestGithubState';
+  var GH_MODE_KEY = 'oauthTestGithubMode';
+  var MODE_KEY = 'oauthTestMode';
+  var TOKENS_KEY = 'oauthTestTokens';
   var FB_VERSION = 'v23.0';
-  var token = null;
+
+  var PROVIDERS = {
+    google: {
+      label: 'Google',
+      badge: 'G',
+      path: '/auth/google',
+      tokenName: 'Google ID token',
+      note: 'ID tokens last about one hour.'
+    },
+    facebook: {
+      label: 'Facebook',
+      badge: 'f',
+      path: '/auth/facebook',
+      tokenName: 'Facebook access token',
+      note: 'Short lived user access token.'
+    },
+    github: {
+      label: 'GitHub',
+      badge: 'GH',
+      path: '/auth/github',
+      tokenName: 'GitHub authorization code',
+      note: 'Single use and valid for about 10 minutes. Using it once (here or in Postman) consumes it.'
+    }
+  };
+
+  var jwt = null;
 
   function $(id) { return document.getElementById(id); }
+
+  function h(tag, cls, text) {
+    var node = document.createElement(tag);
+    if (cls) { node.className = cls; }
+    if (text !== undefined) { node.textContent = text; }
+    return node;
+  }
+
+  function sessionGet(key) {
+    try { return sessionStorage.getItem(key); } catch (e) { return null; }
+  }
+  function sessionSet(key, value) {
+    try { sessionStorage.setItem(key, value); } catch (e) { }
+  }
+  function sessionRemove(key) {
+    try { sessionStorage.removeItem(key); } catch (e) { }
+  }
 
   function readConfig() {
     try {
@@ -139,12 +359,48 @@
   var cfg = readConfig();
   cfg.backend = cfg.backend || 'http://localhost:8080';
 
+  var mode = sessionGet(MODE_KEY) === 'token' ? 'token' : 'signin';
+
+  var tokens = [];
+  try {
+    var storedTokens = JSON.parse(sessionGet(TOKENS_KEY));
+    if (Array.isArray(storedTokens)) { tokens = storedTokens; }
+  } catch (e) { }
+
+  function saveTokens() { sessionSet(TOKENS_KEY, JSON.stringify(tokens)); }
+
   function redirectUri() { return location.origin + location.pathname; }
 
-  function mask(value) {
-    if (typeof value !== 'string') { return value; }
-    return value.length > 24 ? value.slice(0, 12) + '...' + value.slice(-8) : value;
+  /* Clipboard */
+
+  function copyText(text, btn) {
+    function done(ok) {
+      if (!btn) { return; }
+      var original = btn.getAttribute('data-label') || btn.textContent;
+      btn.setAttribute('data-label', original);
+      btn.textContent = ok ? 'Copied' : 'Copy failed';
+      setTimeout(function () { btn.textContent = original; }, 1400);
+    }
+    function fallback() {
+      var area = document.createElement('textarea');
+      area.value = text;
+      area.style.position = 'fixed';
+      area.style.opacity = '0';
+      document.body.appendChild(area);
+      area.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) { }
+      document.body.removeChild(area);
+      done(ok);
+    }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, fallback);
+    } else {
+      fallback();
+    }
   }
+
+  /* Status and log */
 
   function setStatus(id, text, bad) {
     var el = $(id);
@@ -153,15 +409,9 @@
   }
 
   function log(title, data, kind) {
-    var entry = document.createElement('div');
-    entry.className = 'entry' + (kind ? ' ' + kind : '');
-    var head = document.createElement('div');
-    head.className = 'entry-title';
-    head.textContent = new Date().toLocaleTimeString() + '   ' + title;
-    var body = document.createElement('pre');
-    body.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-    entry.appendChild(head);
-    entry.appendChild(body);
+    var entry = h('div', 'entry' + (kind ? ' ' + kind : ''));
+    entry.appendChild(h('div', 'entry-title', new Date().toLocaleTimeString() + '   ' + title));
+    entry.appendChild(h('pre', '', typeof data === 'string' ? data : JSON.stringify(data, null, 2)));
     var box = $('log');
     box.insertBefore(entry, box.firstChild);
   }
@@ -170,9 +420,9 @@
     try { return JSON.parse(text); } catch (e) { return text; }
   }
 
-  function decodeJwt(jwt) {
+  function decodeJwt(value) {
     try {
-      var part = jwt.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      var part = value.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
       while (part.length % 4) { part += '='; }
       var bin = atob(part);
       var bytes = Uint8Array.from(bin, function (c) { return c.charCodeAt(0); });
@@ -182,20 +432,159 @@
     }
   }
 
+  /* Backend health */
+
+  function setPill(kind, text) {
+    $('backendPill').className = 'pill ' + kind;
+    $('backendText').textContent = text;
+  }
+
+  async function checkBackend() {
+    setPill('', 'Checking backend');
+    try {
+      var res = await fetch(cfg.backend + '/health', { cache: 'no-store' });
+      setPill('ok', 'Backend reachable at ' + cfg.backend + ' (HTTP ' + res.status + ')');
+    } catch (e) {
+      setPill('bad', 'Backend not reachable at ' + cfg.backend + ' (is it running, and is CORS open?)');
+    }
+  }
+
+  /* Mode */
+
+  function applyMode() {
+    var tokenOnly = mode === 'token';
+    $('modeSignin').setAttribute('aria-pressed', String(!tokenOnly));
+    $('modeToken').setAttribute('aria-pressed', String(tokenOnly));
+    $('facebookBtn').textContent = tokenOnly ? 'Get Facebook token' : 'Continue with Facebook';
+    $('githubBtn').textContent = tokenOnly ? 'Get GitHub code' : 'Continue with GitHub';
+    $('modeHint').textContent = tokenOnly
+      ? 'Token only: runs the provider login and shows the token below. Nothing is sent to your backend, so you can use it in Postman.'
+      : 'Sign in: runs the provider login and sends the token to your backend, then shows the JWT it issues.';
+  }
+
+  function setMode(next) {
+    mode = next;
+    sessionSet(MODE_KEY, next);
+    applyMode();
+  }
+
+  /* Generated provider tokens */
+
+  function addToken(provider, value) {
+    tokens.unshift({ provider: provider, value: value, at: Date.now() });
+    saveTokens();
+    renderTokens();
+    log(PROVIDERS[provider].label + ': token generated (not sent to the backend)', PROVIDERS[provider].tokenName + ', ' + value.length + ' characters. See Generated provider tokens.', 'good');
+    var card = $('tokensCard');
+    if (card.scrollIntoView) { card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+  }
+
+  function metaItem(label, value) {
+    var span = h('span');
+    span.appendChild(document.createTextNode(label + ' '));
+    span.appendChild(h('b', '', value));
+    return span;
+  }
+
+  function tokenCard(t, index) {
+    var p = PROVIDERS[t.provider];
+    var card = h('div', 'tcard');
+
+    var head = h('div', 'thead');
+    var left = h('div', 'tleft');
+    left.appendChild(h('div', 'badge ' + t.provider, p.badge));
+    var titles = h('div');
+    titles.appendChild(h('div', 'ttitle', p.tokenName));
+    titles.appendChild(h('div', 'muted', 'Generated at ' + new Date(t.at).toLocaleTimeString()));
+    left.appendChild(titles);
+    head.appendChild(left);
+
+    var remove = h('button', 'ghost small', 'Remove');
+    remove.type = 'button';
+    remove.addEventListener('click', function () {
+      tokens.splice(index, 1);
+      saveTokens();
+      renderTokens();
+    });
+    head.appendChild(remove);
+    card.appendChild(head);
+
+    card.appendChild(h('div', 'tokenbox', t.value));
+
+    var meta = h('div', 'meta');
+    meta.appendChild(metaItem('Length', t.value.length + ' characters'));
+    if (t.provider === 'google') {
+      var claims = decodeJwt(t.value);
+      if (claims) {
+        if (claims.email) { meta.appendChild(metaItem('Email', claims.email)); }
+        if (claims.aud) { meta.appendChild(metaItem('Audience', claims.aud)); }
+        if (claims.exp) {
+          var minutes = Math.round((claims.exp * 1000 - Date.now()) / 60000);
+          meta.appendChild(metaItem('Expires', new Date(claims.exp * 1000).toLocaleTimeString()
+            + (minutes > 0 ? ' (in ' + minutes + ' min)' : ' (expired)')));
+        }
+      }
+    }
+    card.appendChild(meta);
+    card.appendChild(h('div', 'hint', p.note));
+
+    var url = cfg.backend + p.path;
+    var endpoint = h('div', 'endpoint');
+    endpoint.appendChild(document.createTextNode('Send to '));
+    endpoint.appendChild(h('code', '', 'POST ' + url));
+    card.appendChild(endpoint);
+
+    var body = JSON.stringify({ token: t.value }, null, 2);
+
+    var actions = h('div', 'actions');
+
+    var copyToken = h('button', 'primary small', 'Copy token');
+    copyToken.type = 'button';
+    copyToken.addEventListener('click', function () { copyText(t.value, copyToken); });
+    actions.appendChild(copyToken);
+
+    var copyBody = h('button', 'ghost small', 'Copy request body');
+    copyBody.type = 'button';
+    copyBody.addEventListener('click', function () { copyText(body, copyBody); });
+    actions.appendChild(copyBody);
+
+    var copyUrl = h('button', 'ghost small', 'Copy URL');
+    copyUrl.type = 'button';
+    copyUrl.addEventListener('click', function () { copyText(url, copyUrl); });
+    actions.appendChild(copyUrl);
+
+    var send = h('button', 'ghost small', 'Send to backend now');
+    send.type = 'button';
+    send.addEventListener('click', function () { postOAuth(p.label, p.path, { token: t.value }); });
+    actions.appendChild(send);
+
+    card.appendChild(actions);
+    return card;
+  }
+
+  function renderTokens() {
+    var list = $('tokenList');
+    list.textContent = '';
+    $('tokensCard').hidden = tokens.length === 0;
+    tokens.forEach(function (t, i) { list.appendChild(tokenCard(t, i)); });
+  }
+
+  /* Backend sign in */
+
   function showSession() {
-    var claims = decodeJwt(token);
+    $('jwtBox').textContent = jwt;
+    var claims = decodeJwt(jwt);
     var shown = claims ? Object.assign({}, claims) : { note: 'Could not decode the token' };
     if (claims && claims.exp) { shown.expiresAt = new Date(claims.exp * 1000).toString(); }
     $('claims').textContent = JSON.stringify(shown, null, 2);
     $('profileOut').textContent = '';
     $('sessionCard').hidden = false;
+    if ($('sessionCard').scrollIntoView) { $('sessionCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
   }
 
   async function postOAuth(label, path, payload) {
     var url = cfg.backend + path;
-    var shown = JSON.parse(JSON.stringify(payload));
-    if (shown.token) { shown.token = mask(shown.token); }
-    log(label + ': POST ' + url, shown);
+    log(label + ': POST ' + url, payload);
 
     var res;
     var text;
@@ -214,8 +603,8 @@
 
     var body = parseBody(text);
     if (res.ok && body && body.token) {
-      token = body.token;
-      log(label + ': HTTP ' + res.status, Object.assign({}, body, { token: mask(body.token) }), 'good');
+      jwt = body.token;
+      log(label + ': HTTP ' + res.status, body, 'good');
       showSession();
     } else {
       log(label + ': HTTP ' + res.status, body, 'bad');
@@ -231,18 +620,16 @@
   function renderProfile(p) {
     var out = $('profileOut');
     out.textContent = '';
-    var wrap = document.createElement('div');
-    wrap.className = 'profile';
+    var wrap = h('div', 'profile');
 
     if (p.profilePictureUrl) {
-      var img = document.createElement('img');
-      img.className = 'avatar';
+      var img = h('img', 'avatar');
       img.alt = 'Profile picture';
       img.src = p.profilePictureUrl;
       wrap.appendChild(img);
     }
 
-    var info = document.createElement('div');
+    var info = h('div');
     var rows = [
       ['Name', p.fullName || '(none)'],
       ['Email', p.email],
@@ -250,18 +637,13 @@
       ['Role', p.role],
       ['Verified', String(p.verified)],
       ['Active', String(p.active)],
-      ['Picture', pictureNote(p.profilePictureUrl)]
+      ['Picture', pictureNote(p.profilePictureUrl)],
+      ['Picture URL', p.profilePictureUrl || '(none)']
     ];
     rows.forEach(function (r) {
-      var line = document.createElement('div');
-      line.className = 'line';
-      var k = document.createElement('span');
-      k.className = 'k';
-      k.textContent = r[0];
-      var v = document.createElement('span');
-      v.textContent = r[1];
-      line.appendChild(k);
-      line.appendChild(v);
+      var line = h('div', 'line');
+      line.appendChild(h('span', 'k', r[0]));
+      line.appendChild(h('span', '', r[1]));
       info.appendChild(line);
     });
     wrap.appendChild(info);
@@ -269,10 +651,10 @@
   }
 
   async function fetchProfile() {
-    if (!token) { return; }
+    if (!jwt) { return; }
     var res;
     try {
-      res = await fetch(cfg.backend + '/profile/me', { headers: { Authorization: 'Bearer ' + token } });
+      res = await fetch(cfg.backend + '/profile/me', { headers: { Authorization: 'Bearer ' + jwt } });
     } catch (e) {
       log('GET /profile/me failed', e.message, 'bad');
       return;
@@ -283,10 +665,10 @@
   }
 
   async function doLogout() {
-    if (!token) { return; }
+    if (!jwt) { return; }
     var res;
     try {
-      res = await fetch(cfg.backend + '/auth/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + token } });
+      res = await fetch(cfg.backend + '/auth/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + jwt } });
     } catch (e) {
       log('POST /auth/logout failed', e.message, 'bad');
       return;
@@ -298,11 +680,21 @@
     }
   }
 
+  /* Provider flows */
+
+  function onProviderToken(provider, value) {
+    if (mode === 'token') {
+      addToken(provider, value);
+    } else {
+      postOAuth(PROVIDERS[provider].label, PROVIDERS[provider].path, { token: value });
+    }
+  }
+
   function initGoogle() {
     var holder = $('googleButton');
     holder.textContent = '';
     if (!cfg.google) {
-      setStatus('googleStatus', 'Add a Google client ID above.');
+      setStatus('googleStatus', 'Add a Google client ID in Configuration.');
       return;
     }
     if (!(window.google && google.accounts && google.accounts.id)) {
@@ -311,17 +703,21 @@
     }
     google.accounts.id.initialize({
       client_id: cfg.google,
-      callback: function (resp) {
-        postOAuth('Google', '/auth/google', { token: resp.credential });
-      }
+      callback: function (resp) { onProviderToken('google', resp.credential); }
     });
-    google.accounts.id.renderButton(holder, { theme: 'outline', size: 'large', text: 'continue_with' });
+    google.accounts.id.renderButton(holder, {
+      theme: currentTheme() === 'dark' ? 'filled_black' : 'outline',
+      size: 'large',
+      text: 'continue_with',
+      width: 240
+    });
     setStatus('googleStatus', 'Ready.');
   }
 
   function initFacebook() {
     if (!cfg.facebook) {
-      setStatus('facebookStatus', 'Add a Facebook app ID above.');
+      setStatus('facebookStatus', 'Add a Facebook app ID in Configuration.');
+      $('facebookBtn').disabled = true;
       return;
     }
     if (!window.FB) {
@@ -347,19 +743,49 @@
 
     history.replaceState(null, '', location.pathname);
 
+    var githubMode = sessionGet(GH_MODE_KEY) === 'token' ? 'token' : 'signin';
+    sessionRemove(GH_MODE_KEY);
+
     if (err) {
       log('GitHub returned an error', { error: err, description: params.get('error_description') }, 'bad');
       return;
     }
 
-    var expected = sessionStorage.getItem(STATE_KEY);
-    sessionStorage.removeItem(STATE_KEY);
+    var expected = sessionGet(STATE_KEY);
+    sessionRemove(STATE_KEY);
     if (!expected || expected !== state) {
       log('GitHub: state mismatch', 'The state value did not match the one sent. Response rejected. Start again.', 'bad');
       return;
     }
-    postOAuth('GitHub', '/auth/github', { token: code });
+
+    if (githubMode === 'token') {
+      addToken('github', code);
+    } else {
+      postOAuth('GitHub', PROVIDERS.github.path, { token: code });
+    }
   }
+
+  /* Theme */
+
+  function currentTheme() {
+    var forced = document.documentElement.getAttribute('data-theme');
+    if (forced === 'light' || forced === 'dark') { return forced; }
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+
+  function updateThemeButton() {
+    $('themeBtn').textContent = currentTheme() === 'dark' ? 'Light theme' : 'Dark theme';
+  }
+
+  function toggleTheme() {
+    var next = currentTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('oauthTestTheme', next); } catch (e) { }
+    updateThemeButton();
+    initGoogle();
+  }
+
+  /* Wiring */
 
   $('backend').value = cfg.backend;
   $('googleId').value = cfg.google || '';
@@ -367,6 +793,9 @@
   $('githubId').value = cfg.github || '';
   $('redirectUri').value = redirectUri();
   $('redirectUri').addEventListener('focus', function () { this.select(); });
+  $('copyRedirectBtn').addEventListener('click', function () { copyText(redirectUri(), this); });
+
+  if (!cfg.google || !cfg.facebook || !cfg.github) { $('configCard').open = true; }
 
   if (location.protocol !== 'http:' && location.protocol !== 'https:') {
     $('fileBanner').hidden = false;
@@ -379,9 +808,12 @@
       facebook: $('facebookId').value.trim(),
       github: $('githubId').value.trim()
     };
-    localStorage.setItem(STORE_KEY, JSON.stringify(next));
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(next)); } catch (e) { }
     location.reload();
   });
+
+  $('modeSignin').addEventListener('click', function () { setMode('signin'); });
+  $('modeToken').addEventListener('click', function () { setMode('token'); });
 
   $('facebookBtn').addEventListener('click', function () {
     if (!cfg.facebook || !window.FB) {
@@ -390,7 +822,7 @@
     }
     FB.login(function (resp) {
       if (resp && resp.authResponse && resp.authResponse.accessToken) {
-        postOAuth('Facebook', '/auth/facebook', { token: resp.authResponse.accessToken });
+        onProviderToken('facebook', resp.authResponse.accessToken);
       } else {
         log('Facebook: login was cancelled or not authorized', resp || 'no response', 'bad');
       }
@@ -403,7 +835,8 @@
       return;
     }
     var state = randomState();
-    sessionStorage.setItem(STATE_KEY, state);
+    sessionSet(STATE_KEY, state);
+    sessionSet(GH_MODE_KEY, mode);
     var query = new URLSearchParams({
       client_id: cfg.github,
       redirect_uri: redirectUri(),
@@ -413,11 +846,30 @@
     location.href = 'https://github.com/login/oauth/authorize?' + query.toString();
   });
 
+  $('copyJwtBtn').addEventListener('click', function () { if (jwt) { copyText(jwt, this); } });
+  $('copyBearerBtn').addEventListener('click', function () { if (jwt) { copyText('Bearer ' + jwt, this); } });
   $('profileBtn').addEventListener('click', fetchProfile);
   $('logoutBtn').addEventListener('click', doLogout);
   $('clearBtn').addEventListener('click', function () { $('log').textContent = ''; });
+  $('clearTokensBtn').addEventListener('click', function () {
+    tokens = [];
+    saveTokens();
+    renderTokens();
+  });
+  $('recheckBtn').addEventListener('click', checkBackend);
+  $('themeBtn').addEventListener('click', toggleTheme);
+  updateThemeButton();
 
-  setStatus('githubStatus', cfg.github ? 'Ready.' : 'Add a GitHub client ID above.');
+  if (cfg.github) {
+    setStatus('githubStatus', 'Ready.');
+  } else {
+    setStatus('githubStatus', 'Add a GitHub client ID in Configuration.');
+    $('githubBtn').disabled = true;
+  }
+
+  applyMode();
+  renderTokens();
+  checkBackend();
 
   window.onGoogleLibraryLoad = initGoogle;
   window.fbAsyncInit = initFacebook;
