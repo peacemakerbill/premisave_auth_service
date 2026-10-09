@@ -107,6 +107,29 @@ profile-views:
 app:
   api-key: ${API_KEY}
 
+# ── Google Drive (Home Owner application documents) ──
+# Optional at startup: with nothing set the service still boots, and document
+# uploads answer with a clear "storage not configured" message.
+# Option 1, a Google account refresh token (works with a normal Gmail account):
+#   GOOGLE_DRIVE_CLIENT_ID, GOOGLE_DRIVE_CLIENT_SECRET, GOOGLE_DRIVE_REFRESH_TOKEN
+#   Scope needed: https://www.googleapis.com/auth/drive.file
+# Option 2, a service account (Google Workspace / shared folder):
+#   GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE and GOOGLE_DRIVE_FOLDER_ID
+google-drive:
+  client-id: ${GOOGLE_DRIVE_CLIENT_ID:}
+  client-secret: ${GOOGLE_DRIVE_CLIENT_SECRET:}
+  refresh-token: ${GOOGLE_DRIVE_REFRESH_TOKEN:}
+  service-account-file: ${GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE:}
+  folder-id: ${GOOGLE_DRIVE_FOLDER_ID:}
+  root-folder-name: ${GOOGLE_DRIVE_ROOT_FOLDER_NAME:Premisave Home Owner Applications}
+
+# ── Home Owner applications ──
+home-owner-application:
+  max-file-size-mb: ${HOME_OWNER_MAX_FILE_SIZE_MB:8}
+  max-documents: ${HOME_OWNER_MAX_DOCUMENTS:25}
+  review-sla-days: ${HOME_OWNER_REVIEW_SLA_DAYS:3}
+  frontend-path: ${HOME_OWNER_FRONTEND_PATH:/home-owner/application}
+
 # ── Logging ──
 logging:
   level:

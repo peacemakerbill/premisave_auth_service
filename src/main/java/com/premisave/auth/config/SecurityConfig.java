@@ -45,6 +45,8 @@ public class SecurityConfig {
                 
                 .requestMatchers("/social/**").authenticated()
                 .requestMatchers("/location/**").authenticated()
+                .requestMatchers("/home-owner/**").authenticated()
+                .requestMatchers("/staff/**").hasAnyRole("ADMIN", "OPERATIONS", "FINANCE", "SUPPORT")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
@@ -92,7 +94,7 @@ public class SecurityConfig {
             "X-Requested-With",
             "X-CSRF-Token"
         ));
-        configuration.setExposedHeaders(List.of("Authorization"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
         
         // Important: Set to true only if you need cookies/auth headers
         configuration.setAllowCredentials(true);   
