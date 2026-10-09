@@ -38,16 +38,11 @@ public final class ApplicationRequirements {
 
         list.add(new Requirement("IDENTITY",
                 type == OwnerType.COMPANY ? "Director identity" : "Identity",
-                "Both sides of your Kenyan national ID, or the bio page of your passport.",
+                "Any one of: both sides of your government ID card, the photo page of your passport, or your driving licence.",
                 true, List.of(
-                        List.of(DocumentType.NATIONAL_ID_FRONT, DocumentType.NATIONAL_ID_BACK),
-                        List.of(DocumentType.PASSPORT_BIO_PAGE))));
-
-        list.add(new Requirement("TAX", "KRA PIN certificate",
-                type == OwnerType.COMPANY
-                        ? "The company's KRA PIN certificate."
-                        : "Your KRA PIN certificate.",
-                true, List.of(List.of(DocumentType.KRA_PIN_CERTIFICATE))));
+                        List.of(DocumentType.GOVERNMENT_ID_FRONT, DocumentType.GOVERNMENT_ID_BACK),
+                        List.of(DocumentType.PASSPORT_BIO_PAGE),
+                        List.of(DocumentType.DRIVING_LICENCE))));
 
         list.add(new Requirement("OWNERSHIP", "Proof of property ownership",
                 "One of: title deed, sale agreement, head lease or allotment letter, for at least one property.",
@@ -58,9 +53,9 @@ public final class ApplicationRequirements {
                         List.of(DocumentType.ALLOTMENT_LETTER))));
 
         // Optional extras that make verification faster
-        list.add(new Requirement("DRIVING_LICENCE", "Driving licence",
-                "Optional. A second ID that can speed up verification.",
-                false, List.of(List.of(DocumentType.DRIVING_LICENCE))));
+        list.add(new Requirement("TAX_ID_DOCUMENT", "Tax ID document",
+                "Optional. A tax registration certificate or official tax letter that shows your tax ID.",
+                false, List.of(List.of(DocumentType.TAX_ID_DOCUMENT))));
         list.add(new Requirement("SELFIE_WITH_ID", "Selfie holding your ID",
                 "Optional. Helps us confirm the ID is yours.",
                 false, List.of(List.of(DocumentType.SELFIE_WITH_ID))));
@@ -68,7 +63,7 @@ public final class ApplicationRequirements {
                 "Optional. A utility bill or bank statement from the last three months.",
                 false, List.of(List.of(DocumentType.UTILITY_BILL))));
         list.add(new Requirement("TAX_COMPLIANCE", "Tax compliance certificate",
-                "Optional. A current KRA tax compliance certificate.",
+                "Optional. A current tax compliance or good standing certificate, if your country issues one.",
                 false, List.of(List.of(DocumentType.TAX_COMPLIANCE_CERTIFICATE))));
 
         return list;

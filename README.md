@@ -51,6 +51,7 @@
   <a href="#authentication-flows">Authentication flows</a> ·
   <a href="#api-reference">API reference</a> ·
   <a href="#configuration-reference">Configuration</a> ·
+  <a href="#home-owner-applications">Home Owner applications</a> &middot;
   <a href="#troubleshooting">Troubleshooting</a>
 </p>
 
@@ -71,16 +72,17 @@
 7. [Build and run](#build-and-run)
 8. [Configuration reference](#configuration-reference)
 9. [API reference](#api-reference)
-10. [Testing with Postman or curl](#testing-with-postman-or-curl)
-11. [Roles and access control](#roles-and-access-control)
-12. [Data model](#data-model)
-13. [Going live](#going-live)
-14. [Security notes](#security-notes)
-15. [Project structure](#project-structure)
-16. [Troubleshooting](#troubleshooting)
-17. [Roadmap ideas](#roadmap-ideas)
-18. [Contributing](#contributing)
-19. [Author](#author)
+10. [Home Owner applications](#home-owner-applications)
+11. [Testing with Postman or curl](#testing-with-postman-or-curl)
+12. [Roles and access control](#roles-and-access-control)
+13. [Data model](#data-model)
+14. [Going live](#going-live)
+15. [Security notes](#security-notes)
+16. [Project structure](#project-structure)
+17. [Troubleshooting](#troubleshooting)
+18. [Roadmap ideas](#roadmap-ideas)
+19. [Contributing](#contributing)
+20. [Author](#author)
 
 ---
 
@@ -95,6 +97,7 @@ Concretely, it:
 - issues signed JWTs carrying the user's ID, email, and role, and revokes them on logout through a Redis blacklist,
 - owns the user profile (names, contact details, language, profile picture on Cloudinary),
 - provides the social layer used across the platform: likes, follows, star-rated reviews, and "who viewed my profile",
+- lets a client apply to become a Home Owner, stores their documents in Google Drive, and lets staff review and verify the application before an administrator promotes the account,
 - records a user's location history,
 - gives administrators a full user-management surface (create, edit, archive, activate, verify, change role, reset password),
 - exposes a small, API-key-protected `/internal/**` API so sibling services can validate and look up users without a user JWT.
@@ -111,6 +114,7 @@ Concretely, it:
 | **Profile pictures** | Validated image upload (JPEG, PNG, GIF, WEBP) pushed to Cloudinary on a background thread with a 400x400 transformation. |
 | **Social graph** | Likes, follows, mutual-follow check, 1 to 5 star reviews with comments, and aggregate stats per user. |
 | **Profile views** | Records views (deduplicated to one per viewer per 24 hours), with "who viewed me", "who I viewed", and view statistics. |
+| **Home Owner applications** | A guided application with over 30 fields, a document checklist that depends on who is applying, uploads to Google Drive checked by file signature, a status workflow with per-document review, internal staff notes, a full timeline, and an email at every change. An admin promotes a verified client to Home Owner with one request. |
 | **Location history** | Current location plus full history, newest first. |
 | **Admin user management** | Role-gated CRUD, archive, activate, verify, role changes with a last-admin safeguard, and password management. |
 | **Internal service API** | Email validation and user-detail lookup for sibling services, protected by `X-API-Key`. |
@@ -320,6 +324,13 @@ Every setting lives in `src/main/resources/application.yml` and can be overridde
 | `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | blank (disabled) | no | Facebook app credentials, used to confirm a token belongs to this app (`/debug_token`) and to sign Graph API calls (`appsecret_proof`). Leave both unset to disable Facebook sign-in. |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | blank (disabled) | no | GitHub OAuth App credentials, used to exchange an authorization code and to verify a client-supplied token belongs to this app. Leave both unset to disable GitHub sign-in. |
 | `GITHUB_REDIRECT_URI` | blank | no | Optional. When set, it is sent with the GitHub code exchange and must equal the `redirect_uri` used when the code was requested and the callback URL registered on the OAuth App. |
+| `GOOGLE_DRIVE_CLIENT_ID` / `GOOGLE_DRIVE_CLIENT_SECRET` / `GOOGLE_DRIVE_REFRESH_TOKEN` | blank | no | Google account credentials for storing application documents (scope `drive.file`). Leave unset to disable uploads without affecting anything else. |
+| `GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE` / `GOOGLE_DRIVE_FOLDER_ID` | blank | no | Alternative to the refresh token: a service account key file and a folder shared with it. |
+| `GOOGLE_DRIVE_ROOT_FOLDER_NAME` | `Premisave Home Owner Applications` | no | Name of the root folder created automatically when no folder ID is set. |
+| `HOME_OWNER_MAX_FILE_SIZE_MB` | `8` | no | Largest accepted upload. Keep below `spring.servlet.multipart.max-file-size` (10MB). |
+| `HOME_OWNER_MAX_DOCUMENTS` | `25` | no | Most files one application can hold. |
+| `HOME_OWNER_REVIEW_SLA_DAYS` | `3` | no | Working days quoted to applicants as the usual review time. |
+| `HOME_OWNER_FRONTEND_PATH` | `/home-owner/application` | no | Frontend path the emails link to, appended to `FRONTEND_URL`. |
 | `RATE_LIMIT_REQUESTS_PER_MINUTE` | `20` | no | Bucket capacity and refill rate for rate-limited endpoints. |
 
 `JWT_SECRET`, `API_KEY`, and the three Cloudinary variables have no default in `application.yml` and must come from `.env` or the environment — the service fails to start without them. The three OAuth providers are the opposite: each defaults to blank and is simply unavailable at its `/auth/google`, `/auth/facebook` or `/auth/github` endpoint until configured, so a missing or misconfigured provider can never take down the whole service.
@@ -337,6 +348,9 @@ Base URL (local): `http://localhost:8080`
 | `/profile/views/**` | JWT | Profile view tracking and statistics |
 | `/social/**` | JWT | Likes, follows, reviews, stats |
 | `/location/**` | JWT | Current location and history |
+| `/home-owner/applications/**` | JWT, any signed-in user | Apply to become a Home Owner (own applications only) |
+| `/staff/applications/**` | JWT, `ADMIN`, `OPERATIONS`, `FINANCE` or `SUPPORT` | Review queue, document review, status changes |
+| `/admin/applications/**` | JWT, `ADMIN` role | Promote a verified applicant to Home Owner |
 | `/admin/users/**` | JWT, `ADMIN` role | User management |
 | `/internal/users/**` | `X-API-Key` | Service-to-service validation and lookup |
 
@@ -480,6 +494,120 @@ All under `/admin/users`, `ADMIN` role required.
 
 Both require `X-API-Key`. The wallet service calls `validate-email` during M-Pesa C2B validation and `details` to put real names on transfer and payment emails.
 
+## Home Owner applications
+
+A signed-in `CLIENT` can apply to become a `HOME_OWNER`. They fill in a guided form, upload their documents (stored in Google Drive), and submit. Staff review the application and each document, the applicant is emailed at every change, and once everything is verified an administrator presses one button to promote the account.
+
+### The journey
+
+| Step | Who | What happens |
+|---|---|---|
+| 1. Start | Client | `POST /home-owner/applications`. A draft is created with an application number such as `HOA-2026-000042`. Country, address and phone are pre-filled from the profile. |
+| 2. Fill in | Client | `PATCH /home-owner/applications/{id}` saves any subset of fields, so a form can autosave section by section. |
+| 3. Upload | Client | `POST /home-owner/applications/{id}/documents` for each file. The checklist and a progress percentage come back with every response. |
+| 4. Submit | Client | `POST .../submit` is refused with a list of exactly what is missing until the application is complete. |
+| 5. Review | Staff | Claim it, verify or reject each document, ask for more information, add private notes. |
+| 6. Verified | Staff | Allowed only when every required document is verified and every required detail is present. |
+| 7. Make Home Owner | Admin | `POST /admin/applications/{id}/promote`. The role changes from `CLIENT` to `HOME_OWNER`, the application becomes `ACCEPTED`, and the applicant is emailed. |
+
+### Statuses
+
+| Status | Meaning | Applicant can edit | Next steps for staff |
+|---|---|---|---|
+| `DRAFT` | Being filled in | yes | none (staff do not see drafts in the queue) |
+| `SUBMITTED` | Waiting for a reviewer | no | `PROCESSING`, `INFO_REQUESTED`, `REJECTED` |
+| `PROCESSING` | A reviewer is checking | no | `INFO_REQUESTED`, `VERIFIED`, `REJECTED` |
+| `INFO_REQUESTED` | The applicant must fix or add something, then resubmit | yes | `REJECTED` |
+| `VERIFIED` | Details and documents confirmed | no | `PROCESSING`, `INFO_REQUESTED`, `REJECTED`, or promote (admin) |
+| `ACCEPTED` | Promoted to Home Owner. Final. | no | none |
+| `REJECTED` | Not approved, with a reason. Final. An admin may reopen it to `PROCESSING`. | no | admin only |
+| `WITHDRAWN` | Cancelled by the applicant. Final. | no | none |
+
+A rejected or withdrawn applicant can start a new application. Only one application can be open at a time.
+
+### What the form collects
+
+| Section | Fields |
+|---|---|
+| Who is applying | `ownerType` (`INDIVIDUAL`, `COMPANY`, `PROPERTY_MANAGER`), company name and registration number for companies |
+| Identity | ID type (national ID, passport, driving licence or residence permit), ID number, issuing country, tax ID (TIN, PIN, SSN, EIN, VAT or similar), date of birth (18 or older), nationality |
+| Contact and address | Phone and alternate phone in international format (`+254712345678`, `+14155552671`), country (ISO code, any of the 249), state or region, city, street address, postal address or ZIP code |
+| Portfolio | Number of properties, estimated total units, property types (multi-select), main property location, short description, how you manage today, years as a landlord |
+| Payouts | Bank transfer (bank name, account name, account number or IBAN, optional SWIFT or BIC and branch), mobile money (provider such as M-Pesa, MTN MoMo or Airtel Money, plus number), or PayPal email |
+| About you | Why you want to join, how you heard about Premisave |
+| Consent | Terms, privacy consent and a truthfulness declaration, with the time they were given |
+
+`GET /home-owner/applications/meta` returns every dropdown, all ISO countries, the document checklist for each owner type and the upload limits, so a frontend never hardcodes them.
+
+### Documents
+
+| Document | Notes |
+|---|---|
+| Identity: government ID card (front and back), passport photo page, or driving licence | Required, any one of the three |
+| Tax ID document | Optional, shows the tax ID entered |
+| Proof of ownership | Required, one of title deed, sale agreement, head lease or allotment letter |
+| Certificate of incorporation | Required for companies |
+| Power of attorney | Required for property managers |
+| Selfie holding ID, proof of address, tax compliance certificate, directors listing, property tax clearance | Optional, can speed up verification |
+
+Files must be PDF, JPG, PNG or WEBP, up to 8MB each. The application is not tied to any one country: countries, phone numbers (E.164) and payout methods are international, and the tax ID is free text so every country's format works. The file type is checked from the file's own bytes, not its name or the type the browser claims. Uploading the same file twice is refused. A verified document cannot be replaced or removed by the applicant.
+
+### How staff work the queue
+
+| Action | Endpoint | Who |
+|---|---|---|
+| Dashboard counters | `GET /staff/applications/stats` | ADMIN, OPERATIONS, FINANCE, SUPPORT |
+| Queue with search and filters | `GET /staff/applications?status=SUBMITTED&assignee=none&country=KE&q=john` | staff |
+| Open an application | `GET /staff/applications/{id}` | staff |
+| Claim it | `POST /staff/applications/{id}/claim` | staff |
+| Give it to a colleague | `PUT /staff/applications/{id}/assign` | admin (anyone can claim for themselves) |
+| Verify or reject a document | `POST /staff/applications/{id}/documents/{docId}/review` | staff |
+| Change status | `POST /staff/applications/{id}/status` | staff |
+| Private note | `POST /staff/applications/{id}/notes` | staff |
+| View or download a file | `GET /staff/applications/{id}/documents/{docId}/download` | staff |
+| **Make Home Owner** | `POST /admin/applications/{id}/promote` | **admin only** |
+
+Rules the service enforces:
+
+- Asking for more information or rejecting requires a message, which is shown to the applicant and emailed.
+- `VERIFIED` is refused unless every required detail is present and every required document is verified.
+- Rejecting a document with `requestReupload: true` also moves the application to `INFO_REQUESTED`. Rejecting a document on a `VERIFIED` application sends it back to `PROCESSING`.
+- `ACCEPTED` can only be reached through promote, never through the status endpoint.
+- Promote re-checks everything, requires the account to still be a `CLIENT`, saves the new role, clears the cached user in Redis so the change applies at once, and emails the applicant.
+- Applicants never see staff names (only "Premisave review team") or internal notes.
+
+### Emails
+
+The applicant gets a branded email when they submit, when a reviewer starts, when information is requested, when a document is verified or needs replacing, when the application is verified, rejected or withdrawn, and when they become a Home Owner. All dynamic text is HTML-escaped. Emails are sent in the background and a mail failure never fails the request.
+
+### Google Drive setup
+
+Documents are stored in Google Drive, one folder per application, under a root folder the service creates itself. Files are never shared publicly. Applicants and staff download them through this service, which checks who is asking.
+
+The service requests only the `drive.file` scope, so it can see nothing in the Drive except what it created.
+
+**Option 1: a normal Google account (simplest)**
+
+1. In [Google Cloud Console](https://console.cloud.google.com), create or pick a project and enable the **Google Drive API** (APIs and Services, Library).
+2. Configure the OAuth consent screen and add the scope `https://www.googleapis.com/auth/drive.file`. If the app is in **Testing** mode, add the Drive account as a test user, and publish the app to **In production** when you go live, because refresh tokens issued in Testing mode expire after 7 days.
+3. Create an OAuth client of type **Web application**. Under **Authorized redirect URIs** add `https://developers.google.com/oauthplayground`.
+4. Open the [OAuth Playground](https://developers.google.com/oauthplayground), click the gear icon, tick **Use your own OAuth credentials** and paste the client ID and secret. Authorize the scope `https://www.googleapis.com/auth/drive.file` with the Google account that should own the files, then **Exchange authorization code for tokens** and copy the **refresh token**.
+5. Put the three values in `.env`:
+
+```env
+GOOGLE_DRIVE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_DRIVE_CLIENT_SECRET=your-client-secret
+GOOGLE_DRIVE_REFRESH_TOKEN=your-refresh-token
+```
+
+**Option 2: a service account (Google Workspace or a shared folder)**
+
+1. Create a service account, download its JSON key and keep it outside the repository.
+2. Create a folder in Drive and share it with the service account's email as **Editor**.
+3. Set `GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE` to the key's path and `GOOGLE_DRIVE_FOLDER_ID` to the folder's ID (the last part of its URL).
+
+If nothing is configured the service still starts, and uploads answer with a clear "document storage is not configured" message.
+
 ## Testing with Postman or curl
 
 ```bash
@@ -540,14 +668,16 @@ A GitHub authorization code works only once, so do not use the same code both in
 
 | Role | Intended for |
 |---|---|
-| `CLIENT` | Default for new users, tenants and buyers. |
-| `HOME_OWNER` | Property owners and landlords. |
+| `CLIENT` | Default for new users, tenants and buyers. Can apply to become a Home Owner. |
+| `HOME_OWNER` | Property owners and landlords. Reached only by a verified application that an admin promotes. |
 | `ADMIN` | Full platform administration, including `/admin/**` here. |
-| `OPERATIONS` | Operations staff (enforced by sibling services). |
-| `FINANCE` | Finance staff (enforced by sibling services, for example wallet reports). |
-| `SUPPORT` | Customer support staff. |
+| `OPERATIONS` | Operations staff. Can review Home Owner applications here. |
+| `FINANCE` | Finance staff. Can review Home Owner applications here. |
+| `SUPPORT` | Customer support staff. Can review Home Owner applications here. |
 
 Spring Security authorities are the role name prefixed with `ROLE_`, so `hasRole('ADMIN')` matches `ADMIN`.
+
+**After a promotion:** this service reads the role from the database on every request, so the new access applies here immediately. The `roles` claim inside a JWT that was issued earlier stays `CLIENT` for sibling services until the user signs in again or refreshes their token, so tell new Home Owners to sign out and back in. The promotion email says so.
 
 ## Data model
 
@@ -599,7 +729,7 @@ A user can sign in only when `active` and `verified` are both true. Archived use
 premisave_auth_service/
 ├── src/main/java/com/premisave/auth/
 │   ├── config/          # Security, Redis, Mongo auditing, mail, Cloudinary, async, rate limiting, OAuth RestClient, admin seeding
-│   ├── controller/      # Auth, profile, profile views, social, location, admin, internal, home
+│   ├── controller/      # Auth, profile, profile views, social, location, admin, internal, home, Home Owner applications (applicant, staff, admin)
 │   ├── dto/             # Request and response DTOs, including SocialLoginRequest/OAuthUserInfo
 │   ├── entity/          # User (with googleId/facebookId/githubId), Token, Like, Follower, Review, ProfileView, UserLocation
 │   ├── enums/           # Role, TokenType, Language
@@ -607,12 +737,13 @@ premisave_auth_service/
 │   ├── repository/      # Spring Data MongoDB repositories
 │   ├── security/        # JWT service and filter, API key filter, UserDetailsService
 │   ├── service/         # Business logic, email, profile picture storage
+│   │   ├── application/ # Home Owner applications: applicant and review services, Drive storage, readiness, emails
 │   │   └── oauth/       # OAuthProviderClient + one implementation per provider (Google, Facebook, GitHub)
 │   ├── util/            # Rate limiter interceptor
 │   └── PremisaveAuthServiceApplication.java
 ├── src/main/resources/
 │   ├── application.yml
-│   ├── templates/       # activation-email.html, reset-password-email.html
+│   ├── templates/       # activation-email.html, reset-password-email.html, application-update-email.html
 │   └── META-INF/additional-spring-configuration-metadata.json
 ├── oauth-test/
 │   └── oauth-test.html  # Browser console for testing Google, Facebook and GitHub sign-in
@@ -668,6 +799,30 @@ That provider's environment variables are unset (blank by default), so the servi
 <summary><b>400 "This email is already linked to a different &lt;Provider&gt; account"</b></summary>
 
 An account with that email already exists and is linked to a different provider account than the one signing in — for example, they signed up with Google, and a different GitHub account happens to share the same email. This is a genuine conflict; there's no automatic resolution.
+</details>
+
+<details>
+<summary><b>Uploading a document says document storage is not configured</b></summary>
+
+Set either the three `GOOGLE_DRIVE_*` refresh-token variables or `GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE` with `GOOGLE_DRIVE_FOLDER_ID`, then restart. See Google Drive setup under Home Owner applications.
+</details>
+
+<details>
+<summary><b>Uploads worked, then started failing after about a week</b></summary>
+
+The Google app is still in **Testing** mode, where refresh tokens expire after 7 days. Publish the OAuth consent screen to **In production** and generate a new refresh token.
+</details>
+
+<details>
+<summary><b>An upload is refused as too large</b></summary>
+
+Files are limited to 8MB (`HOME_OWNER_MAX_FILE_SIZE_MB`). Raise it together with `spring.servlet.multipart.max-file-size` and `max-request-size`, which default to 10MB.
+</details>
+
+<details>
+<summary><b>A newly promoted Home Owner still looks like a Client in another service</b></summary>
+
+That service reads the role from the JWT, which was issued before the promotion. Ask the user to sign out and sign in again.
 </details>
 
 <details>

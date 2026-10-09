@@ -1,10 +1,12 @@
 package com.premisave.auth.dto.application;
 
+import com.premisave.auth.enums.IdType;
 import com.premisave.auth.enums.ManagementPreference;
 import com.premisave.auth.enums.OwnerType;
 import com.premisave.auth.enums.PayoutMethod;
 import com.premisave.auth.enums.PropertyType;
 import com.premisave.auth.enums.ReferralSource;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Past;
@@ -33,44 +35,45 @@ public class ApplicationRequest {
     private String companyRegistrationNumber;
 
     // Identity and tax
-    @Pattern(regexp = "^[0-9]{6,10}$", message = "National ID number must be 6 to 10 digits")
-    private String nationalIdNumber;
+    private IdType idType;
 
-    @Pattern(regexp = "^[A-Za-z0-9]{6,12}$", message = "Passport number must be 6 to 12 letters or digits")
-    private String passportNumber;
+    @Pattern(regexp = "^[A-Za-z0-9 ./\\-]{4,30}$", message = "ID number looks invalid (4 to 30 letters, digits, spaces, dots, slashes or dashes)")
+    private String idNumber;
 
-    @Pattern(regexp = "^[A-Za-z0-9/\\-]{4,20}$", message = "Driving licence number looks invalid")
-    private String drivingLicenceNumber;
+    @Size(max = 56, message = "Choose the country that issued the ID")
+    private String idIssuingCountry;
 
-    @Pattern(regexp = "^[AaPp][0-9]{9}[A-Za-z]$", message = "KRA PIN must look like A123456789B")
-    private String kraPin;
+    @Pattern(regexp = "^[A-Za-z0-9 ./\\-]{4,40}$", message = "Tax ID looks invalid (4 to 40 letters, digits, spaces, dots, slashes or dashes)")
+    private String taxId;
 
     @Past(message = "Date of birth must be in the past")
     private LocalDate dateOfBirth;
 
-    @Size(max = 60, message = "Nationality is too long")
+    @Size(max = 56, message = "Choose a nationality from the list")
     private String nationality;
 
-    // Contact and address
-    @Pattern(regexp = "^\\+?[0-9 \\-]{9,18}$", message = "Phone number looks invalid")
+    // Contact and address. Phone numbers use the international format, for example +254712345678.
+    @Pattern(regexp = "^[+0-9 ().\\-]{7,24}$", message = "Phone number looks invalid. Include the country code, for example +254712345678")
     private String phoneNumber;
 
-    @Pattern(regexp = "^\\+?[0-9 \\-]{9,18}$", message = "Alternate phone number looks invalid")
+    @Pattern(regexp = "^[+0-9 ().\\-]{7,24}$", message = "Alternate phone number looks invalid. Include the country code")
     private String alternatePhoneNumber;
 
-    @Size(max = 60)
+    /** Country name, ISO code (KE or KEN). Stored as the two letter ISO code. */
+    @Size(max = 56)
     private String country;
 
-    @Size(max = 60)
-    private String county;
+    /** State, province, county or similar. */
+    @Size(max = 80)
+    private String region;
 
     @Size(max = 80)
-    private String town;
+    private String city;
 
-    @Size(max = 200, message = "Physical address is too long")
+    @Size(max = 200, message = "Street address is too long")
     private String physicalAddress;
 
-    @Size(max = 120, message = "Postal address is too long")
+    @Size(max = 120, message = "Postal address or ZIP code is too long")
     private String postalAddress;
 
     // Portfolio
@@ -100,8 +103,15 @@ public class ApplicationRequest {
     // Payout
     private PayoutMethod payoutMethod;
 
-    @Pattern(regexp = "^\\+?[0-9 \\-]{9,18}$", message = "M-Pesa number looks invalid")
-    private String mpesaNumber;
+    @Size(max = 60, message = "Provider name is too long")
+    private String mobileMoneyProvider;
+
+    @Pattern(regexp = "^[+0-9 ().\\-]{7,24}$", message = "Mobile money number looks invalid. Include the country code")
+    private String mobileMoneyNumber;
+
+    @Email(message = "PayPal email looks invalid")
+    @Size(max = 120)
+    private String paypalEmail;
 
     @Size(max = 80)
     private String bankName;
@@ -109,8 +119,11 @@ public class ApplicationRequest {
     @Size(max = 100)
     private String bankAccountName;
 
-    @Pattern(regexp = "^[0-9A-Za-z\\- ]{6,30}$", message = "Bank account number looks invalid")
+    @Pattern(regexp = "^[0-9A-Za-z\\- ]{5,34}$", message = "Account number or IBAN looks invalid")
     private String bankAccountNumber;
+
+    @Pattern(regexp = "^[A-Za-z]{4}[A-Za-z]{2}[A-Za-z0-9]{2}([A-Za-z0-9]{3})?$", message = "SWIFT or BIC code must be 8 or 11 characters")
+    private String bankSwiftCode;
 
     @Size(max = 80)
     private String bankBranch;

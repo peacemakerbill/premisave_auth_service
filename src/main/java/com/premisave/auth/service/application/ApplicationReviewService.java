@@ -100,7 +100,7 @@ public class ApplicationReviewService {
     // ------------------------------------------------------------------
 
     public PageResponse<ApplicationSummary> search(String q, List<ApplicationStatus> statuses, OwnerType ownerType,
-                                                   String county, String assignee, String sort, int page, int size) {
+                                                   String country, String region, String assignee, String sort, int page, int size) {
         User me = currentUser.requireStaff();
 
         List<Criteria> filters = new ArrayList<>();
@@ -113,8 +113,11 @@ public class ApplicationReviewService {
         if (ownerType != null) {
             filters.add(Criteria.where("ownerType").is(ownerType));
         }
-        if (county != null && !county.isBlank()) {
-            filters.add(Criteria.where("county").regex(exact(county.trim())));
+        if (country != null && !country.isBlank()) {
+            filters.add(Criteria.where("country").is(country.trim().toUpperCase()));
+        }
+        if (region != null && !region.isBlank()) {
+            filters.add(Criteria.where("region").regex(exact(region.trim())));
         }
         if (assignee != null && !assignee.isBlank()) {
             String value = assignee.trim();
@@ -133,8 +136,8 @@ public class ApplicationReviewService {
                     Criteria.where("applicantName").regex(contains),
                     Criteria.where("applicantEmail").regex(contains),
                     Criteria.where("phoneNumber").regex(contains),
-                    Criteria.where("nationalIdNumber").regex(contains),
-                    Criteria.where("kraPin").regex(contains),
+                    Criteria.where("idNumber").regex(contains),
+                    Criteria.where("taxId").regex(contains),
                     Criteria.where("companyName").regex(contains)));
         }
 

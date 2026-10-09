@@ -1,6 +1,7 @@
 package com.premisave.auth.entity;
 
 import com.premisave.auth.enums.ApplicationStatus;
+import com.premisave.auth.enums.IdType;
 import com.premisave.auth.enums.ManagementPreference;
 import com.premisave.auth.enums.OwnerType;
 import com.premisave.auth.enums.PayoutMethod;
@@ -51,19 +52,19 @@ public class HomeOwnerApplication {
     private String companyRegistrationNumber;
 
     // Identity and tax
-    private String nationalIdNumber;
-    private String passportNumber;
-    private String drivingLicenceNumber;
-    private String kraPin;
+    private IdType idType;
+    private String idNumber;
+    private String idIssuingCountry;   // ISO 3166-1 alpha-2
+    private String taxId;
     private LocalDate dateOfBirth;
-    private String nationality;
+    private String nationality;       // ISO 3166-1 alpha-2
 
     // Contact and address
     private String phoneNumber;
     private String alternatePhoneNumber;
-    private String country = "Kenya";
-    private String county;
-    private String town;
+    private String country;           // ISO 3166-1 alpha-2, for example KE, US, GB
+    private String region;            // state, province or county
+    private String city;
     private String physicalAddress;
     private String postalAddress;
 
@@ -78,10 +79,13 @@ public class HomeOwnerApplication {
 
     // Payout
     private PayoutMethod payoutMethod;
-    private String mpesaNumber;
+    private String mobileMoneyProvider;
+    private String mobileMoneyNumber;
+    private String paypalEmail;
     private String bankName;
     private String bankAccountName;
-    private String bankAccountNumber;
+    private String bankAccountNumber;   // account number or IBAN
+    private String bankSwiftCode;
     private String bankBranch;
 
     // About the applicant

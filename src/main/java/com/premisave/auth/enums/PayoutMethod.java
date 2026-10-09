@@ -1,8 +1,9 @@
 package com.premisave.auth.enums;
 
 public enum PayoutMethod {
-    MPESA("M-Pesa"),
-    BANK_TRANSFER("Bank transfer");
+    BANK_TRANSFER("Bank transfer"),
+    MOBILE_MONEY("Mobile money"),
+    PAYPAL("PayPal");
 
     private final String label;
 

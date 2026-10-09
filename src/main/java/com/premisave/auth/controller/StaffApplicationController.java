@@ -38,7 +38,7 @@ public class StaffApplicationController {
 
     /**
      * The review queue.
-     * q: application number, name, email, phone, ID number, KRA PIN or company.
+     * q: application number, name, email, phone, ID number, tax ID or company.
      * status: one or more, comma separated (default: everything except drafts).
      * assignee: "me", "none" or a staff user id.
      * sort: oldest (default), newest or updated.
@@ -48,12 +48,13 @@ public class StaffApplicationController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) List<ApplicationStatus> status,
             @RequestParam(required = false) OwnerType ownerType,
-            @RequestParam(required = false) String county,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) String region,
             @RequestParam(required = false) String assignee,
             @RequestParam(defaultValue = "oldest") String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return ResponseEntity.ok(reviewService.search(q, status, ownerType, county, assignee, sort, page, size));
+        return ResponseEntity.ok(reviewService.search(q, status, ownerType, country, region, assignee, sort, page, size));
     }
 
     /** Counters for the dashboard header. */

@@ -4,6 +4,7 @@ import com.premisave.auth.enums.ApplicationEventType;
 import com.premisave.auth.enums.ApplicationStatus;
 import com.premisave.auth.enums.DocumentStatus;
 import com.premisave.auth.enums.DocumentType;
+import com.premisave.auth.enums.IdType;
 import com.premisave.auth.enums.ManagementPreference;
 import com.premisave.auth.enums.OwnerType;
 import com.premisave.auth.enums.PayoutMethod;
@@ -104,18 +105,18 @@ public final class ApplicationDtos {
             String companyName,
             String companyRegistrationNumber,
 
-            String nationalIdNumber,
-            String passportNumber,
-            String drivingLicenceNumber,
-            String kraPin,
+            IdType idType,
+            String idNumber,
+            String idIssuingCountry,
+            String taxId,
             LocalDate dateOfBirth,
             String nationality,
 
             String phoneNumber,
             String alternatePhoneNumber,
             String country,
-            String county,
-            String town,
+            String region,
+            String city,
             String physicalAddress,
             String postalAddress,
 
@@ -128,10 +129,13 @@ public final class ApplicationDtos {
             Integer yearsAsLandlord,
 
             PayoutMethod payoutMethod,
-            String mpesaNumber,
+            String mobileMoneyProvider,
+            String mobileMoneyNumber,
+            String paypalEmail,
             String bankName,
             String bankAccountName,
             String bankAccountNumber,
+            String bankSwiftCode,
             String bankBranch,
 
             String motivation,
@@ -168,7 +172,8 @@ public final class ApplicationDtos {
             String applicantEmail,
             String phoneNumber,
             OwnerType ownerType,
-            String county,
+            String country,
+            String region,
             Integer numberOfProperties,
             int documentCount,
             int verifiedDocumentCount,
@@ -201,6 +206,10 @@ public final class ApplicationDtos {
             String oldestWaitingApplicationId) {
     }
 
+    /** ISO 3166-1 alpha-2 code and English name, for country dropdowns. */
+    public record CountryOption(String code, String name) {
+    }
+
     public record Eligibility(boolean canApply, String reason, String openApplicationId, ApplicationStatus openApplicationStatus) {
     }
 
@@ -218,6 +227,7 @@ public final class ApplicationDtos {
 
     public record MetaResponse(
             List<Option> ownerTypes,
+            List<Option> idTypes,
             List<Option> propertyTypes,
             List<Option> managementPreferences,
             List<Option> payoutMethods,
@@ -225,7 +235,7 @@ public final class ApplicationDtos {
             List<Option> statuses,
             List<DocumentTypeOption> documentTypes,
             Map<OwnerType, List<RequirementOption>> requirementsByOwnerType,
-            List<String> counties,
+            List<CountryOption> countries,
             Limits limits,
             String reviewTimeHint) {
     }

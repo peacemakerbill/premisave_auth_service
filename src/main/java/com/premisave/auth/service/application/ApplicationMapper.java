@@ -86,18 +86,19 @@ public class ApplicationMapper {
 
                 a.getOwnerType(), a.getCompanyName(), a.getCompanyRegistrationNumber(),
 
-                a.getNationalIdNumber(), a.getPassportNumber(), a.getDrivingLicenceNumber(), a.getKraPin(),
+                a.getIdType(), a.getIdNumber(), a.getIdIssuingCountry(), a.getTaxId(),
                 a.getDateOfBirth(), a.getNationality(),
 
-                a.getPhoneNumber(), a.getAlternatePhoneNumber(), a.getCountry(), a.getCounty(), a.getTown(),
+                a.getPhoneNumber(), a.getAlternatePhoneNumber(), a.getCountry(), a.getRegion(), a.getCity(),
                 a.getPhysicalAddress(), a.getPostalAddress(),
 
                 a.getNumberOfProperties(), a.getEstimatedTotalUnits(), a.getPropertyTypes(),
                 a.getPrimaryPropertyLocation(), a.getPropertyDescription(), a.getManagementPreference(),
                 a.getYearsAsLandlord(),
 
-                a.getPayoutMethod(), a.getMpesaNumber(), a.getBankName(), a.getBankAccountName(),
-                a.getBankAccountNumber(), a.getBankBranch(),
+                a.getPayoutMethod(), a.getMobileMoneyProvider(), a.getMobileMoneyNumber(), a.getPaypalEmail(),
+                a.getBankName(), a.getBankAccountName(), a.getBankAccountNumber(), a.getBankSwiftCode(),
+                a.getBankBranch(),
 
                 a.getMotivation(), a.getReferralSource(),
 
@@ -129,7 +130,7 @@ public class ApplicationMapper {
         return new ApplicationSummary(
                 a.getId(), a.getApplicationNumber(), a.getStatus(), a.getStatus().getLabel(),
                 a.getStatus().getColor(), a.getApplicantName(), a.getApplicantEmail(), a.getPhoneNumber(),
-                a.getOwnerType(), a.getCounty(), a.getNumberOfProperties(), docs.size(), verified, rejected,
+                a.getOwnerType(), a.getCountry(), a.getRegion(), a.getNumberOfProperties(), docs.size(), verified, rejected,
                 readiness.percent(), reviewer, a.getSubmissionCount(), a.getSubmittedAt(), waitingHours,
                 a.getUpdatedAt());
     }

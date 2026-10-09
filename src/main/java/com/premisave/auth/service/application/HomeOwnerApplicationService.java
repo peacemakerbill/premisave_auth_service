@@ -103,8 +103,9 @@ public class HomeOwnerApplicationService {
         app.setStatus(ApplicationStatus.DRAFT);
 
         // Save the applicant typing the same things twice
-        if (user.getCountry() != null && !user.getCountry().isBlank()) {
-            app.setCountry(user.getCountry().trim());
+        String profileCountry = ApplicationValidation.countryCodeOrNull(user.getCountry());
+        if (profileCountry != null) {
+            app.setCountry(profileCountry);
         }
         if (user.getAddress1() != null && !user.getAddress1().isBlank()) {
             app.setPhysicalAddress(user.getAddress1().trim());
@@ -426,29 +427,36 @@ public class HomeOwnerApplicationService {
         app.setCompanyRegistrationNumber(
                 ApplicationValidation.merge(r.getCompanyRegistrationNumber(), app.getCompanyRegistrationNumber()));
 
-        app.setNationalIdNumber(ApplicationValidation.merge(r.getNationalIdNumber(), app.getNationalIdNumber()));
-        app.setPassportNumber(ApplicationValidation.upper(
-                ApplicationValidation.merge(r.getPassportNumber(), app.getPassportNumber())));
-        app.setDrivingLicenceNumber(ApplicationValidation.upper(
-                ApplicationValidation.merge(r.getDrivingLicenceNumber(), app.getDrivingLicenceNumber())));
-        app.setKraPin(ApplicationValidation.upper(ApplicationValidation.merge(r.getKraPin(), app.getKraPin())));
+        if (r.getIdType() != null) {
+            app.setIdType(r.getIdType());
+        }
+        app.setIdNumber(ApplicationValidation.upper(ApplicationValidation.merge(r.getIdNumber(), app.getIdNumber())));
+        if (r.getIdIssuingCountry() != null) {
+            app.setIdIssuingCountry(ApplicationValidation.countryCode(r.getIdIssuingCountry(), "ID issuing country"));
+        }
+        app.setTaxId(ApplicationValidation.upper(ApplicationValidation.merge(r.getTaxId(), app.getTaxId())));
         if (r.getDateOfBirth() != null) {
             if (!ApplicationValidation.isAdult(r.getDateOfBirth())) {
                 throw ApiException.badRequest("You must be at least 18 years old to apply.");
             }
             app.setDateOfBirth(r.getDateOfBirth());
         }
-        app.setNationality(ApplicationValidation.merge(r.getNationality(), app.getNationality()));
+        if (r.getNationality() != null) {
+            app.setNationality(ApplicationValidation.countryCode(r.getNationality(), "Nationality"));
+        }
 
         if (r.getPhoneNumber() != null) {
-            app.setPhoneNumber(ApplicationValidation.normalizePhone(r.getPhoneNumber()));
+            app.setPhoneNumber(ApplicationValidation.normalizePhone(r.getPhoneNumber(), "Phone number"));
         }
         if (r.getAlternatePhoneNumber() != null) {
-            app.setAlternatePhoneNumber(ApplicationValidation.normalizePhone(r.getAlternatePhoneNumber()));
+            app.setAlternatePhoneNumber(
+                    ApplicationValidation.normalizePhone(r.getAlternatePhoneNumber(), "Alternate phone number"));
         }
-        app.setCountry(ApplicationValidation.merge(r.getCountry(), app.getCountry()));
-        app.setCounty(ApplicationValidation.merge(r.getCounty(), app.getCounty()));
-        app.setTown(ApplicationValidation.merge(r.getTown(), app.getTown()));
+        if (r.getCountry() != null) {
+            app.setCountry(ApplicationValidation.countryCode(r.getCountry(), "Country"));
+        }
+        app.setRegion(ApplicationValidation.merge(r.getRegion(), app.getRegion()));
+        app.setCity(ApplicationValidation.merge(r.getCity(), app.getCity()));
         app.setPhysicalAddress(ApplicationValidation.merge(r.getPhysicalAddress(), app.getPhysicalAddress()));
         app.setPostalAddress(ApplicationValidation.merge(r.getPostalAddress(), app.getPostalAddress()));
 
@@ -474,13 +482,17 @@ public class HomeOwnerApplicationService {
         if (r.getPayoutMethod() != null) {
             app.setPayoutMethod(r.getPayoutMethod());
         }
-        if (r.getMpesaNumber() != null) {
-            app.setMpesaNumber(r.getMpesaNumber().isBlank() ? null
-                    : ApplicationValidation.requireKenyanMobile(r.getMpesaNumber(), "M-Pesa number"));
+        app.setMobileMoneyProvider(ApplicationValidation.merge(r.getMobileMoneyProvider(), app.getMobileMoneyProvider()));
+        if (r.getMobileMoneyNumber() != null) {
+            app.setMobileMoneyNumber(ApplicationValidation.normalizePhone(r.getMobileMoneyNumber(), "Mobile money number"));
         }
+        app.setPaypalEmail(ApplicationValidation.merge(r.getPaypalEmail(), app.getPaypalEmail()));
         app.setBankName(ApplicationValidation.merge(r.getBankName(), app.getBankName()));
         app.setBankAccountName(ApplicationValidation.merge(r.getBankAccountName(), app.getBankAccountName()));
-        app.setBankAccountNumber(ApplicationValidation.merge(r.getBankAccountNumber(), app.getBankAccountNumber()));
+        app.setBankAccountNumber(ApplicationValidation.upper(
+                ApplicationValidation.merge(r.getBankAccountNumber(), app.getBankAccountNumber())));
+        app.setBankSwiftCode(ApplicationValidation.upper(
+                ApplicationValidation.merge(r.getBankSwiftCode(), app.getBankSwiftCode())));
         app.setBankBranch(ApplicationValidation.merge(r.getBankBranch(), app.getBankBranch()));
 
         app.setMotivation(ApplicationValidation.merge(r.getMotivation(), app.getMotivation()));

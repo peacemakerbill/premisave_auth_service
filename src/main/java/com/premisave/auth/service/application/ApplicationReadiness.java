@@ -38,15 +38,17 @@ final class ApplicationReadiness {
                     present(a.getCompanyRegistrationNumber()));
         }
 
-        check(issues, counts, "nationalIdNumber", "Enter your national ID number or passport number",
-                present(a.getNationalIdNumber()) || present(a.getPassportNumber()));
+        check(issues, counts, "idType", "Choose the type of ID you are providing", a.getIdType() != null);
+        check(issues, counts, "idNumber", "Enter your ID number", present(a.getIdNumber()));
+        check(issues, counts, "idIssuingCountry", "Choose the country that issued your ID", present(a.getIdIssuingCountry()));
         check(issues, counts, "dateOfBirth", "Enter your date of birth (you must be 18 or older)",
                 ApplicationValidation.isAdult(a.getDateOfBirth()));
-        check(issues, counts, "kraPin", "Enter your KRA PIN", present(a.getKraPin()));
-        check(issues, counts, "phoneNumber", "Enter a phone number we can reach you on", present(a.getPhoneNumber()));
-        check(issues, counts, "county", "Select your county", present(a.getCounty()));
-        check(issues, counts, "town", "Enter your town or city", present(a.getTown()));
-        check(issues, counts, "physicalAddress", "Enter your physical address", present(a.getPhysicalAddress()));
+        check(issues, counts, "taxId", "Enter your tax ID (for example TIN, PIN, SSN, EIN or VAT number)", present(a.getTaxId()));
+        check(issues, counts, "phoneNumber", "Enter a phone number we can reach you on, with the country code",
+                present(a.getPhoneNumber()));
+        check(issues, counts, "country", "Choose your country", present(a.getCountry()));
+        check(issues, counts, "city", "Enter your city or town", present(a.getCity()));
+        check(issues, counts, "physicalAddress", "Enter your street address", present(a.getPhysicalAddress()));
 
         check(issues, counts, "numberOfProperties", "Tell us how many properties you own or manage",
                 a.getNumberOfProperties() != null && a.getNumberOfProperties() >= 1);
@@ -58,12 +60,17 @@ final class ApplicationReadiness {
                 a.getManagementPreference() != null);
 
         check(issues, counts, "payoutMethod", "Choose how you want to be paid", a.getPayoutMethod() != null);
-        if (a.getPayoutMethod() == PayoutMethod.MPESA) {
-            check(issues, counts, "mpesaNumber", "Enter the M-Pesa number to pay into", present(a.getMpesaNumber()));
+        if (a.getPayoutMethod() == PayoutMethod.MOBILE_MONEY) {
+            check(issues, counts, "mobileMoneyProvider", "Enter your mobile money provider (for example M-Pesa or MTN MoMo)",
+                    present(a.getMobileMoneyProvider()));
+            check(issues, counts, "mobileMoneyNumber", "Enter the mobile money number to pay into, with the country code",
+                    present(a.getMobileMoneyNumber()));
+        } else if (a.getPayoutMethod() == PayoutMethod.PAYPAL) {
+            check(issues, counts, "paypalEmail", "Enter the email of your PayPal account", present(a.getPaypalEmail()));
         } else if (a.getPayoutMethod() == PayoutMethod.BANK_TRANSFER) {
             check(issues, counts, "bankName", "Enter your bank name", present(a.getBankName()));
             check(issues, counts, "bankAccountName", "Enter the name on the bank account", present(a.getBankAccountName()));
-            check(issues, counts, "bankAccountNumber", "Enter your bank account number", present(a.getBankAccountNumber()));
+            check(issues, counts, "bankAccountNumber", "Enter your account number or IBAN", present(a.getBankAccountNumber()));
         }
 
         check(issues, counts, "termsAccepted", "Accept the terms and conditions", a.isTermsAccepted());

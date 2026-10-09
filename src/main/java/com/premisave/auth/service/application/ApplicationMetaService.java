@@ -1,5 +1,6 @@
 package com.premisave.auth.service.application;
 
+import com.premisave.auth.dto.application.ApplicationDtos.CountryOption;
 import com.premisave.auth.dto.application.ApplicationDtos.DocumentTypeOption;
 import com.premisave.auth.dto.application.ApplicationDtos.Limits;
 import com.premisave.auth.dto.application.ApplicationDtos.MetaResponse;
@@ -7,6 +8,7 @@ import com.premisave.auth.dto.application.ApplicationDtos.Option;
 import com.premisave.auth.dto.application.ApplicationDtos.RequirementOption;
 import com.premisave.auth.enums.ApplicationStatus;
 import com.premisave.auth.enums.DocumentType;
+import com.premisave.auth.enums.IdType;
 import com.premisave.auth.enums.ManagementPreference;
 import com.premisave.auth.enums.OwnerType;
 import com.premisave.auth.enums.PayoutMethod;
@@ -16,6 +18,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Locale;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -27,13 +31,11 @@ import java.util.Map;
 @Service
 public class ApplicationMetaService {
 
-    static final List<String> COUNTIES = List.of(
-            "Baringo", "Bomet", "Bungoma", "Busia", "Elgeyo-Marakwet", "Embu", "Garissa", "Homa Bay",
-            "Isiolo", "Kajiado", "Kakamega", "Kericho", "Kiambu", "Kilifi", "Kirinyaga", "Kisii", "Kisumu",
-            "Kitui", "Kwale", "Laikipia", "Lamu", "Machakos", "Makueni", "Mandera", "Marsabit", "Meru",
-            "Migori", "Mombasa", "Murang'a", "Nairobi", "Nakuru", "Nandi", "Narok", "Nyamira", "Nyandarua",
-            "Nyeri", "Samburu", "Siaya", "Taita-Taveta", "Tana River", "Tharaka-Nithi", "Trans Nzoia",
-            "Turkana", "Uasin Gishu", "Vihiga", "Wajir", "West Pokot");
+    /** All ISO 3166-1 countries with their English names, sorted by name. */
+    static final List<CountryOption> COUNTRIES = Arrays.stream(Locale.getISOCountries())
+            .map(code -> new CountryOption(code, Locale.of("", code).getDisplayCountry(Locale.ENGLISH)))
+            .sorted(Comparator.comparing(CountryOption::name, String.CASE_INSENSITIVE_ORDER))
+            .toList();
 
     private final ApplicationMapper mapper;
     private final long maxFileBytes;
@@ -60,6 +62,8 @@ public class ApplicationMetaService {
         return new MetaResponse(
                 Arrays.stream(OwnerType.values())
                         .map(o -> new Option(o.name(), o.getLabel(), o.getDescription())).toList(),
+                Arrays.stream(IdType.values())
+                        .map(o -> new Option(o.name(), o.getLabel(), null)).toList(),
                 Arrays.stream(PropertyType.values())
                         .map(o -> new Option(o.name(), o.getLabel(), null)).toList(),
                 Arrays.stream(ManagementPreference.values())
@@ -74,7 +78,7 @@ public class ApplicationMetaService {
                         .map(t -> new DocumentTypeOption(t, t.getLabel(), t.getDescription(), t.getCategory(),
                                 t.isAllowsMultiple(), t.maxFiles())).toList(),
                 requirements,
-                COUNTIES,
+                COUNTRIES,
                 new Limits(maxFileBytes, maxFileLabel, ApplicationFileValidator.ALLOWED_MIME_TYPES,
                         ApplicationFileValidator.ALLOWED_EXTENSIONS, maxDocuments),
                 mapper.reviewTimeHint());
