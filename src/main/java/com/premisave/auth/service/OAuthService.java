@@ -41,17 +41,20 @@ public class OAuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final ProfilePictureStorage pictureStorage;
+    private final UsernameService usernameService;
     private final Map<String, OAuthProviderClient> clients;
 
     public OAuthService(UserRepository userRepository,
                         JwtService jwtService,
                         PasswordEncoder passwordEncoder,
                         ProfilePictureStorage pictureStorage,
+                        UsernameService usernameService,
                         List<OAuthProviderClient> providerClients) {
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.pictureStorage = pictureStorage;
+        this.usernameService = usernameService;
         this.clients = providerClients.stream()
                 .collect(Collectors.toUnmodifiableMap(OAuthProviderClient::provider, Function.identity()));
     }
@@ -138,7 +141,9 @@ public class OAuthService {
         user.setEmail(email);
         user.setFirstName(names.first());
         user.setLastName(names.last());
-        user.setUsername(resolveUniqueUsername(baseUsername(info, email)));
+        // Social sign-up never asks for a username, so one is generated; the user can change it later
+        user.setUsername(usernameService.generate(info.getUsernameHint(), names.first(), names.last()));
+        user.setUsernameGenerated(true);
         user.setRole(Role.CLIENT);
         user.setActive(true);
         user.setVerified(true);   // The provider has verified the email
@@ -222,7 +227,7 @@ public class OAuthService {
         };
     }
 
-    //  Names and usernames
+    //  Names
 
     private record NameParts(String first, String last) {
     }
@@ -249,32 +254,6 @@ public class OAuthService {
             first = email.split("@")[0];
         }
         return new NameParts(first, last);
-    }
-
-    private String baseUsername(OAuthUserInfo info, String email) {
-        String base = !isBlank(info.getUsernameHint()) ? info.getUsernameHint() : email.split("@")[0];
-
-        // Same character set ProfileUpdateRequest allows: letters, digits, dot, underscore, hyphen
-        base = base.replaceAll("[^a-zA-Z0-9_.-]", "");
-        if (base.length() < 3) {
-            base = base + "user";
-        }
-        if (base.length() > 40) {
-            base = base.substring(0, 40);
-        }
-        return base;
-    }
-
-    /** Appends a numeric suffix if taken: "johndoe" to "johndoe2" to "johndoe3". */
-    private String resolveUniqueUsername(String base) {
-        if (!userRepository.existsByUsername(base)) {
-            return base;
-        }
-        int suffix = 2;
-        while (userRepository.existsByUsername(base + suffix)) {
-            suffix++;
-        }
-        return base + suffix;
     }
 
     private static boolean isBlank(String value) {

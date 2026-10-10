@@ -35,6 +35,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final UsernameService usernameService;
 
     @Value("${frontend.url:http://localhost:3000}")
     private String frontendUrl;
@@ -45,7 +46,8 @@ public class AuthService {
                        JwtService jwtService,
                        AuthenticationManager authenticationManager,
                        EmailService emailService,
-                       RedisTemplate<String, Object> redisTemplate) {
+                       RedisTemplate<String, Object> redisTemplate,
+                       UsernameService usernameService) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -53,18 +55,23 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
         this.emailService = emailService;
         this.redisTemplate = redisTemplate;
+        this.usernameService = usernameService;
     }
 
     public AuthResponse signup(SignupRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already exists");
         }
-        if (userRepository.existsByUsername(request.getUsername())) {
+        String requestedUsername = request.getUsername() == null ? "" : request.getUsername().trim();
+        boolean hasUsername = !requestedUsername.isEmpty();
+        if (hasUsername && usernameService.isTaken(requestedUsername)) {
             throw new RuntimeException("Username already taken");
         }
 
         User user = new User();
-        user.setUsername(request.getUsername());
+        // No username given: it stays empty for a moment and is generated in the background below
+        user.setUsername(hasUsername ? requestedUsername : null);
+        user.setUsernameGenerated(false);
         user.setFirstName(request.getFirstName());
         user.setMiddleName(request.getMiddleName());
         user.setLastName(request.getLastName());
@@ -87,6 +94,10 @@ public class AuthService {
         user.setActive(true);
 
         user = userRepository.save(user);
+
+        if (!hasUsername) {
+            usernameService.assignInBackground(user.getId());
+        }
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         emailService.sendVerificationEmail(user.getEmail(), activationToken);

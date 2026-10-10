@@ -105,11 +105,13 @@ public class UserManagementService {
             user.setEmail(userDto.getEmail());
         }
         
-        if (userDto.getUsername() != null && !user.getUsername().equals(userDto.getUsername())) {
+        if (userDto.getUsername() != null && !userDto.getUsername().isBlank()
+                && !userDto.getUsername().equals(user.getUsername())) {
             if (userRepository.findByUsername(userDto.getUsername()).isPresent()) {
                 throw new RuntimeException("Username already exists");
             }
             user.setUsername(userDto.getUsername());
+            user.setUsernameGenerated(false);
         }
         
         if (userDto.getFirstName() != null) user.setFirstName(userDto.getFirstName());
@@ -333,6 +335,7 @@ public class UserManagementService {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
+        dto.setUsernameGenerated(user.isUsernameGenerated());
         dto.setEmail(user.getEmail());
         dto.setFirstName(user.getFirstName());
         dto.setMiddleName(user.getMiddleName());

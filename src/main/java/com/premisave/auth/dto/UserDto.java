@@ -20,6 +20,9 @@ public class UserDto {
     // Identification
     private String id;
     private String username;
+
+    /** True while the username was generated for the user and they have not chosen their own yet. */
+    private boolean usernameGenerated;
     private String email;
 
     // Personal Information
