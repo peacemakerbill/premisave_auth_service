@@ -23,7 +23,7 @@ For a fixed set of owners you can also create up to three administrator accounts
 | `ADMINn_USERNAME` | Optional public handle (3 to 30 characters: letters, digits, `.`, `_`, `-`). Generated from the name when empty. It is not used to sign in. |
 | `ADMINn_FIRST_NAME` | Required. |
 | `ADMINn_MIDDLE_NAME`, `ADMINn_LAST_NAME` | Optional. |
-| `ADMINn_PASSWORD` | Required. At least 8 characters (72 bytes at most), three of lower case, upper case, digits and symbols, not a well-known password, not containing the email or username. |
+| `ADMINn_PASSWORD` | Required. At least 8 characters (72 bytes at most), two of lower case, upper case, digits and symbols, not a well-known password, not containing the email or username. |
 | `ADMINS_ENABLED` | `true` by default. `false` ignores all three slots. |
 | `ADMINS_STRICT` | `false` by default. `true`: an invalid slot stops startup and nothing is created. |
 | `ADMINS_PROMOTE_EXISTING` | `false` by default. `true`: an existing verified, active, non-admin account with the same email is promoted. |

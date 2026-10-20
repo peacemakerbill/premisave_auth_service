@@ -56,8 +56,8 @@ public final class AdminPasswordPolicy {
         classes += password.chars().anyMatch(Character::isUpperCase) ? 1 : 0;
         classes += password.chars().anyMatch(Character::isDigit) ? 1 : 0;
         classes += password.chars().anyMatch(c -> !Character.isLetterOrDigit(c)) ? 1 : 0;
-        if (classes < 3) {
-            problems.add("needs at least three of: lower case, upper case, digits, symbols");
+        if (classes < 2) {
+            problems.add("needs at least two of: lower case, upper case, digits, symbols");
         }
 
         String lower = password.toLowerCase(Locale.ROOT);
