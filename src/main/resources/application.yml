@@ -234,9 +234,9 @@ app:
     # Uploads are refused when less than this much space is free (0 turns the check off)
     min-free-mb: ${STORAGE_MIN_FREE_MB:100}
     local:
-      # Set STORAGE_LOCAL_PATH in .env for a specific folder. The fallback is inside the home directory
-      # of the user running the service, so it works on any machine without naming one.
-      path: ${STORAGE_LOCAL_PATH:${user.home}/premisave-file-storage/homeowner-onboarding}
+      # Set STORAGE_LOCAL_PATH in .env. No path is written here. If it is left unset or blank, the code uses
+      # ~/premisave-file-storage/homeowner-onboarding (inside the home directory of the user running the service).
+      path: ${STORAGE_LOCAL_PATH:}
     network:
       protocol: ${STORAGE_NETWORK_PROTOCOL:SMB}
       # IP address or host name of the NAS. Used to check that the right share is mounted, never to connect.
