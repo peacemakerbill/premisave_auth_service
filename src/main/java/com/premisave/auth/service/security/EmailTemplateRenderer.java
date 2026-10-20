@@ -17,7 +17,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Renders the HTML and plain-text versions of an email from templates in
+ * Renders the HTML version of an email from templates in
  * resources/templates/email. Syntax, in the same spirit as the existing templates:
  *
  *   {{name}}                 value, HTML-escaped in the HTML version
@@ -33,7 +33,7 @@ public class EmailTemplateRenderer {
     public record Row(String label, String value) {
     }
 
-    public record Rendered(String html, String text) {
+    public record Rendered(String html) {
     }
 
     private static final Pattern CONDITIONAL = Pattern.compile("\\{\\{#(\\w+)}}(.*?)\\{\\{/\\1}}", Pattern.DOTALL);
@@ -63,11 +63,7 @@ public class EmailTemplateRenderer {
         layoutVars.put("body", content);
         String html = apply(load("templates/email/layout.html"), layoutVars, true);
 
-        Map<String, String> textVars = new HashMap<>(vars);
-        textVars.put("detailsText", detailsText(rows));
-        String text = apply(load("templates/email/" + template + ".txt"), textVars, false);
-
-        return new Rendered(html, text);
+        return new Rendered(html);
     }
 
     static String apply(String template, Map<String, String> vars, boolean html) {
@@ -120,19 +116,6 @@ public class EmailTemplateRenderer {
                     .append("</td></tr>");
         }
         return out.append("</table>").toString();
-    }
-
-    private static String detailsText(List<Row> rows) {
-        if (rows == null || rows.isEmpty()) {
-            return "";
-        }
-        StringBuilder out = new StringBuilder();
-        for (Row row : rows) {
-            if (row.value() != null && !row.value().isBlank()) {
-                out.append("  ").append(row.label()).append(": ").append(stripControl(row.value())).append('\n');
-            }
-        }
-        return out.toString();
     }
 
     private static String stripControl(String value) {

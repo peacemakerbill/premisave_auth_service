@@ -97,7 +97,7 @@ Concretely, it:
 - issues signed JWTs carrying the user's ID, email, and role, and revokes them on logout through a Redis blacklist,
 - owns the user profile (names, contact details, language, profile picture on Cloudinary),
 - provides the social layer used across the platform: likes, follows, star-rated reviews, and "who viewed my profile",
-- lets a client apply to become a Home Owner, stores their documents in Google Drive, and lets staff review and verify the application before an administrator promotes the account,
+- lets a client apply to become a Home Owner, stores their documents on a local disk or a network share (for example a Synology NAS), and lets staff review and verify the application before an administrator promotes the account,
 - records a user's location history,
 - gives administrators a full user-management surface (create, edit, archive, activate, verify, change role, reset password),
 - exposes a small, API-key-protected `/internal/**` API so sibling services can validate and look up users without a user JWT.
@@ -114,8 +114,9 @@ Concretely, it:
 | **Profile pictures** | Validated image upload (JPEG, PNG, GIF, WEBP) pushed to Cloudinary on a background thread with a 400x400 transformation. |
 | **Social graph** | Likes, follows, mutual-follow check, 1 to 5 star reviews with comments, and aggregate stats per user. |
 | **Profile views** | Records views (deduplicated to one per viewer per 24 hours), with "who viewed me", "who I viewed", and view statistics. |
-| **Home Owner applications** | A guided application with over 30 fields, a document checklist that depends on who is applying, uploads to Google Drive checked by file signature, a status workflow with per-document review, internal staff notes, a full timeline, and an email at every change. An admin promotes a verified client to Home Owner with one request. |
+| **Home Owner applications** | A guided application with over 30 fields, a document checklist that depends on who is applying, uploads kept on a local disk or NAS share and checked by file signature, a status workflow with per-document review, internal staff notes, a full timeline, and an email at every change. An admin promotes a verified client to Home Owner with one request. |
 | **Location history** | Current location plus full history, newest first. |
+| **Automatic usernames** | Optional at signup. A background job generates a unique username from the person's name for anyone without one, flags it as generated, and the user can change it later. |
 | **Admin user management** | Role-gated CRUD, archive, activate, verify, role changes with a last-admin safeguard, and password management. |
 | **Internal service API** | Email validation and user-detail lookup for sibling services, protected by `X-API-Key`. |
 | **Rate limiting** | Token-bucket throttling with Bucket4j on signup, signin, password reset, and social write endpoints. |
@@ -230,7 +231,22 @@ Each provider is independently optional. `oauth.google.client-id`, `oauth.facebo
 
 Signing in with a provider whose email already matches an existing account links that provider to the account (and marks it verified) rather than creating a duplicate. A provider picture is copied into Cloudinary — not linked directly — because some providers' picture URLs (Facebook's in particular) are signed and expire.
 
-### Password reset
+### Automatic usernames
+
+A username is optional at signup. Whoever is created without one gets a generated username, and can change it any time with `PUT /profile/update` (the profile update already checks that the new one is free).
+
+| Where the user comes from | What happens |
+|---|---|
+| Email signup with a username | Used as given (checked for uniqueness, ignoring case) |
+| Email signup without a username | Saved straight away, then a username is generated on a background thread within moments |
+| Google, Facebook or GitHub sign-up | Generated immediately from the provider handle or the name, so the first response already has one |
+| Existing users, admin-created users, anything missed | A scheduled sweep (every 5 minutes by default) fills in every user whose username is missing or blank |
+
+Generated names come from the person's name, never from the email address: `john.doe`, then `johnd`, then `john.doe48` (two random digits, growing to three or four if crowded). Accents are removed, reserved words such as `admin` and `support` are never used, and a user whose name has no Latin letters gets `user` plus digits. Every generated username sets `usernameGenerated: true`, which flips to `false` when the user picks their own, so a frontend can show a "Choose your username" prompt.
+
+The sweep writes with a conditional update, so running several servers is safe and it can never overwrite a username a user has just chosen.
+
+
 
 `POST /auth/forgot-password` emails a link to `{FRONTEND_URL}/reset-password?token=...`. The frontend posts the token and the new password to `POST /auth/reset-password`. Tokens are single-use and expire after 24 hours.
 
@@ -324,13 +340,19 @@ Every setting lives in `src/main/resources/application.yml` and can be overridde
 | `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | blank (disabled) | no | Facebook app credentials, used to confirm a token belongs to this app (`/debug_token`) and to sign Graph API calls (`appsecret_proof`). Leave both unset to disable Facebook sign-in. |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | blank (disabled) | no | GitHub OAuth App credentials, used to exchange an authorization code and to verify a client-supplied token belongs to this app. Leave both unset to disable GitHub sign-in. |
 | `GITHUB_REDIRECT_URI` | blank | no | Optional. When set, it is sent with the GitHub code exchange and must equal the `redirect_uri` used when the code was requested and the callback URL registered on the OAuth App. |
-| `GOOGLE_DRIVE_CLIENT_ID` / `GOOGLE_DRIVE_CLIENT_SECRET` / `GOOGLE_DRIVE_REFRESH_TOKEN` | blank | no | Google account credentials for storing application documents (scope `drive.file`). Leave unset to disable uploads without affecting anything else. |
-| `GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE` / `GOOGLE_DRIVE_FOLDER_ID` | blank | no | Alternative to the refresh token: a service account key file and a folder shared with it. |
-| `GOOGLE_DRIVE_ROOT_FOLDER_NAME` | `Premisave Home Owner Applications` | no | Name of the root folder created automatically when no folder ID is set. |
+| `STORAGE_TYPE` | `LOCAL` | no | Where application documents are kept: `LOCAL` (a directory on this server) or `NETWORK` (a share such as a Synology NAS, mounted by the operating system). |
+| `STORAGE_LOCAL_PATH` | `~/premisave-file-storage/homeowner-onboarding` | no | Directory for `LOCAL` storage. Set it in your own `.env`; a blank value keeps the default. |
+| `STORAGE_NETWORK_PROTOCOL` / `STORAGE_NETWORK_HOST` / `STORAGE_NETWORK_SHARE` | `SMB` / blank / blank | no | `NETWORK`: how, and from which NAS (IP or host name) and share, the mount was made. Used to verify the mount, never to connect. |
+| `STORAGE_NETWORK_MOUNT_PATH` / `STORAGE_NETWORK_DIRECTORY` | `/mnt/premisave-nas` / `homeowner-onboarding` | no | Where the share is mounted, and the folder inside it. |
+| `STORAGE_NETWORK_REQUIRE_MOUNT` | `true` | no | Refuse to read or write unless the share is really mounted. |
+| `STORAGE_CREATE_DIRECTORIES` / `STORAGE_FAIL_ON_UNAVAILABLE` / `STORAGE_MIN_FREE_MB` | `true` / `false` / `100` | no | Create missing directories; refuse to start when storage is unusable; refuse uploads when less space is free. |
 | `HOME_OWNER_MAX_FILE_SIZE_MB` | `8` | no | Largest accepted upload. Keep below `spring.servlet.multipart.max-file-size` (10MB). |
 | `HOME_OWNER_MAX_DOCUMENTS` | `25` | no | Most files one application can hold. |
 | `HOME_OWNER_REVIEW_SLA_DAYS` | `3` | no | Working days quoted to applicants as the usual review time. |
 | `HOME_OWNER_FRONTEND_PATH` | `/home-owner/application` | no | Frontend path the emails link to, appended to `FRONTEND_URL`. |
+| `username-generation.enabled` | `true` | no | Turns the background username sweep on or off. |
+| `username-generation.interval-ms` / `initial-delay-ms` | `300000` / `30000` | no | Pause between sweeps and the wait after start-up before the first one. |
+| `username-generation.batch-size` / `max-batches` | `200` / `25` | no | Users handled per batch and batches per sweep. |
 | `RATE_LIMIT_REQUESTS_PER_MINUTE` | `20` | no | Bucket capacity and refill rate for rate-limited endpoints. |
 
 `JWT_SECRET`, `API_KEY`, and the three Cloudinary variables have no default in `application.yml` and must come from `.env` or the environment — the service fails to start without them. The three OAuth providers are the opposite: each defaults to blank and is simply unavailable at its `/auth/google`, `/auth/facebook` or `/auth/github` endpoint until configured, so a missing or misconfigured provider can never take down the whole service.
@@ -496,7 +518,7 @@ Both require `X-API-Key`. The wallet service calls `validate-email` during M-Pes
 
 ## Home Owner applications
 
-A signed-in `CLIENT` can apply to become a `HOME_OWNER`. They fill in a guided form, upload their documents (stored in Google Drive), and submit. Staff review the application and each document, the applicant is emailed at every change, and once everything is verified an administrator presses one button to promote the account.
+A signed-in `CLIENT` can apply to become a `HOME_OWNER`. They fill in a guided form, upload their documents (stored on a local disk or a mounted NAS share), and submit. Staff review the application and each document, the applicant is emailed at every change, and once everything is verified an administrator presses one button to promote the account.
 
 ### The journey
 
@@ -580,33 +602,20 @@ Rules the service enforces:
 
 The applicant gets a branded email when they submit, when a reviewer starts, when information is requested, when a document is verified or needs replacing, when the application is verified, rejected or withdrawn, and when they become a Home Owner. All dynamic text is HTML-escaped. Emails are sent in the background and a mail failure never fails the request.
 
-### Google Drive setup
+### Document storage setup
 
-Documents are stored in Google Drive, one folder per application, under a root folder the service creates itself. Files are never shared publicly. Applicants and staff download them through this service, which checks who is asking.
+Documents are kept on a disk, one folder per application. Files are never public: applicants and staff download them through this service, which checks who is asking. With nothing configured the service stores them under `~/premisave-file-storage/homeowner-onboarding` for the user running it.
 
-The service requests only the `drive.file` scope, so it can see nothing in the Drive except what it created.
-
-**Option 1: a normal Google account (simplest)**
-
-1. In [Google Cloud Console](https://console.cloud.google.com), create or pick a project and enable the **Google Drive API** (APIs and Services, Library).
-2. Configure the OAuth consent screen and add the scope `https://www.googleapis.com/auth/drive.file`. If the app is in **Testing** mode, add the Drive account as a test user, and publish the app to **In production** when you go live, because refresh tokens issued in Testing mode expire after 7 days.
-3. Create an OAuth client of type **Web application**. Under **Authorized redirect URIs** add `https://developers.google.com/oauthplayground`.
-4. Open the [OAuth Playground](https://developers.google.com/oauthplayground), click the gear icon, tick **Use your own OAuth credentials** and paste the client ID and secret. Authorize the scope `https://www.googleapis.com/auth/drive.file` with the Google account that should own the files, then **Exchange authorization code for tokens** and copy the **refresh token**.
-5. Put the three values in `.env`:
+For a specific folder on your machine, set it in your own `.env` (not committed):
 
 ```env
-GOOGLE_DRIVE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-GOOGLE_DRIVE_CLIENT_SECRET=your-client-secret
-GOOGLE_DRIVE_REFRESH_TOKEN=your-refresh-token
+STORAGE_TYPE=LOCAL
+STORAGE_LOCAL_PATH=/home/your-user/file-storage/premisave-homeowner-onboarding/
 ```
 
-**Option 2: a service account (Google Workspace or a shared folder)**
+For a Synology NAS, mount the share on the server (SMB or NFS) and set `STORAGE_TYPE=NETWORK` with the NAS address, share name and mount path. The NAS username and password belong to the mount, in a root-only credentials file, and are not application settings. The step-by-step guide, including `fstab` lines for SMB and NFS, is in [`docs/DOCUMENT_STORAGE.md`](docs/DOCUMENT_STORAGE.md).
 
-1. Create a service account, download its JSON key and keep it outside the repository.
-2. Create a folder in Drive and share it with the service account's email as **Editor**.
-3. Set `GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE` to the key's path and `GOOGLE_DRIVE_FOLDER_ID` to the folder's ID (the last part of its URL).
-
-If nothing is configured the service still starts, and uploads answer with a clear "document storage is not configured" message.
+If storage is not usable (share not mounted, directory not writable, disk full), the service still starts and uploads answer `503` until it is fixed. Set `STORAGE_FAIL_ON_UNAVAILABLE=true` to refuse to start instead.
 
 ## Testing with Postman or curl
 
@@ -737,13 +746,14 @@ premisave_auth_service/
 │   ├── repository/      # Spring Data MongoDB repositories
 │   ├── security/        # JWT service and filter, API key filter, UserDetailsService
 │   ├── service/         # Business logic, email, profile picture storage
-│   │   ├── application/ # Home Owner applications: applicant and review services, Drive storage, readiness, emails
+│   │   ├── application/ # Home Owner applications: applicant and review services, readiness, emails
+│   │   ├── storage/     # Document storage on a local disk or a mounted network share
 │   │   └── oauth/       # OAuthProviderClient + one implementation per provider (Google, Facebook, GitHub)
 │   ├── util/            # Rate limiter interceptor
 │   └── PremisaveAuthServiceApplication.java
 ├── src/main/resources/
 │   ├── application.yml
-│   ├── templates/       # activation-email.html, reset-password-email.html, application-update-email.html
+│   ├── templates/email/ # activation-email.html, reset-password-email.html, application-update-email.html, security emails
 │   └── META-INF/additional-spring-configuration-metadata.json
 ├── oauth-test/
 │   └── oauth-test.html  # Browser console for testing Google, Facebook and GitHub sign-in
@@ -802,15 +812,9 @@ An account with that email already exists and is linked to a different provider 
 </details>
 
 <details>
-<summary><b>Uploading a document says document storage is not configured</b></summary>
+<summary><b>Uploading a document says document storage is temporarily unavailable</b></summary>
 
-Set either the three `GOOGLE_DRIVE_*` refresh-token variables or `GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE` with `GOOGLE_DRIVE_FOLDER_ID`, then restart. See Google Drive setup under Home Owner applications.
-</details>
-
-<details>
-<summary><b>Uploads worked, then started failing after about a week</b></summary>
-
-The Google app is still in **Testing** mode, where refresh tokens expire after 7 days. Publish the OAuth consent screen to **In production** and generate a new refresh token.
+The upload answers `503` while the storage location is unusable. The log says why: the NAS share is not mounted at `STORAGE_NETWORK_MOUNT_PATH`, the directory is missing or not writable by the service user, or the disk is nearly full. Fix it; no restart is needed for a share that gets mounted. See Document storage setup under Home Owner applications.
 </details>
 
 <details>

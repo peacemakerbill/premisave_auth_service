@@ -180,7 +180,7 @@ public class SecurityNotificationService {
         try {
             vars.putIfAbsent("subject", subject);
             EmailTemplateRenderer.Rendered rendered = renderer.render(template, vars, rows);
-            emailService.sendHtmlAndText(to, subject, rendered.html(), rendered.text());
+            emailService.sendHtml(to, subject, rendered.html());
         } catch (Exception e) {
             recordFailure(userId, template, e);
         }

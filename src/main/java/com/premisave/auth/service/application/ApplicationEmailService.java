@@ -32,7 +32,7 @@ import java.util.Map;
 @Service
 public class ApplicationEmailService {
 
-    private static final String TEMPLATE = "templates/application-update-email.html";
+    private static final String TEMPLATE = "templates/email/application-update-email.html";
     private static final DateTimeFormatter WHEN = DateTimeFormatter.ofPattern("d MMM yyyy, HH:mm");
     private static final String[] STEP_LABELS = {"Submitted", "In review", "Verified", "Accepted"};
 

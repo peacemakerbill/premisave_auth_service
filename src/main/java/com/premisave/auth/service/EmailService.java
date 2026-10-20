@@ -46,7 +46,7 @@ public class EmailService {
             data.put("supportEmail", supportEmail);
             data.put("currentYear", String.valueOf(Year.now().getValue()));
 
-            String htmlContent = processTemplate("templates/activation-email.html", data);
+            String htmlContent = processTemplate("templates/email/activation-email.html", data);
             
             sendEmail(to, "Activate Your Premisave Account", htmlContent);
             System.out.println("Verification email sent successfully to: " + to);
@@ -67,7 +67,7 @@ public class EmailService {
             data.put("supportEmail", supportEmail);
             data.put("currentYear", String.valueOf(Year.now().getValue()));
 
-            String htmlContent = processTemplate("templates/reset-password-email.html", data);
+            String htmlContent = processTemplate("templates/email/reset-password-email.html", data);
             
             sendEmail(to, "Reset Your Premisave Password", htmlContent);
             System.out.println("Password reset email sent successfully to: " + to);
@@ -96,17 +96,17 @@ public class EmailService {
     }
 
     /**
-     * Sends one message with both an HTML and a plain-text body (multipart/alternative), so clients
-     * that cannot show HTML still get readable text. Synchronous on purpose: the security
-     * notification service calls it from its own async method and records any failure there.
+     * Sends one HTML message and waits for the result. Unlike sendEmail it is not @Async, so a failure
+     * reaches the caller: the security notification service runs on its own async thread and records
+     * any failure in the audit trail.
      */
-    public void sendHtmlAndText(String to, String subject, String htmlContent, String textContent) {
+    public void sendHtml(String to, String subject, String htmlContent) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(textContent, htmlContent);
+            helper.setText(htmlContent, true);
             mailSender.send(mimeMessage);
         } catch (MessagingException e) {
             throw new RuntimeException("Failed to send email", e);
