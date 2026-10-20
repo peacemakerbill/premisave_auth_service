@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -68,16 +69,18 @@ public class ConfiguredAdminService {
     private final AdminAccessService adminAccess;
     private final UsernameService usernameService;
     private final SecurityAuditService audit;
+    private final SecurityNotificationService notifications;
 
     public ConfiguredAdminService(AdminsProperties properties, UserRepository users, PasswordEncoder passwordEncoder,
                                   AdminAccessService adminAccess, UsernameService usernameService,
-                                  SecurityAuditService audit) {
+                                  SecurityAuditService audit, SecurityNotificationService notifications) {
         this.properties = properties;
         this.users = users;
         this.passwordEncoder = passwordEncoder;
         this.adminAccess = adminAccess;
         this.usernameService = usernameService;
         this.audit = audit;
+        this.notifications = notifications;
     }
 
     /**
@@ -203,11 +206,25 @@ public class ConfiguredAdminService {
                     .write();
             log.info("{} created: administrator {} can sign in with the configured password. Rotate it after first sign-in.",
                     v.slot(), masked);
+            notifyCreated(v, user, masked);
             return new Result(v.slot(), Outcome.CREATED, masked);
         } catch (RuntimeException e) {
             // Class name only: exception messages from drivers can echo documents.
             log.error("{} could not be provisioned: {}", v.slot(), e.getClass().getSimpleName());
             return new Result(v.slot(), Outcome.FAILED, e.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * Tells the new administrator that the account exists. The mail never contains the password.
+     * A mail failure is logged and audited by the notification service and never undoes the account.
+     */
+    private void notifyCreated(Valid v, User user, String masked) {
+        try {
+            notifications.sendAdminRoleAssigned(user.getId(), user.getEmail(), user.getFirstName(),
+                    "Administrator account created from " + v.slot() + " configuration", Instant.now());
+        } catch (RuntimeException e) {
+            log.warn("{}: the notification for {} could not be queued: {}", v.slot(), masked, e.getClass().getSimpleName());
         }
     }
 

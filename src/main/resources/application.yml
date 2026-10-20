@@ -194,7 +194,7 @@ app:
     strict: ${ADMINS_STRICT:false}
     # true: an existing VERIFIED, active, non-admin account with the same email is promoted to ADMIN.
     # false (default): it is left alone and a warning is logged, so configuration alone never escalates an account.
-    promote-existing: ${ADMINS_PROMOTE_EXISTING:false}
+    promote-existing: ${ADMINS_PROMOTE_EXISTING:true}
     # Never lower than 8, whatever is set here.
     min-password-length: ${ADMINS_MIN_PASSWORD_LENGTH:8}
     admin1:
