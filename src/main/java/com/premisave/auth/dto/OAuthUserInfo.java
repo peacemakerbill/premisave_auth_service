@@ -6,20 +6,23 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Normalized user info produced by every OAuth provider client after the
- * provider's token or code has been verified server-side.
+ * Normalized user info produced by every social provider client (Google, Facebook, GitHub)
+ * before account lookup or creation. The email is always provider-verified.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class OAuthUserInfo {
-    private String provider;          // "google", "facebook" or "github"
-    private String providerId;        // Google sub / Facebook user id / GitHub numeric id
-    private String email;             // Always a provider-verified email
+    private String providerId;
+    private String email;
     private String firstName;
     private String lastName;
-    private String fullName;          // Used when the provider has no separate first/last name
-    private String usernameHint;      // Preferred username (GitHub login), optional
-    private String profilePictureUrl; // Provider-hosted picture URL, optional
+    /** Display name as the provider reports it; used only when first and last name are missing. */
+    private String fullName;
+    private String profilePictureUrl;
+    /** "google", "facebook" or "github". */
+    private String provider;
+    /** Provider handle (for example a GitHub login) used as a hint when generating a username. */
+    private String usernameHint;
 }

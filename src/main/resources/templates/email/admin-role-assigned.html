@@ -1,0 +1,13 @@
+<h1 style="margin:0 0 12px;font-size:22px;color:#111827;">Administrator access granted</h1>
+<p style="margin:0 0 12px;">Hi {{name}},</p>
+<p style="margin:0 0 12px;">Your {{appName}} account <strong>{{email}}</strong> now has the <strong>ADMIN</strong> role.</p>
+{{{detailsHtml}}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background-color:#fffbeb;border:1px solid #fcd34d;border-radius:8px;">
+  <tr><td style="padding:14px 16px;font-size:14px;color:#92400e;">
+    Administrator accounts can manage users and review applications. Keep your password private and sign out on shared devices.
+    If you did not expect this change, contact {{supportEmail}} straight away.
+  </td></tr>
+</table>
+{{#securityUrl}}
+<p style="margin:0;"><a href="{{securityUrl}}" style="color:#0f766e;font-weight:600;">Review your account security</a></p>
+{{/securityUrl}}

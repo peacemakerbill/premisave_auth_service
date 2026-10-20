@@ -1,5 +1,9 @@
 package com.premisave.auth.security;
 
+import com.premisave.auth.entity.User;
+import com.premisave.auth.enums.Role;
+import com.premisave.auth.service.security.RequestAttributes;
+import com.premisave.auth.service.security.SessionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +13,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -22,13 +27,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsServiceImpl userDetailsService;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final SessionService sessionService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, 
+    public JwtAuthenticationFilter(JwtService jwtService,
                                    UserDetailsServiceImpl userDetailsService,
-                                   RedisTemplate<String, Object> redisTemplate) {
+                                   RedisTemplate<String, Object> redisTemplate,
+                                   SessionService sessionService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.redisTemplate = redisTemplate;
+        this.sessionService = sessionService;
     }
 
     @Override
@@ -45,20 +53,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Check if token is blacklisted (for logout)
         if (isTokenBlacklisted(jwt)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\": \"Token has been revoked. Please login again.\"}");
+            reject(response, "Token has been revoked. Please login again.");
             return;
         }
 
-        // Malformed/garbage tokens (wrong signature, not a JWT at all, etc.)
-        // throw here - catch and treat as "not authenticated" rather than
-        // letting it crash the request with a raw 500. This is a normal,
-        // expected condition (any client can send a bad token), not a bug,
-        // so it's handled the same way a missing Authorization header is
-        // handled above: let the request continue unauthenticated, and
-        // Spring Security's own authorization rules return 401/403 for
-        // any protected endpoint naturally.
+        // Malformed/garbage tokens (wrong signature, not a JWT at all, expired) are treated as
+        // "not authenticated": the request continues without a user and Spring Security's own
+        // rules answer 401/403 for protected endpoints.
         String userEmail = null;
         try {
             userEmail = jwtService.extractUsername(jwt);
@@ -67,8 +68,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+            UserDetails userDetails;
+            try {
+                userDetails = userDetailsService.loadUserByUsername(userEmail);
+            } catch (UsernameNotFoundException e) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             if (jwtService.isTokenValid(jwt, userDetails)) {
+                // A refresh token must never work as an access token.
+                if (JwtService.REFRESH.equals(safeTokenType(jwt))) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+                // Privileged access needs a verified, active account, whatever the token says.
+                if (userDetails instanceof User account && account.getRole() == Role.ADMIN
+                        && !(account.isVerified() && account.isActive())) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+                // Tokens issued by a session must belong to a session that is still active.
+                String sessionId = safeSessionId(jwt);
+                if (sessionId != null) {
+                    String userId = userDetails instanceof User account ? account.getId() : null;
+                    if (!sessionService.isActive(sessionId, userId)) {
+                        reject(response, "Your session has ended. Please sign in again.");
+                        return;
+                    }
+                    request.setAttribute(RequestAttributes.SESSION_ID, sessionId);
+                    sessionService.touch(sessionId);
+                }
+
                 UsernamePasswordAuthenticationToken authToken = 
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -77,6 +110,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private String safeTokenType(String jwt) {
+        try {
+            return jwtService.extractTokenType(jwt);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private String safeSessionId(String jwt) {
+        try {
+            return jwtService.extractSessionId(jwt);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private void reject(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\": \"" + message + "\"}");
     }
 
     /**

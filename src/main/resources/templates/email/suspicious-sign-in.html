@@ -1,0 +1,22 @@
+<h1 style="margin:0 0 12px;font-size:22px;color:#b91c1c;">Unusual sign-in to your account</h1>
+<p style="margin:0 0 12px;">Hi {{name}},</p>
+<p style="margin:0 0 12px;">A sign-in to your {{appName}} account <strong>{{email}}</strong> looked unusual to our security checks.</p>
+{{{detailsHtml}}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background-color:#fef2f2;border:1px solid #fca5a5;border-radius:8px;">
+  <tr><td style="padding:14px 16px;font-size:14px;color:#991b1b;">
+    <strong>If this was you,</strong> no action is needed. Travel, a new phone or a VPN can trigger this check.<br>
+    <strong>If you did not sign in,</strong> secure your account immediately by revoking this session and changing your password.
+  </td></tr>
+</table>
+{{#reportUrl}}
+<table role="presentation" class="btn" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+  <tr><td style="background-color:#dc2626;border-radius:8px;">
+    <a href="{{reportUrl}}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-weight:600;text-decoration:none;font-size:15px;">This was not me, secure my account</a>
+  </td></tr>
+</table>
+<p style="margin:0 0 16px;font-size:12px;color:#6b7280;">This button works once and expires in {{reportHours}} hours. Nothing changes until you confirm on the next page, and your password is never changed automatically.</p>
+{{/reportUrl}}
+{{#securityUrl}}
+<p style="margin:0;">You can also <a href="{{securityUrl}}" style="color:#0f766e;font-weight:600;">review your active sessions</a>.</p>
+{{/securityUrl}}
+<p style="margin:16px 0 0;font-size:12px;color:#6b7280;">Location is approximate and based on the IP address. Device details are reported by the browser or app and can be wrong.</p>

@@ -45,6 +45,7 @@ public class SecurityConfig {
                 
                 .requestMatchers("/social/**").authenticated()
                 .requestMatchers("/location/**").authenticated()
+                .requestMatchers("/security/**").authenticated()
                 .requestMatchers("/home-owner/**").authenticated()
                 .requestMatchers("/staff/**").hasAnyRole("ADMIN", "OPERATIONS", "FINANCE", "SUPPORT")
                 .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -92,7 +93,9 @@ public class SecurityConfig {
             "Content-Type",
             "Accept",
             "X-Requested-With",
-            "X-CSRF-Token"
+            "X-CSRF-Token",
+            "X-Device-Token",       // remembered-device token sent by native apps
+            "X-Client-Platform"     // "mobile" asks for the device token in the response body
         ));
         configuration.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
         

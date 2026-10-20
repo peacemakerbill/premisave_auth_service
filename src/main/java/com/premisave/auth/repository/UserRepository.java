@@ -14,15 +14,15 @@ public interface UserRepository extends MongoRepository<User, String> {
     // Find by email (exact match)
     Optional<User> findByEmail(String email);
     
-    // Find by username (exact match)
-    Optional<User> findByUsername(String username);
-
-    // Find by linked social sign-in account
+    // Social login lookups by provider account id
     Optional<User> findByGoogleId(String googleId);
 
     Optional<User> findByFacebookId(String facebookId);
 
     Optional<User> findByGithubId(String githubId);
+
+    // Find by username (exact match)
+    Optional<User> findByUsername(String username);
     
     // Find active, non-archived users
     List<User> findByActiveTrueAndArchivedFalse();

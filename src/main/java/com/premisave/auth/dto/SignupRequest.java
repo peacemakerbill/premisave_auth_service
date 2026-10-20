@@ -1,11 +1,15 @@
 package com.premisave.auth.dto;
 
-import com.premisave.auth.enums.Role;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
+/**
+ * Registration body. There is deliberately no role field: every self-registered account starts
+ * as CLIENT, and roles are only ever assigned on the server (administrator configuration,
+ * the home owner application review, or an administrator). A "role" sent by a client is ignored.
+ */
 @Data
 public class SignupRequest {
     /** Optional. Leave it out and one is generated from the name; it can be changed later in the profile. */
@@ -38,6 +42,4 @@ public class SignupRequest {
 
     @NotBlank
     private String password;
-
-    private Role role = Role.CLIENT;
 }

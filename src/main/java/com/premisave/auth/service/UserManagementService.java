@@ -4,9 +4,20 @@ import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.dto.UserSearchRequest;
 import com.premisave.auth.entity.User;
 import com.premisave.auth.enums.Role;
+import com.premisave.auth.enums.SecurityEventType;
+import com.premisave.auth.enums.SecuritySeverity;
 import com.premisave.auth.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import com.premisave.auth.service.security.PasswordChangeSecurityHandler;
+import com.premisave.auth.service.security.PasswordResetService;
+import com.premisave.auth.service.security.RequestAttributes;
+import com.premisave.auth.service.security.SecurityAuditService;
+import com.premisave.auth.service.security.SecurityNotificationService;
+import com.premisave.auth.service.security.SessionService;
+import com.premisave.auth.service.security.Tokens;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,11 +31,24 @@ public class UserManagementService {
     private final UserRepository userRepository;
     private final ModelMapper modelMapper;
     private final PasswordEncoder passwordEncoder;
+    private final SessionService sessionService;
+    private final SecurityAuditService audit;
+    private final SecurityNotificationService notifications;
+    private final PasswordChangeSecurityHandler passwordChanges;
+    private final PasswordResetService passwordReset;
 
-    public UserManagementService(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder) {
+    public UserManagementService(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder,
+                                 SessionService sessionService, SecurityAuditService audit,
+                                 SecurityNotificationService notifications,
+                                 PasswordChangeSecurityHandler passwordChanges, PasswordResetService passwordReset) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
+        this.sessionService = sessionService;
+        this.audit = audit;
+        this.notifications = notifications;
+        this.passwordChanges = passwordChanges;
+        this.passwordReset = passwordReset;
         
         configureModelMapper();
     }
@@ -81,14 +105,24 @@ public class UserManagementService {
         user.setVerified(userDto.getVerified() != null && userDto.getVerified());
         user.setArchived(userDto.getArchived() != null && userDto.getArchived());
         
-        if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
+        boolean noPasswordGiven = userDto.getPassword() == null || userDto.getPassword().trim().isEmpty();
+        if (!noPasswordGiven) {
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         } else {
-            user.setPassword(passwordEncoder.encode("TempPassword123!"));
+            // No shared default password: the account gets an unknown random one and the owner
+            // receives a reset link to choose their own.
+            user.setPassword(passwordEncoder.encode(Tokens.newToken()));
         }
         
         user = userRepository.save(user);
         log.info("User created successfully with ID: {}", user.getId());
+
+        if (noPasswordGiven) {
+            passwordReset.sendResetFor(user);
+        }
+        if (user.getRole() == Role.ADMIN) {
+            auditRoleChange(user, null, Role.ADMIN, "Account created with the ADMIN role through user management");
+        }
         
         return convertToDto(user);
     }
@@ -97,6 +131,8 @@ public class UserManagementService {
         log.info("Updating user with ID: {}", id);
         
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+        Role previousRole = user.getRole();
+        boolean passwordChanged = false;
         
         if (userDto.getEmail() != null && !user.getEmail().equals(userDto.getEmail())) {
             if (userRepository.findByEmail(userDto.getEmail()).isPresent()) {
@@ -131,10 +167,19 @@ public class UserManagementService {
         
         if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
+            passwordChanged = true;
         }
         
         user = userRepository.save(user);
         log.info("User updated successfully with ID: {}", user.getId());
+
+        if (user.getRole() != previousRole) {
+            auditRoleChange(user, previousRole, user.getRole(), "Updated through user management");
+        }
+        if (passwordChanged) {
+            passwordChanges.afterPasswordChange(user, null, SecurityEventType.PASSWORD_CHANGED, actorId(),
+                    "Changed by an administrator", RequestAttributes.currentClient());
+        }
         
         return convertToDto(user);
     }
@@ -156,6 +201,7 @@ public class UserManagementService {
         
         user.setArchived(true);
         userRepository.save(user);
+        endAllSessions(user, "ACCOUNT_ARCHIVED");
         log.info("User archived successfully");
     }
 
@@ -195,6 +241,7 @@ public class UserManagementService {
         
         user.setActive(false);
         userRepository.save(user);
+        endAllSessions(user, "ACCOUNT_DEACTIVATED");
         log.info("User deactivated successfully");
     }
 
@@ -253,6 +300,8 @@ public class UserManagementService {
         
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        passwordChanges.afterPasswordChange(user, null, SecurityEventType.PASSWORD_CHANGED, actorId(),
+                "Changed by an administrator", RequestAttributes.currentClient());
         log.info("Password updated successfully for user: {}", user.getEmail());
     }
 
@@ -260,11 +309,15 @@ public class UserManagementService {
         log.info("Resetting password for user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         
-        String temporaryPassword = "TempPassword123!";
-        user.setPassword(passwordEncoder.encode(temporaryPassword));
-        
+        // The old password stops working at once and no replacement is ever shared: the owner gets
+        // a single-use link by email and chooses a new password themselves.
+        user.setPassword(passwordEncoder.encode(Tokens.newToken()));
         userRepository.save(user);
-        log.info("Password reset successfully for user: {}", user.getEmail());
+
+        passwordReset.sendResetFor(user);
+        passwordChanges.afterPasswordChange(user, null, SecurityEventType.PASSWORD_RESET, actorId(),
+                "Reset by an administrator", RequestAttributes.currentClient());
+        log.info("Password reset started for user: {}", user.getEmail());
     }
 
     public UserDto getUserById(String id) {
@@ -286,6 +339,11 @@ public class UserManagementService {
     }
 
     public void changeUserRole(String id, String role) {
+        changeUserRole(id, role, null);
+    }
+
+    /** @param reason why the role is changing; recorded in the audit trail for administrator changes */
+    public void changeUserRole(String id, String role, String reason) {
         log.info("Changing role to {} for user with ID: {}", role, id);
         
         User user = userRepository.findById(id)
@@ -305,11 +363,14 @@ public class UserManagementService {
                 }
             }
 
+            Role previousRole = user.getRole();
             user.setRole(newRole);
             userRepository.save(user);
+            auditRoleChange(user, previousRole, newRole,
+                    reason == null || reason.isBlank() ? "No reason provided" : reason.trim());
             
             log.info("Role changed successfully from {} to {} for user: {}", 
-                    user.getRole(), newRole, user.getEmail());
+                    previousRole, newRole, user.getEmail());
             
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Invalid role provided: " + role + ". Allowed roles: " + 
@@ -329,6 +390,52 @@ public class UserManagementService {
         return users.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    private String actorId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User actor && actor.getId() != null) {
+            return actor.getId();
+        }
+        return "SYSTEM";
+    }
+
+    private void endAllSessions(User user, String reason) {
+        int ended = sessionService.revokeAll(user.getId(), null, reason, actorId());
+        if (ended > 0) {
+            audit.event(SecurityEventType.ALL_SESSIONS_REVOKED)
+                    .user(user.getId()).actor(actorId()).client(RequestAttributes.currentClient())
+                    .reason(reason).detail("sessionsEnded", ended)
+                    .write();
+        }
+    }
+
+    /** Records administrator privilege changes (granted or removed) with actor, target, time and reason. */
+    private void auditRoleChange(User target, Role previous, Role current, String reason) {
+        if (previous != Role.ADMIN && current != Role.ADMIN) {
+            return;
+        }
+        audit.event(SecurityEventType.ADMIN_ROLE_CHANGED)
+                .severity(SecuritySeverity.WARNING)
+                .user(target.getId())
+                .actor(actorId())
+                .client(RequestAttributes.currentClient())
+                .reason(reason)
+                .detail("previousRole", previous == null ? "NONE" : previous.name())
+                .detail("newRole", current == null ? "NONE" : current.name())
+                .write();
+        if (current == Role.ADMIN) {
+            notifications.sendAdminRoleAssigned(target.getId(), target.getEmail(), target.getFirstName(),
+                    reason, java.time.Instant.now());
+        } else {
+            notifications.sendNotice(target.getId(), target.getEmail(), target.getFirstName(),
+                    "Your Premisave administrator access was removed",
+                    "Administrator access removed",
+                    "Your account " + target.getEmail() + " no longer has the ADMIN role.",
+                    java.util.List.of(new com.premisave.auth.service.security.EmailTemplateRenderer.Row("New role",
+                            current == null ? "NONE" : current.name())),
+                    "If you did not expect this change, contact support.", null, null);
+        }
     }
 
     private UserDto convertToDto(User user) {

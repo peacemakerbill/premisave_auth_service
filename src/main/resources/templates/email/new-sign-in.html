@@ -1,0 +1,22 @@
+<h1 style="margin:0 0 12px;font-size:22px;color:#111827;">New sign-in to your account</h1>
+<p style="margin:0 0 12px;">Hi {{name}},</p>
+<p style="margin:0 0 12px;">We noticed a sign-in to your {{appName}} account <strong>{{email}}</strong>.</p>
+{{{detailsHtml}}}
+<p style="margin:0 0 16px;font-size:12px;color:#6b7280;">The location is only an approximate guess from the IP address, and the device details come from information your browser or app reports about itself. Neither can identify a device with certainty.</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background-color:#fffbeb;border:1px solid #fcd34d;border-radius:8px;">
+  <tr><td style="padding:14px 16px;font-size:14px;color:#92400e;">
+    <strong>If this was you,</strong> you do not need to do anything.<br>
+    <strong>If you did not sign in,</strong> secure your account immediately by revoking this session and changing your password.
+  </td></tr>
+</table>
+{{#reportUrl}}
+<table role="presentation" class="btn" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
+  <tr><td style="background-color:#dc2626;border-radius:8px;">
+    <a href="{{reportUrl}}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-weight:600;text-decoration:none;font-size:15px;">This was not me, secure my account</a>
+  </td></tr>
+</table>
+<p style="margin:0 0 16px;font-size:12px;color:#6b7280;">This button works once and expires in {{reportHours}} hours. Opening it only shows what happened; nothing changes until you confirm on the next page, and your password is never changed automatically.</p>
+{{/reportUrl}}
+{{#securityUrl}}
+<p style="margin:0;">You can also <a href="{{securityUrl}}" style="color:#0f766e;font-weight:600;">review your account security and manage active sessions</a>.</p>
+{{/securityUrl}}

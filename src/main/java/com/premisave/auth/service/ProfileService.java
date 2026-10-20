@@ -7,7 +7,10 @@ import com.premisave.auth.dto.ProfileUploadResponse;
 import com.premisave.auth.dto.UserDirectoryDto;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.entity.User;
+import com.premisave.auth.enums.SecurityEventType;
 import com.premisave.auth.repository.UserRepository;
+import com.premisave.auth.service.security.PasswordChangeSecurityHandler;
+import com.premisave.auth.service.security.RequestAttributes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
@@ -28,6 +31,7 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordChangeSecurityHandler passwordChanges;
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = new HashSet<>(
             Arrays.asList("image/jpeg", "image/png", "image/gif", "image/webp"));
@@ -40,10 +44,12 @@ public class ProfileService {
 
     private long maxFileSizeBytes;
 
-    public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder) {
+    public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder,
+                          PasswordChangeSecurityHandler passwordChanges) {
         this.userRepository = userRepository;
         this.cloudinary = cloudinary;
         this.passwordEncoder = passwordEncoder;
+        this.passwordChanges = passwordChanges;
         this.maxFileSizeBytes = parseMaxFileSize();
     }
 
@@ -305,6 +311,11 @@ public class ProfileService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+
+        // Other devices are signed out; this one stays signed in.
+        passwordChanges.afterPasswordChange(user, RequestAttributes.currentSessionId(),
+                SecurityEventType.PASSWORD_CHANGED, user.getId(), "Changed from your profile",
+                RequestAttributes.currentClient());
     }
 
     private UserDto convertToDto(User user) {

@@ -1,13 +1,18 @@
 package com.premisave.auth.service;
 
-import com.premisave.auth.dto.AuthResponse;
 import com.premisave.auth.dto.OAuthUserInfo;
 import com.premisave.auth.entity.User;
 import com.premisave.auth.enums.Language;
+import com.premisave.auth.enums.LoginMethod;
 import com.premisave.auth.enums.Role;
+import com.premisave.auth.enums.SecurityEventType;
 import com.premisave.auth.repository.UserRepository;
-import com.premisave.auth.security.JwtService;
 import com.premisave.auth.service.oauth.OAuthProviderClient;
+import com.premisave.auth.service.security.AdminAccessService;
+import com.premisave.auth.service.security.AuthSessionService;
+import com.premisave.auth.service.security.ClientContext;
+import com.premisave.auth.service.security.SecurityAuditService;
+import com.premisave.auth.service.security.SessionService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,23 +43,32 @@ import java.util.stream.Collectors;
 public class OAuthService {
 
     private final UserRepository userRepository;
-    private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final ProfilePictureStorage pictureStorage;
     private final UsernameService usernameService;
+    private final AuthSessionService authSessions;
+    private final AdminAccessService adminAccess;
+    private final SessionService sessionService;
+    private final SecurityAuditService audit;
     private final Map<String, OAuthProviderClient> clients;
 
     public OAuthService(UserRepository userRepository,
-                        JwtService jwtService,
                         PasswordEncoder passwordEncoder,
                         ProfilePictureStorage pictureStorage,
                         UsernameService usernameService,
+                        AuthSessionService authSessions,
+                        AdminAccessService adminAccess,
+                        SessionService sessionService,
+                        SecurityAuditService audit,
                         List<OAuthProviderClient> providerClients) {
         this.userRepository = userRepository;
-        this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.pictureStorage = pictureStorage;
         this.usernameService = usernameService;
+        this.authSessions = authSessions;
+        this.adminAccess = adminAccess;
+        this.sessionService = sessionService;
+        this.audit = audit;
         this.clients = providerClients.stream()
                 .collect(Collectors.toUnmodifiableMap(OAuthProviderClient::provider, Function.identity()));
     }
@@ -64,8 +78,9 @@ public class OAuthService {
     /**
      * @param provider "google", "facebook" or "github" (fixed by the endpoint, never sent by the client)
      * @param token    the credential from the request body
+     * @param ctx      the caller's address, User-Agent and device token
      */
-    public AuthResponse handleOAuth(String provider, String token) {
+    public AuthSessionService.Established handleOAuth(String provider, String token, ClientContext ctx) {
         OAuthProviderClient client = clients.get(provider);
         if (client == null) {
             throw new IllegalArgumentException("Unsupported OAuth provider: " + provider);
@@ -80,11 +95,17 @@ public class OAuthService {
         }
 
         User user = findOrCreateUser(info);
+
+        // The provider has verified the email, so a configured administrator address is honoured here too.
+        // This is the same server-side rule as every other sign-in path; nothing from the client is consulted.
+        adminAccess.grantIfEligible(user, "SOCIAL_LOGIN");
+
+        LocalDateTime previousLogin = user.getLastLoginAt();
         user.setLastLoginAt(LocalDateTime.now());
         user = userRepository.save(user);
 
         log.info("OAuth sign-in via {} for user {}", provider, user.getId());
-        return new AuthResponse(jwtService.generateToken(user), user.getRole().name());
+        return authSessions.establish(user, ctx, LoginMethod.fromProvider(provider), previousLogin != null, true);
     }
 
     //  Account resolution
@@ -122,8 +143,17 @@ public class OAuthService {
 
             // The provider has confirmed ownership of this email
             if (!user.isVerified()) {
+                // The account was registered but never verified, so whoever registered it may not be the
+                // owner of this address. Their password is discarded and their sessions ended, otherwise
+                // verifying here would hand the account to them.
+                user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
                 user.setVerified(true);
+                sessionService.revokeAll(user.getId(), null, "ACCOUNT_LINKED_TO_PROVIDER", "SYSTEM");
             }
+            audit.event(SecurityEventType.SOCIAL_ACCOUNT_LINKED)
+                    .user(user.getId()).actor(user.getId())
+                    .detail("provider", provider)
+                    .write();
 
             syncProfile(user, info);
             log.info("Linked {} account to existing user {}", provider, user.getId());

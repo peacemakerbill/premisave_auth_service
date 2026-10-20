@@ -95,6 +95,24 @@ public class EmailService {
         }
     }
 
+    /**
+     * Sends one message with both an HTML and a plain-text body (multipart/alternative), so clients
+     * that cannot show HTML still get readable text. Synchronous on purpose: the security
+     * notification service calls it from its own async method and records any failure there.
+     */
+    public void sendHtmlAndText(String to, String subject, String htmlContent, String textContent) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(textContent, htmlContent);
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            throw new RuntimeException("Failed to send email", e);
+        }
+    }
+
     private String processTemplate(String templatePath, Map<String, String> data) {
         try {
             Resource resource = resourceLoader.getResource("classpath:" + templatePath);

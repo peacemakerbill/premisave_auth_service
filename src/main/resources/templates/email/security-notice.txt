@@ -1,0 +1,16 @@
+{{title}}
+
+Hi {{name}},
+
+{{intro}}
+
+{{detailsText}}
+{{#warning}}
+{{warning}}
+{{/warning}}
+{{#buttonUrl}}
+{{buttonLabel}}: {{buttonUrl}}
+{{/buttonUrl}}
+
+Questions? {{supportEmail}}
+(c) {{year}} {{appName}}

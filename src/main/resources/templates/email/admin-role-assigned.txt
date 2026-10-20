@@ -1,0 +1,14 @@
+Administrator access granted
+
+Hi {{name}},
+
+Your {{appName}} account {{email}} now has the ADMIN role.
+
+{{detailsText}}
+Administrator accounts can manage users and review applications. Keep your password private and sign out on shared devices.
+If you did not expect this change, contact {{supportEmail}} straight away.
+{{#securityUrl}}
+Review your account security: {{securityUrl}}
+{{/securityUrl}}
+
+(c) {{year}} {{appName}}

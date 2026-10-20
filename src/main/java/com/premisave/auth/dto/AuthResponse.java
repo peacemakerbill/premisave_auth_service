@@ -7,7 +7,17 @@ public class AuthResponse {
 
     private String token;
     private String role;
-    private String refreshToken; // Optional - can be included in future if needed
+    private String refreshToken;
+
+    /** Seconds until the access token expires, so clients can refresh ahead of time. Null for older flows. */
+    private Long expiresIn;
+
+    /**
+     * New remembered-device token. Only present when a native app asked for it with the
+     * X-Client-Platform: mobile header; browsers receive it as an HttpOnly cookie instead and
+     * JavaScript never sees it. Apps send it back as the X-Device-Token header.
+     */
+    private String deviceToken;
 
     /**
      * Constructor for successful authentication response

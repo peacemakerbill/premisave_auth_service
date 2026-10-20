@@ -107,6 +107,81 @@ profile-views:
 app:
   api-key: ${API_KEY}
 
+  # ── Account security: administrators, devices, sessions, sign-in alerts ──
+  # Every value has a default, so a missing or empty variable never stops startup.
+  # Values are read at startup: after changing them in .env or the environment, restart the service.
+  security:
+    # Comma-separated. Trimmed, lower-cased, validated and de-duplicated; invalid entries are skipped and logged.
+    # INITIAL: provisioned at startup (existing verified users are promoted; missing ones get an invitation email).
+    # AUTO:    becomes ADMIN once the account's email is verified (registration, sign-in, social login).
+    # Removing an address here never demotes an existing admin; use PUT /admin/users/change-role/{id} (audited).
+    initial-admin-emails: ${INITIAL_ADMIN_EMAILS:}
+    auto-admin-emails: ${AUTO_ADMIN_EMAILS:}
+    invitation-ttl-hours: ${SECURITY_INVITATION_TTL_HOURS:72}
+
+    # Email alerts
+    login-email-notifications: ${SECURITY_LOGIN_EMAIL_NOTIFICATIONS:true}
+    new-device-alerts: ${SECURITY_NEW_DEVICE_ALERTS:true}
+    suspicious-login-alerts: ${SECURITY_SUSPICIOUS_LOGIN_ALERTS:true}
+    device-alert-cooldown-hours: ${SECURITY_DEVICE_ALERT_COOLDOWN_HOURS:24}
+    alert-first-device: ${SECURITY_ALERT_FIRST_DEVICE:false}
+    display-zone: ${SECURITY_DISPLAY_ZONE:UTC}
+    security-page-path: ${SECURITY_PAGE_PATH:/account/security}
+
+    # Devices and sessions
+    device-trust-enabled: ${SECURITY_DEVICE_TRUST_ENABLED:true}
+    session-revocation-enabled: ${SECURITY_SESSION_REVOCATION_ENABLED:true}
+    device-cookie-name: ${SECURITY_DEVICE_COOKIE_NAME:ps_did}
+    # Set to false only for plain-http local development
+    device-cookie-secure: ${SECURITY_DEVICE_COOKIE_SECURE:true}
+    device-cookie-same-site: ${SECURITY_DEVICE_COOKIE_SAME_SITE:Lax}
+    device-cookie-max-age-days: ${SECURITY_DEVICE_COOKIE_MAX_AGE_DAYS:365}
+    max-devices-per-user: ${SECURITY_MAX_DEVICES_PER_USER:50}
+    session-ttl-days: ${SECURITY_SESSION_TTL_DAYS:30}
+    reauth-window-minutes: ${SECURITY_REAUTH_WINDOW_MINUTES:10}
+    # Lifetime of access tokens in minutes. 0 keeps jwt.expiration (about 30 days) so current clients keep working.
+    # Recommended 15 to 60 once clients use the refresh token: a revoked session then stops working everywhere,
+    # including in services that only check the token signature, within that time.
+    access-token-minutes: ${SECURITY_ACCESS_TOKEN_MINUTES:0}
+    # true: POST /auth/signup answers the same for new and already-registered emails (202, no tokens), and the
+    # existing owner is told by email. false keeps the current response, which says "Email already exists".
+    hide-existing-accounts: ${SECURITY_HIDE_EXISTING_ACCOUNTS:false}
+    # Accept an unexpired access token at POST /auth/refresh (older clients). Set false once clients use refresh tokens.
+    legacy-refresh-enabled: ${SECURITY_LEGACY_REFRESH_ENABLED:true}
+
+    # Network. Only addresses listed here may supply X-Forwarded-For (IPs or CIDR ranges, comma-separated).
+    trusted-proxies: ${SECURITY_TRUSTED_PROXIES:}
+    # Off by default: lookups send visitor IPs to the provider in ip-geolocation-url. Location is approximate.
+    ip-geolocation-enabled: ${SECURITY_IP_GEOLOCATION_ENABLED:false}
+    ip-geolocation-url: ${SECURITY_IP_GEOLOCATION_URL:https://ipwho.is/{ip}}
+    ip-geolocation-timeout-ms: ${SECURITY_IP_GEOLOCATION_TIMEOUT_MS:2000}
+
+    # Retention
+    audit-retention-days: ${SECURITY_AUDIT_RETENTION_DAYS:180}
+    device-retention-days: ${SECURITY_DEVICE_RETENTION_DAYS:365}
+
+    # Brute force protection (temporary, progressive locks; they expire on their own)
+    login-max-failures: ${SECURITY_LOGIN_MAX_FAILURES:5}
+    login-failure-window-minutes: ${SECURITY_LOGIN_FAILURE_WINDOW_MINUTES:15}
+    login-lockout-minutes: ${SECURITY_LOGIN_LOCKOUT_MINUTES:15}
+    login-max-lockout-minutes: ${SECURITY_LOGIN_MAX_LOCKOUT_MINUTES:240}
+    ip-max-failures: ${SECURITY_IP_MAX_FAILURES:30}
+    ip-max-distinct-accounts: ${SECURITY_IP_MAX_DISTINCT_ACCOUNTS:10}
+    ip-window-minutes: ${SECURITY_IP_WINDOW_MINUTES:15}
+
+    # Suspicious sign-in scoring (alert threshold out of 100; nothing is blocked automatically)
+    risk-alert-threshold: ${SECURITY_RISK_ALERT_THRESHOLD:50}
+    location-change-window-hours: ${SECURITY_LOCATION_CHANGE_WINDOW_HOURS:12}
+    frequency-threshold: ${SECURITY_FREQUENCY_THRESHOLD:8}
+    frequency-window-minutes: ${SECURITY_FREQUENCY_WINDOW_MINUTES:10}
+    distinct-ip-threshold: ${SECURITY_DISTINCT_IP_THRESHOLD:4}
+    distinct-ip-window-minutes: ${SECURITY_DISTINCT_IP_WINDOW_MINUTES:60}
+
+    # "This was not me" links in emails
+    action-token-ttl-minutes: ${SECURITY_ACTION_TOKEN_TTL_MINUTES:1440}
+    # Cron for the daily retention clean-up
+    retention-cron: ${SECURITY_RETENTION_CRON:0 15 3 * * *}
+
 # ── Google Drive (Home Owner application documents) ──
 # Optional at startup: with nothing set the service still boots, and document
 # uploads answer with a clear "storage not configured" message.
