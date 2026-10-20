@@ -16,8 +16,9 @@ import com.premisave.auth.enums.Role;
 import com.premisave.auth.exception.ApiException;
 import com.premisave.auth.repository.HomeOwnerApplicationRepository;
 import com.premisave.auth.service.application.ApplicationFileValidator.Detected;
-import com.premisave.auth.service.application.DriveStorageService.StoredFile;
-import com.premisave.auth.service.application.DriveStorageService.StoredFolder;
+import com.premisave.auth.service.storage.FileStorageService;
+import com.premisave.auth.service.storage.FileStorageService.StoredFile;
+import com.premisave.auth.service.storage.FileStorageService.StoredFolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -52,7 +53,7 @@ public class HomeOwnerApplicationService {
 
     private final HomeOwnerApplicationRepository repository;
     private final ApplicationNumberGenerator numberGenerator;
-    private final DriveStorageService drive;
+    private final FileStorageService storage;
     private final ApplicationEmailService emails;
     private final ApplicationMapper mapper;
     private final CurrentUser currentUser;
@@ -62,7 +63,7 @@ public class HomeOwnerApplicationService {
 
     public HomeOwnerApplicationService(HomeOwnerApplicationRepository repository,
                                        ApplicationNumberGenerator numberGenerator,
-                                       DriveStorageService drive,
+                                       FileStorageService storage,
                                        ApplicationEmailService emails,
                                        ApplicationMapper mapper,
                                        CurrentUser currentUser,
@@ -70,7 +71,7 @@ public class HomeOwnerApplicationService {
                                        @Value("${home-owner-application.max-documents:25}") int maxDocuments) {
         this.repository = repository;
         this.numberGenerator = numberGenerator;
-        this.drive = drive;
+        this.storage = storage;
         this.emails = emails;
         this.mapper = mapper;
         this.currentUser = currentUser;
@@ -223,20 +224,19 @@ public class HomeOwnerApplicationService {
             toReplace.addAll(sameType);
         }
 
-        ensureDriveFolder(app);
+        ensureStorageFolder(app);
 
         String storedName = type.name() + "_" + LocalDateTime.now().format(STAMP) + "." + detected.extension();
-        StoredFile uploaded = drive.upload(app.getDriveFolderId(), storedName, detected.mimeType(), bytes);
+        StoredFile uploaded = storage.upload(app.getStorageFolder(), storedName, detected.mimeType(), bytes);
 
         ApplicationDocument doc = new ApplicationDocument();
         doc.setType(type);
         doc.setOriginalFileName(ApplicationFileValidator.cleanFileName(file.getOriginalFilename()));
-        doc.setStoredFileName(storedName);
+        doc.setStoredFileName(uploaded.name());
         doc.setMimeType(detected.mimeType());
         doc.setSizeBytes(bytes.length);
         doc.setSha256(hash);
-        doc.setDriveFileId(uploaded.id());
-        doc.setDriveViewLink(uploaded.webViewLink());
+        doc.setStorageKey(uploaded.key());
         doc.setDocumentNumber(ApplicationValidation.merge(documentNumber, null));
         doc.setExpiryDate(expiryDate);
 
@@ -245,10 +245,17 @@ public class HomeOwnerApplicationService {
 
         ApplicationEvents.add(app, ApplicationEventType.DOCUMENT_UPLOADED, app.getStatus(), app.getStatus(), user, true,
                 type.getLabel() + (toReplace.isEmpty() ? " uploaded" : " replaced"));
-        HomeOwnerApplication saved = repository.save(app);
+        HomeOwnerApplication saved;
+        try {
+            saved = repository.save(app);
+        } catch (RuntimeException e) {
+            // The record was not saved, so the file just written would be orphaned
+            storage.delete(uploaded.key());
+            throw e;
+        }
 
-        // Only after the new file is safely recorded do we remove the old ones from Drive
-        toReplace.forEach(old -> drive.delete(old.getDriveFileId()));
+        // Only after the new file is safely recorded do we remove the old ones from storage
+        toReplace.forEach(old -> storage.delete(old.getStorageKey()));
         return view(saved);
     }
 
@@ -266,7 +273,7 @@ public class HomeOwnerApplicationService {
         ApplicationEvents.add(app, ApplicationEventType.DOCUMENT_REMOVED, app.getStatus(), app.getStatus(), user, true,
                 doc.getType().getLabel() + " removed");
         HomeOwnerApplication saved = repository.save(app);
-        drive.delete(doc.getDriveFileId());
+        storage.delete(doc.getStorageKey());
         return view(saved);
     }
 
@@ -280,7 +287,11 @@ public class HomeOwnerApplicationService {
             throw ApiException.notFound("Application not found.");
         }
         ApplicationDocument doc = findDocument(app, documentId);
-        byte[] content = drive.download(doc.getDriveFileId());
+        if (doc.getStorageKey() == null) {
+            // Uploaded before document storage moved to disk; the file is not in this storage
+            throw ApiException.notFound("This file is no longer available. Please upload it again.");
+        }
+        byte[] content = storage.download(doc.getStorageKey());
         return new DownloadedDocument(doc.getOriginalFileName(), doc.getMimeType(), content);
     }
 
@@ -344,7 +355,7 @@ public class HomeOwnerApplicationService {
         return view(saved);
     }
 
-    /** Removes a draft that was never submitted, along with its files in Drive. */
+    /** Removes a draft that was never submitted, along with its stored files. */
     public void deleteDraft(String id) {
         User user = currentUser.require();
         HomeOwnerApplication app = loadOwned(id, user);
@@ -353,7 +364,7 @@ public class HomeOwnerApplicationService {
                     + "Withdraw the application instead.");
         }
         // Deleting the folder removes every file inside it
-        drive.delete(app.getDriveFolderId());
+        storage.delete(app.getStorageFolder());
         repository.delete(app);
         log.info("Draft application {} deleted by its owner", app.getApplicationNumber());
     }
@@ -401,13 +412,12 @@ public class HomeOwnerApplicationService {
                 .orElseThrow(() -> ApiException.notFound("Document not found."));
     }
 
-    private void ensureDriveFolder(HomeOwnerApplication app) {
-        if (app.getDriveFolderId() != null) {
+    private void ensureStorageFolder(HomeOwnerApplication app) {
+        if (app.getStorageFolder() != null) {
             return;
         }
-        StoredFolder folder = drive.createApplicationFolder(app.getApplicationNumber() + " " + app.getApplicantName());
-        app.setDriveFolderId(folder.id());
-        app.setDriveFolderUrl(folder.webViewLink());
+        StoredFolder folder = storage.createApplicationFolder(app.getApplicationNumber() + " " + app.getApplicantName());
+        app.setStorageFolder(folder.id());
     }
 
     private static String sha256(byte[] data) {

@@ -83,7 +83,7 @@ public final class ApplicationDtos {
     public record ReviewerView(String id, String name) {
     }
 
-    /** Full application. Internal notes and the Drive links are filled in for staff only. */
+    /** Full application. Internal notes and the storage folder name are filled in for staff only. */
     public record ApplicationResponse(
             String id,
             String applicationNumber,
@@ -158,7 +158,7 @@ public final class ApplicationDtos {
 
             // Staff only (null for applicants)
             List<NoteView> internalNotes,
-            String driveFolderUrl) {
+            String storageFolder) {
     }
 
     /** A row in the staff queue. */

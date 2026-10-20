@@ -24,7 +24,7 @@ import java.util.List;
  *
  * Name, email and the other applicant details are snapshots taken when the
  * application is created, so the review record stays stable even if the
- * profile changes later. Files are stored in Google Drive; only their ids are kept here.
+ * profile changes later. Files are stored in document storage (disk or network share); only their keys are kept here.
  */
 @Data
 @Document(collection = "home_owner_applications")
@@ -103,9 +103,8 @@ public class HomeOwnerApplication {
     private List<ApplicationEvent> events = new ArrayList<>();
     private List<ReviewNote> notes = new ArrayList<>();
 
-    // Google Drive
-    private String driveFolderId;
-    private String driveFolderUrl;
+    // Document storage: the application's folder name inside the storage directory
+    private String storageFolder;
 
     // Review
     private String assignedReviewerId;

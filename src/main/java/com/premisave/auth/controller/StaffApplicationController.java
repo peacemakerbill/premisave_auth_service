@@ -106,7 +106,7 @@ public class StaffApplicationController {
         return ResponseEntity.ok(reviewService.addNote(id, request.getText()));
     }
 
-    /** View or download an uploaded file. Streams it from Drive; the file is never public. */
+    /** View or download an uploaded file. Streams it from document storage; the file is never public. */
     @GetMapping("/{id}/documents/{documentId}/download")
     public ResponseEntity<byte[]> download(@PathVariable String id, @PathVariable String documentId,
                                            @RequestParam(defaultValue = "false") boolean download) {

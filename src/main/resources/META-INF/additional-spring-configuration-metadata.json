@@ -84,44 +84,466 @@
     {
       "name": "app.api-key",
       "type": "java.lang.String",
-      "description": "Shared secret API key required on the X-API-Key header to access protected public endpoints (e.g. /profile/public/directory). Generate with: openssl rand -hex 32. Set via the API_KEY environment variable in production \u2014 never commit the real value."
+      "description": "Shared secret API key required on the X-API-Key header to access protected public endpoints (e.g. /profile/public/directory). Generate with: openssl rand -hex 32. Set via the API_KEY environment variable in production — never commit the real value."
+    },
+    {
+      "name": "app.security.initial-admin-emails",
+      "type": "java.lang.String",
+      "description": "Comma-separated emails provisioned as ADMIN at startup. A verified account is promoted; an address with no account gets an unverified admin account and an invitation email with a single-use link. Entries are trimmed, lower-cased, validated and de-duplicated. Removing an address never demotes an existing admin. (env INITIAL_ADMIN_EMAILS)",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.security.auto-admin-emails",
+      "type": "java.lang.String",
+      "description": "Comma-separated emails that become ADMIN automatically once the account's email is verified (registration, sign-in, social login or account linking). (env AUTO_ADMIN_EMAILS)",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.security.invitation-ttl-hours",
+      "type": "java.lang.Integer",
+      "description": "Hours an administrator invitation link stays valid. (env SECURITY_INVITATION_TTL_HOURS)",
+      "defaultValue": 72
+    },
+    {
+      "name": "app.security.login-email-notifications",
+      "type": "java.lang.Boolean",
+      "description": "Send an email for sign-ins that need the owner's attention. (env SECURITY_LOGIN_EMAIL_NOTIFICATIONS)",
+      "defaultValue": true
+    },
+    {
+      "name": "app.security.new-device-alerts",
+      "type": "java.lang.Boolean",
+      "description": "Email the owner when an account signs in from a device not seen before. (env SECURITY_NEW_DEVICE_ALERTS)",
+      "defaultValue": true
+    },
+    {
+      "name": "app.security.suspicious-login-alerts",
+      "type": "java.lang.Boolean",
+      "description": "Email the owner when a sign-in scores above the risk alert threshold. Nothing is blocked automatically. (env SECURITY_SUSPICIOUS_LOGIN_ALERTS)",
+      "defaultValue": true
+    },
+    {
+      "name": "app.security.device-alert-cooldown-hours",
+      "type": "java.lang.Integer",
+      "description": "Hours before a recognised but untrusted device triggers another alert. 0 alerts on every sign-in. (env SECURITY_DEVICE_ALERT_COOLDOWN_HOURS)",
+      "defaultValue": 24
+    },
+    {
+      "name": "app.security.alert-first-device",
+      "type": "java.lang.Boolean",
+      "description": "Also alert for the very first device of a brand new account. (env SECURITY_ALERT_FIRST_DEVICE)",
+      "defaultValue": false
+    },
+    {
+      "name": "app.security.display-zone",
+      "type": "java.lang.String",
+      "description": "Time zone used to print times in security emails, for example UTC or Africa/Nairobi. (env SECURITY_DISPLAY_ZONE)",
+      "defaultValue": "UTC"
+    },
+    {
+      "name": "app.security.security-page-path",
+      "type": "java.lang.String",
+      "description": "Path of the account security page on the frontend, linked from security emails. (env SECURITY_PAGE_PATH)",
+      "defaultValue": "/account/security"
+    },
+    {
+      "name": "app.security.device-trust-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Let users mark devices as trusted, which suppresses new-device alerts for them. (env SECURITY_DEVICE_TRUST_ENABLED)",
+      "defaultValue": true
+    },
+    {
+      "name": "app.security.session-revocation-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Let users and administrators revoke sessions, which also invalidates their refresh tokens. (env SECURITY_SESSION_REVOCATION_ENABLED)",
+      "defaultValue": true
+    },
+    {
+      "name": "app.security.device-cookie-name",
+      "type": "java.lang.String",
+      "description": "Name of the cookie that identifies a browser as a known device. (env SECURITY_DEVICE_COOKIE_NAME)",
+      "defaultValue": "ps_did"
+    },
+    {
+      "name": "app.security.device-cookie-secure",
+      "type": "java.lang.Boolean",
+      "description": "Mark the device cookie Secure (https only). Set false only for plain-http local development. (env SECURITY_DEVICE_COOKIE_SECURE)",
+      "defaultValue": true
+    },
+    {
+      "name": "app.security.device-cookie-same-site",
+      "type": "java.lang.String",
+      "description": "SameSite attribute of the device cookie: Lax, Strict or None. (env SECURITY_DEVICE_COOKIE_SAME_SITE)",
+      "defaultValue": "Lax"
+    },
+    {
+      "name": "app.security.device-cookie-max-age-days",
+      "type": "java.lang.Integer",
+      "description": "Days the device cookie lives in the browser. (env SECURITY_DEVICE_COOKIE_MAX_AGE_DAYS)",
+      "defaultValue": 365
+    },
+    {
+      "name": "app.security.max-devices-per-user",
+      "type": "java.lang.Integer",
+      "description": "Most known devices kept per user. The least recently used are dropped beyond this. (env SECURITY_MAX_DEVICES_PER_USER)",
+      "defaultValue": 50
+    },
+    {
+      "name": "app.security.session-ttl-days",
+      "type": "java.lang.Integer",
+      "description": "Days a session and its refresh token live without being revoked. (env SECURITY_SESSION_TTL_DAYS)",
+      "defaultValue": 30
+    },
+    {
+      "name": "app.security.reauth-window-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutes after a social sign-in during which the session counts as freshly authenticated for sensitive actions. (env SECURITY_REAUTH_WINDOW_MINUTES)",
+      "defaultValue": 10
+    },
+    {
+      "name": "app.security.access-token-minutes",
+      "type": "java.lang.Integer",
+      "description": "Lifetime of access tokens in minutes. 0 keeps jwt.expiration (about 30 days) so current clients keep working. 15 to 60 is recommended once clients use the refresh token. (env SECURITY_ACCESS_TOKEN_MINUTES)",
+      "defaultValue": 0
+    },
+    {
+      "name": "app.security.hide-existing-accounts",
+      "type": "java.lang.Boolean",
+      "description": "When true, POST /auth/signup answers the same for new and already-registered emails (202, no tokens) and tells the existing owner by email. When false the response says the email already exists. (env SECURITY_HIDE_EXISTING_ACCOUNTS)",
+      "defaultValue": false
+    },
+    {
+      "name": "app.security.legacy-refresh-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Still accept an unexpired access token at POST /auth/refresh (older clients). Set false once clients use refresh tokens. (env SECURITY_LEGACY_REFRESH_ENABLED)",
+      "defaultValue": true
+    },
+    {
+      "name": "app.security.trusted-proxies",
+      "type": "java.lang.String",
+      "description": "Comma-separated IPs or CIDR ranges of reverse proxies whose X-Forwarded-For header is trusted. Empty trusts none, which is right when the service is reached directly. (env SECURITY_TRUSTED_PROXIES)",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.security.ip-geolocation-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Look up an approximate location for sign-in IPs. Off by default because it sends visitor IP addresses to the provider in ip-geolocation-url. (env SECURITY_IP_GEOLOCATION_ENABLED)",
+      "defaultValue": false
+    },
+    {
+      "name": "app.security.ip-geolocation-url",
+      "type": "java.lang.String",
+      "description": "URL template for the location lookup; {ip} is replaced by the address. (env SECURITY_IP_GEOLOCATION_URL)",
+      "defaultValue": "https://ipwho.is/{ip}"
+    },
+    {
+      "name": "app.security.ip-geolocation-timeout-ms",
+      "type": "java.lang.Integer",
+      "description": "Milliseconds to wait for the location lookup before giving up. (env SECURITY_IP_GEOLOCATION_TIMEOUT_MS)",
+      "defaultValue": 2000
+    },
+    {
+      "name": "app.security.audit-retention-days",
+      "type": "java.lang.Integer",
+      "description": "Days security audit events and sign-in records are kept before the daily clean-up removes them. (env SECURITY_AUDIT_RETENTION_DAYS)",
+      "defaultValue": 180
+    },
+    {
+      "name": "app.security.device-retention-days",
+      "type": "java.lang.Integer",
+      "description": "Days an unused known device is kept before the daily clean-up removes it. (env SECURITY_DEVICE_RETENTION_DAYS)",
+      "defaultValue": 365
+    },
+    {
+      "name": "app.security.login-max-failures",
+      "type": "java.lang.Integer",
+      "description": "Failed sign-ins for one account within the failure window before it is temporarily locked. (env SECURITY_LOGIN_MAX_FAILURES)",
+      "defaultValue": 5
+    },
+    {
+      "name": "app.security.login-failure-window-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutes over which failed sign-ins for one account are counted. (env SECURITY_LOGIN_FAILURE_WINDOW_MINUTES)",
+      "defaultValue": 15
+    },
+    {
+      "name": "app.security.login-lockout-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutes of the first lock on an account. Repeated locks grow progressively up to the maximum. (env SECURITY_LOGIN_LOCKOUT_MINUTES)",
+      "defaultValue": 15
+    },
+    {
+      "name": "app.security.login-max-lockout-minutes",
+      "type": "java.lang.Integer",
+      "description": "Longest lock on an account, in minutes. (env SECURITY_LOGIN_MAX_LOCKOUT_MINUTES)",
+      "defaultValue": 240
+    },
+    {
+      "name": "app.security.ip-max-failures",
+      "type": "java.lang.Integer",
+      "description": "Failed sign-ins from one IP address within the IP window before that address is throttled. (env SECURITY_IP_MAX_FAILURES)",
+      "defaultValue": 30
+    },
+    {
+      "name": "app.security.ip-max-distinct-accounts",
+      "type": "java.lang.Integer",
+      "description": "Different accounts one IP address may fail against within the IP window before it is throttled. (env SECURITY_IP_MAX_DISTINCT_ACCOUNTS)",
+      "defaultValue": 10
+    },
+    {
+      "name": "app.security.ip-window-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutes over which failures from one IP address are counted. (env SECURITY_IP_WINDOW_MINUTES)",
+      "defaultValue": 15
+    },
+    {
+      "name": "app.security.risk-alert-threshold",
+      "type": "java.lang.Integer",
+      "description": "Score out of 100 at which a sign-in is treated as suspicious and the owner is alerted. (env SECURITY_RISK_ALERT_THRESHOLD)",
+      "defaultValue": 50
+    },
+    {
+      "name": "app.security.location-change-window-hours",
+      "type": "java.lang.Integer",
+      "description": "Hours within which a change of country between sign-ins raises the risk score. (env SECURITY_LOCATION_CHANGE_WINDOW_HOURS)",
+      "defaultValue": 12
+    },
+    {
+      "name": "app.security.frequency-threshold",
+      "type": "java.lang.Integer",
+      "description": "Sign-ins within the frequency window that raise the risk score. (env SECURITY_FREQUENCY_THRESHOLD)",
+      "defaultValue": 8
+    },
+    {
+      "name": "app.security.frequency-window-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutes over which sign-in frequency is counted. (env SECURITY_FREQUENCY_WINDOW_MINUTES)",
+      "defaultValue": 10
+    },
+    {
+      "name": "app.security.distinct-ip-threshold",
+      "type": "java.lang.Integer",
+      "description": "Different IP addresses within the distinct-IP window that raise the risk score. (env SECURITY_DISTINCT_IP_THRESHOLD)",
+      "defaultValue": 4
+    },
+    {
+      "name": "app.security.distinct-ip-window-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutes over which different IP addresses are counted. (env SECURITY_DISTINCT_IP_WINDOW_MINUTES)",
+      "defaultValue": 60
+    },
+    {
+      "name": "app.security.action-token-ttl-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutes a \"This wasn't me\" link in a security email stays valid (default 24 hours). (env SECURITY_ACTION_TOKEN_TTL_MINUTES)",
+      "defaultValue": 1440
+    },
+    {
+      "name": "app.security.retention-cron",
+      "type": "java.lang.String",
+      "description": "Spring cron expression for the daily clean-up of old audit events, sign-in records and devices. (env SECURITY_RETENTION_CRON)",
+      "defaultValue": "0 15 3 * * *"
+    },
+    {
+      "name": "app.admins.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Master switch for the administrators created at startup from ADMIN1_*, ADMIN2_* and ADMIN3_* (env ADMINS_ENABLED). When false no administrator is created from these settings.",
+      "defaultValue": true
+    },
+    {
+      "name": "app.admins.strict",
+      "type": "java.lang.Boolean",
+      "description": "When true, an invalid ADMINn slot stops the application from starting and nothing is created (env ADMINS_STRICT). When false the invalid slot is skipped and the reason is logged without any value.",
+      "defaultValue": false
+    },
+    {
+      "name": "app.admins.promote-existing",
+      "type": "java.lang.Boolean",
+      "description": "When true, an existing verified, active, non-administrator account with the same email as a slot is promoted to ADMIN; its password is never changed (env ADMINS_PROMOTE_EXISTING). When false it is left alone and a warning is logged, so configuration alone never raises an account's privileges.",
+      "defaultValue": false
+    },
+    {
+      "name": "app.admins.min-password-length",
+      "type": "java.lang.Integer",
+      "description": "Minimum length of a configured administrator password (env ADMINS_MIN_PASSWORD_LENGTH). Values below 12 are raised to 12.",
+      "defaultValue": 12
+    },
+    {
+      "name": "app.admins.admin1.email",
+      "type": "java.lang.String",
+      "description": "Sign-in email of administrator 1 (env ADMIN1_EMAIL). Sign-in is by email, so a used slot needs it. Trimmed and lower-cased. Leave the whole slot empty to leave it unused.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin1.username",
+      "type": "java.lang.String",
+      "description": "Public handle of administrator 1 (env ADMIN1_USERNAME). 3 to 30 characters: letters, digits, dot, underscore or hyphen, lower-cased. Optional: when empty one is generated from the name. It is not used to sign in.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin1.first-name",
+      "type": "java.lang.String",
+      "description": "First name of administrator 1 (env ADMIN1_FIRST_NAME). Required for a used slot.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin1.middle-name",
+      "type": "java.lang.String",
+      "description": "Middle name of administrator 1 (env ADMIN1_MIDDLE_NAME). Optional.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin1.last-name",
+      "type": "java.lang.String",
+      "description": "Last name of administrator 1 (env ADMIN1_LAST_NAME). Optional.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin1.password",
+      "type": "java.lang.String",
+      "description": "Password of administrator 1 (env ADMIN1_PASSWORD). SENSITIVE: supply it only through .env or the environment and never commit it. No default. At least 12 characters (at most 72 bytes), three of lower case, upper case, digits and symbols, not a well-known password and not containing the email or username. Stored only as a BCrypt hash, never logged, and ignored for an account that already exists. Change it after the first sign-in."
+    },
+    {
+      "name": "app.admins.admin2.email",
+      "type": "java.lang.String",
+      "description": "Sign-in email of administrator 2 (env ADMIN2_EMAIL). Sign-in is by email, so a used slot needs it. Trimmed and lower-cased. Leave the whole slot empty to leave it unused.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin2.username",
+      "type": "java.lang.String",
+      "description": "Public handle of administrator 2 (env ADMIN2_USERNAME). 3 to 30 characters: letters, digits, dot, underscore or hyphen, lower-cased. Optional: when empty one is generated from the name. It is not used to sign in.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin2.first-name",
+      "type": "java.lang.String",
+      "description": "First name of administrator 2 (env ADMIN2_FIRST_NAME). Required for a used slot.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin2.middle-name",
+      "type": "java.lang.String",
+      "description": "Middle name of administrator 2 (env ADMIN2_MIDDLE_NAME). Optional.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin2.last-name",
+      "type": "java.lang.String",
+      "description": "Last name of administrator 2 (env ADMIN2_LAST_NAME). Optional.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin2.password",
+      "type": "java.lang.String",
+      "description": "Password of administrator 2 (env ADMIN2_PASSWORD). SENSITIVE: supply it only through .env or the environment and never commit it. No default. At least 12 characters (at most 72 bytes), three of lower case, upper case, digits and symbols, not a well-known password and not containing the email or username. Stored only as a BCrypt hash, never logged, and ignored for an account that already exists. Change it after the first sign-in."
+    },
+    {
+      "name": "app.admins.admin3.email",
+      "type": "java.lang.String",
+      "description": "Sign-in email of administrator 3 (env ADMIN3_EMAIL). Sign-in is by email, so a used slot needs it. Trimmed and lower-cased. Leave the whole slot empty to leave it unused.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin3.username",
+      "type": "java.lang.String",
+      "description": "Public handle of administrator 3 (env ADMIN3_USERNAME). 3 to 30 characters: letters, digits, dot, underscore or hyphen, lower-cased. Optional: when empty one is generated from the name. It is not used to sign in.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin3.first-name",
+      "type": "java.lang.String",
+      "description": "First name of administrator 3 (env ADMIN3_FIRST_NAME). Required for a used slot.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin3.middle-name",
+      "type": "java.lang.String",
+      "description": "Middle name of administrator 3 (env ADMIN3_MIDDLE_NAME). Optional.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin3.last-name",
+      "type": "java.lang.String",
+      "description": "Last name of administrator 3 (env ADMIN3_LAST_NAME). Optional.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.admins.admin3.password",
+      "type": "java.lang.String",
+      "description": "Password of administrator 3 (env ADMIN3_PASSWORD). SENSITIVE: supply it only through .env or the environment and never commit it. No default. At least 12 characters (at most 72 bytes), three of lower case, upper case, digits and symbols, not a well-known password and not containing the email or username. Stored only as a BCrypt hash, never logged, and ignored for an account that already exists. Change it after the first sign-in."
+    },
+    {
+      "name": "app.storage.type",
+      "type": "com.premisave.auth.config.StorageProperties$Type",
+      "description": "Where Home Owner application documents are stored (env STORAGE_TYPE): LOCAL is a directory on this server, NETWORK is a network share such as a Synology NAS that the operating system has mounted at app.storage.network.mount-path.",
+      "defaultValue": "LOCAL"
+    },
+    {
+      "name": "app.storage.create-directories",
+      "type": "java.lang.Boolean",
+      "description": "Create the storage directory when it does not exist (env STORAGE_CREATE_DIRECTORIES). Never applies to a network share that is not mounted.",
+      "defaultValue": true
+    },
+    {
+      "name": "app.storage.fail-on-unavailable",
+      "type": "java.lang.Boolean",
+      "description": "When true, an unusable storage location stops the application from starting (env STORAGE_FAIL_ON_UNAVAILABLE). When false it only logs a warning and document uploads answer 503 until the location works.",
+      "defaultValue": false
+    },
+    {
+      "name": "app.storage.min-free-mb",
+      "type": "java.lang.Integer",
+      "description": "Uploads are refused while less than this many megabytes are free at the storage location (env STORAGE_MIN_FREE_MB). 0 turns the check off.",
+      "defaultValue": 100
+    },
+    {
+      "name": "app.storage.local.path",
+      "type": "java.lang.String",
+      "description": "Directory for LOCAL storage (env STORAGE_LOCAL_PATH). An absolute path, or one starting with ~/ for the home directory of the user running the service. Set it in .env for a specific folder; a blank value keeps the default.",
+      "defaultValue": "~/premisave-file-storage/homeowner-onboarding"
+    },
+    {
+      "name": "app.storage.network.protocol",
+      "type": "com.premisave.auth.config.StorageProperties$Protocol",
+      "description": "How the NAS share is mounted (env STORAGE_NETWORK_PROTOCOL): SMB (CIFS) or NFS. Used to recognise the right mount.",
+      "defaultValue": "SMB"
+    },
+    {
+      "name": "app.storage.network.host",
+      "type": "java.lang.String",
+      "description": "IP address or host name of the NAS, for example a Synology on the LAN (env STORAGE_NETWORK_HOST). Used only to check that the right share is mounted; the application never connects to it and holds no NAS credentials. Empty checks just that something is mounted at the mount path.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.storage.network.share",
+      "type": "java.lang.String",
+      "description": "SMB: the share name. NFS: the exported path, for example /volume1/premisave (env STORAGE_NETWORK_SHARE). Used to check the mount.",
+      "defaultValue": ""
+    },
+    {
+      "name": "app.storage.network.mount-path",
+      "type": "java.lang.String",
+      "description": "Absolute path where the operating system mounted the share (env STORAGE_NETWORK_MOUNT_PATH). The NAS username and password belong to that mount (a root-only credentials file), not to this application.",
+      "defaultValue": "/mnt/premisave-nas"
+    },
+    {
+      "name": "app.storage.network.directory",
+      "type": "java.lang.String",
+      "description": "Folder inside the mounted share that holds the documents (env STORAGE_NETWORK_DIRECTORY). A relative path without .. segments. Empty uses the root of the share.",
+      "defaultValue": "homeowner-onboarding"
+    },
+    {
+      "name": "app.storage.network.require-mount",
+      "type": "java.lang.Boolean",
+      "description": "Refuse to read or write unless the share is really mounted at the mount path (env STORAGE_NETWORK_REQUIRE_MOUNT). Keeps files from silently landing on the local disk when the NAS is unmounted. Turn off only for local development.",
+      "defaultValue": true
     },
     {
       "name": "spring.cloud.discovery.enabled",
       "type": "java.lang.Boolean",
       "description": "Disables Spring Cloud service discovery (Eureka/Consul). Set to false when running without a service registry.",
       "defaultValue": false
-    },
-    {
-      "name": "google-drive.client-id",
-      "type": "java.lang.String",
-      "description": "OAuth client ID used with the refresh token to reach Google Drive."
-    },
-    {
-      "name": "google-drive.client-secret",
-      "type": "java.lang.String",
-      "description": "OAuth client secret used with the refresh token."
-    },
-    {
-      "name": "google-drive.refresh-token",
-      "type": "java.lang.String",
-      "description": "Refresh token with the drive.file scope for the Drive account that stores application documents."
-    },
-    {
-      "name": "google-drive.service-account-file",
-      "type": "java.lang.String",
-      "description": "Path to a service account JSON key. Use instead of the refresh token for Workspace or shared folders."
-    },
-    {
-      "name": "google-drive.folder-id",
-      "type": "java.lang.String",
-      "description": "Existing Drive folder to store applications in. Required with a service account; optional otherwise."
-    },
-    {
-      "name": "google-drive.root-folder-name",
-      "type": "java.lang.String",
-      "description": "Name of the root folder created automatically when no folder id is set.",
-      "defaultValue": "Premisave Home Owner Applications"
     },
     {
       "name": "home-owner-application.max-file-size-mb",
@@ -201,6 +623,54 @@
         {
           "value": "org.springframework.cloud.commons.util.InetUtils",
           "description": "Suppresses hostname resolution warnings from Spring Cloud."
+        },
+        {
+          "value": "com.premisave.auth.service.storage",
+          "description": "Document storage (disk and network share)."
+        },
+        {
+          "value": "com.premisave.auth.service.security",
+          "description": "Account security and administrator provisioning."
+        }
+      ]
+    },
+    {
+      "name": "app.storage.type",
+      "values": [
+        {
+          "value": "LOCAL",
+          "description": "A directory on this server."
+        },
+        {
+          "value": "NETWORK",
+          "description": "A network share (for example a Synology NAS) mounted by the operating system."
+        }
+      ]
+    },
+    {
+      "name": "app.storage.network.protocol",
+      "values": [
+        {
+          "value": "SMB",
+          "description": "SMB/CIFS share."
+        },
+        {
+          "value": "NFS",
+          "description": "NFS export."
+        }
+      ]
+    },
+    {
+      "name": "app.security.device-cookie-same-site",
+      "values": [
+        {
+          "value": "Lax"
+        },
+        {
+          "value": "Strict"
+        },
+        {
+          "value": "None"
         }
       ]
     }

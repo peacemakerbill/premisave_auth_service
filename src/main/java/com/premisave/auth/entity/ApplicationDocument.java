@@ -8,7 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/** One file attached to an application. The file itself lives in Google Drive. */
+/** One file attached to an application. The file itself lives in document storage (disk or network share); only its key is kept here. */
 @Data
 public class ApplicationDocument {
 
@@ -21,8 +21,8 @@ public class ApplicationDocument {
     private long sizeBytes;
     private String sha256;
 
-    private String driveFileId;
-    private String driveViewLink;
+    /** Where the file is kept, as "folder/file" inside the storage directory. Never a full path. */
+    private String storageKey;
 
     /** Optional details printed on the document, such as a licence number. */
     private String documentNumber;

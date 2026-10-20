@@ -182,21 +182,72 @@ app:
     # Cron for the daily retention clean-up
     retention-cron: ${SECURITY_RETENTION_CRON:0 15 3 * * *}
 
-# ── Google Drive (Home Owner application documents) ──
-# Optional at startup: with nothing set the service still boots, and document
-# uploads answer with a clear "storage not configured" message.
-# Option 1, a Google account refresh token (works with a normal Gmail account):
-#   GOOGLE_DRIVE_CLIENT_ID, GOOGLE_DRIVE_CLIENT_SECRET, GOOGLE_DRIVE_REFRESH_TOKEN
-#   Scope needed: https://www.googleapis.com/auth/drive.file
-# Option 2, a service account (Google Workspace / shared folder):
-#   GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE and GOOGLE_DRIVE_FOLDER_ID
-google-drive:
-  client-id: ${GOOGLE_DRIVE_CLIENT_ID:}
-  client-secret: ${GOOGLE_DRIVE_CLIENT_SECRET:}
-  refresh-token: ${GOOGLE_DRIVE_REFRESH_TOKEN:}
-  service-account-file: ${GOOGLE_DRIVE_SERVICE_ACCOUNT_FILE:}
-  folder-id: ${GOOGLE_DRIVE_FOLDER_ID:}
-  root-folder-name: ${GOOGLE_DRIVE_ROOT_FOLDER_NAME:Premisave Home Owner Applications}
+  # ── Administrators created at startup from ADMIN1_*, ADMIN2_*, ADMIN3_* ──
+  # Nothing here has a usable default: a slot with no values is simply unused, and no password exists
+  # in the source code. Passwords must come from .env or the environment (never commit them).
+  # An account is only ever CREATED here. An existing account's password and details are never overwritten,
+  # and nobody is demoted. Sign-in is by EMAIL, so each used slot needs ADMINn_EMAIL; the username is a handle.
+  # Values are read at startup; after the first sign-in, change the password and remove it from .env.
+  admins:
+    enabled: ${ADMINS_ENABLED:true}
+    # true: an invalid slot stops startup. false: it is skipped, the reason is logged (never the value).
+    strict: ${ADMINS_STRICT:false}
+    # true: an existing VERIFIED, active, non-admin account with the same email is promoted to ADMIN.
+    # false (default): it is left alone and a warning is logged, so configuration alone never escalates an account.
+    promote-existing: ${ADMINS_PROMOTE_EXISTING:false}
+    # Never lower than 12, whatever is set here.
+    min-password-length: ${ADMINS_MIN_PASSWORD_LENGTH:12}
+    admin1:
+      email: ${ADMIN1_EMAIL:}
+      username: ${ADMIN1_USERNAME:}
+      first-name: ${ADMIN1_FIRST_NAME:}
+      middle-name: ${ADMIN1_MIDDLE_NAME:}
+      last-name: ${ADMIN1_LAST_NAME:}
+      password: ${ADMIN1_PASSWORD:}
+    admin2:
+      email: ${ADMIN2_EMAIL:}
+      username: ${ADMIN2_USERNAME:}
+      first-name: ${ADMIN2_FIRST_NAME:}
+      middle-name: ${ADMIN2_MIDDLE_NAME:}
+      last-name: ${ADMIN2_LAST_NAME:}
+      password: ${ADMIN2_PASSWORD:}
+    admin3:
+      email: ${ADMIN3_EMAIL:}
+      username: ${ADMIN3_USERNAME:}
+      first-name: ${ADMIN3_FIRST_NAME:}
+      middle-name: ${ADMIN3_MIDDLE_NAME:}
+      last-name: ${ADMIN3_LAST_NAME:}
+      password: ${ADMIN3_PASSWORD:}
+
+  # ── Document storage (Home Owner application files) ──
+  # Files are kept on a disk, never in the database and never in a third-party service.
+  #   LOCAL    a directory on this server (default)
+  #   NETWORK  a network share, for example a Synology NAS, mounted by the operating system at
+  #            network.mount-path (SMB/CIFS or NFS). The NAS login belongs to the mount (a root-only
+  #            credentials file), so this application never holds a NAS username or password.
+  # Nothing is required at startup: with an unusable location the service still boots and uploads
+  # answer 503 until it is fixed, unless fail-on-unavailable is true.
+  storage:
+    type: ${STORAGE_TYPE:LOCAL}
+    create-directories: ${STORAGE_CREATE_DIRECTORIES:true}
+    fail-on-unavailable: ${STORAGE_FAIL_ON_UNAVAILABLE:false}
+    # Uploads are refused when less than this much space is free (0 turns the check off)
+    min-free-mb: ${STORAGE_MIN_FREE_MB:100}
+    local:
+      # Set STORAGE_LOCAL_PATH in .env for a specific folder. The fallback is inside the home directory
+      # of the user running the service, so it works on any machine without naming one.
+      path: ${STORAGE_LOCAL_PATH:${user.home}/premisave-file-storage/homeowner-onboarding}
+    network:
+      protocol: ${STORAGE_NETWORK_PROTOCOL:SMB}
+      # IP address or host name of the NAS. Used to check that the right share is mounted, never to connect.
+      host: ${STORAGE_NETWORK_HOST:}
+      # SMB: the share name. NFS: the exported path, for example /volume1/premisave
+      share: ${STORAGE_NETWORK_SHARE:}
+      mount-path: ${STORAGE_NETWORK_MOUNT_PATH:/mnt/premisave-nas}
+      # Folder inside the share that holds the documents
+      directory: ${STORAGE_NETWORK_DIRECTORY:homeowner-onboarding}
+      # true: refuse to write unless the share is really mounted (otherwise files land on the local disk)
+      require-mount: ${STORAGE_NETWORK_REQUIRE_MOUNT:true}
 
 # ── Home Owner applications ──
 home-owner-application:

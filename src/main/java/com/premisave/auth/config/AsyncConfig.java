@@ -13,7 +13,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class AsyncConfig {
 
     @Bean(name = "taskExecutor")
-    public Executor taskExecutor() {
+    Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
         executor.setCorePoolSize(10);      // Normal threads

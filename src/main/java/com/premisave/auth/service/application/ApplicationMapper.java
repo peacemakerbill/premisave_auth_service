@@ -38,7 +38,7 @@ public class ApplicationMapper {
     }
 
     /**
-     * @param staffView true for reviewers: includes internal notes, real reviewer names and the Drive folder link
+     * @param staffView true for reviewers: includes internal notes, real reviewer names and the storage folder name
      * @param basePath  base URL path used to build document download paths
      */
     public ApplicationResponse toResponse(HomeOwnerApplication a, boolean staffView, String basePath) {
@@ -109,7 +109,7 @@ public class ApplicationMapper {
                 reviewer, a.getSubmissionCount(), a.getSubmittedAt(), a.getDecidedAt(),
                 a.getCreatedAt(), a.getUpdatedAt(),
 
-                notes, staffView ? a.getDriveFolderUrl() : null);
+                notes, staffView ? a.getStorageFolder() : null);
     }
 
     public ApplicationSummary toSummary(HomeOwnerApplication a) {

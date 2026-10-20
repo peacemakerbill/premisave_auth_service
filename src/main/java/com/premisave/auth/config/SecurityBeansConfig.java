@@ -7,9 +7,9 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
 
-/** Registers the app.security.* properties and a Clock that tests can replace. */
+/** Registers the app.security.* and app.admins.* properties and a Clock that tests can replace. */
 @Configuration
-@EnableConfigurationProperties(SecurityProperties.class)
+@EnableConfigurationProperties({SecurityProperties.class, AdminsProperties.class})
 public class SecurityBeansConfig {
 
     @Bean
