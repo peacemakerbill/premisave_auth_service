@@ -35,8 +35,8 @@ public class AdminsProperties {
      */
     private boolean promoteExisting = false;
 
-    /** Minimum password length accepted for a configured administrator. Never lower than 12. */
-    private int minPasswordLength = 12;
+    /** Minimum password length accepted for a configured administrator. Never lower than 8. */
+    private int minPasswordLength = 8;
 
     private Slot admin1 = new Slot();
     private Slot admin2 = new Slot();

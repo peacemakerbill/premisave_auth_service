@@ -17,7 +17,7 @@ public final class AdminPasswordPolicy {
     /** BCrypt only uses the first 72 bytes; longer input would silently ignore the rest. */
     static final int MAX_BYTES = 72;
     /** Floor for the configurable minimum, so a mistake in the config cannot allow short passwords. */
-    static final int ABSOLUTE_MIN_LENGTH = 12;
+    static final int ABSOLUTE_MIN_LENGTH = 8;
 
     private static final Set<String> COMMON = Set.of(
             "password", "password1", "password123", "passw0rd", "qwerty", "qwertyuiop", "letmein",
@@ -29,7 +29,7 @@ public final class AdminPasswordPolicy {
 
     /**
      * @param password  the candidate
-     * @param minLength configured minimum (raised to 12 if lower)
+     * @param minLength configured minimum (raised to 8 if lower)
      * @param email     the account email, which the password must not contain
      * @param username  the handle, may be empty
      * @return an empty list when the password is acceptable

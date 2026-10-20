@@ -11,7 +11,37 @@ Two comma-separated lists, set in `.env` (or the real environment) and read at s
 
 Both lists are optional. Entries are trimmed, lower-cased, validated and de-duplicated, and invalid entries are logged and skipped. An empty or missing variable never stops startup. After editing either list, restart the service.
 
-There is no default admin account and no default password anywhere in the code. `NoHardcodedAdminCredentialsTest` fails the build if one reappears. The old `AdminUserInitializer` must be deleted.
+There is no default admin account and no default password anywhere in the code (the `ADMINn_PASSWORD` settings have no default and are empty unless you set them). `NoHardcodedAdminCredentialsTest` fails the build if one reappears. The old `AdminUserInitializer` must be deleted.
+
+### Administrators created from ADMIN1, ADMIN2 and ADMIN3
+
+For a fixed set of owners you can also create up to three administrator accounts directly from `.env`. Unlike the two lists above, these carry a password, so the rules are stricter. Nothing has a default, so an unfilled slot creates nothing.
+
+| Variable (n is 1, 2 or 3) | Meaning |
+|---|---|
+| `ADMINn_EMAIL` | Sign-in address. Required for a used slot, because sign-in is by email. |
+| `ADMINn_USERNAME` | Optional public handle (3 to 30 characters: letters, digits, `.`, `_`, `-`). Generated from the name when empty. It is not used to sign in. |
+| `ADMINn_FIRST_NAME` | Required. |
+| `ADMINn_MIDDLE_NAME`, `ADMINn_LAST_NAME` | Optional. |
+| `ADMINn_PASSWORD` | Required. At least 8 characters (72 bytes at most), three of lower case, upper case, digits and symbols, not a well-known password, not containing the email or username. |
+| `ADMINS_ENABLED` | `true` by default. `false` ignores all three slots. |
+| `ADMINS_STRICT` | `false` by default. `true`: an invalid slot stops startup and nothing is created. |
+| `ADMINS_PROMOTE_EXISTING` | `false` by default. `true`: an existing verified, active, non-admin account with the same email is promoted. |
+| `ADMINS_MIN_PASSWORD_LENGTH` | `8`. Values below 8 are raised to 8. |
+
+What happens at startup (before the `INITIAL_ADMIN_EMAILS` step):
+
+* **No account with that email:** an ADMIN account is created, already verified and active (the person who controls the environment vouches for the address, so no invitation is needed). The password is stored only as a BCrypt hash. An `ADMIN_PROVISIONED` audit event is written with source `CONFIG` and the slot name.
+* **Account already ADMIN:** nothing changes, including its password, names and status. A deactivated administrator stays deactivated.
+* **Account exists, not ADMIN:** left alone, with a warning, unless `ADMINS_PROMOTE_EXISTING=true` and the account is verified, active and not archived. A promotion never changes the password, and is audited and announced by email like any other role grant. An unverified account is never promoted, so someone who registered an address first cannot be turned into an administrator by configuration.
+* **Invalid slot:** skipped, and the log names the slot and the problem ("ADMIN2 is not used: password is shorter than 8 characters"), never the value. Valid slots still run unless `ADMINS_STRICT=true`.
+* **Never:** a password is overwritten, an account is demoted or deactivated, or a password, hash or full email address is logged or audited.
+
+Starting again is harmless: existing accounts are found and nothing is created or sent a second time. The plain-text password is cleared from the in-memory settings once it has been hashed.
+
+This reverses an earlier rule ("no password in the environment, invitation links only"). It is a convenience trade-off: a password in `.env` is only as safe as that file. Keep `.env` out of git, readable by the service user only, change the password after the first sign-in, and then remove it from `.env`. Because existing accounts are never touched, the password in `.env` is only ever used for the first creation. For anyone else, `INITIAL_ADMIN_EMAILS` (invitation link, nobody ever knows a password) remains the safer path.
+
+Spring's `/actuator/env`, if you expose it, masks values whose key ends in `password`. Do not expose it publicly anyway.
 
 ### Revocation and demotion policy
 
@@ -75,3 +105,4 @@ Before turning it on, make sure every client stores `refreshToken` and calls `PO
 * CORS is open for development and must be restricted for production.
 * The tests are unit tests and MockMvc controller tests with mocked MongoDB and Redis. There are no `@SpringBootTest` tests against real databases (that would need Testcontainers).
 * This code was written without access to Maven Central in the authoring environment, so it has not been compiled or executed. Run `mvn clean compile` and `mvn test` and fix anything reported.
+* A configured administrator password lives in `.env` until you remove it. Treat that file like any other secret.

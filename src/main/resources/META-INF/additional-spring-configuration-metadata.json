@@ -365,8 +365,8 @@
     {
       "name": "app.admins.min-password-length",
       "type": "java.lang.Integer",
-      "description": "Minimum length of a configured administrator password (env ADMINS_MIN_PASSWORD_LENGTH). Values below 12 are raised to 12.",
-      "defaultValue": 12
+      "description": "Minimum length of a configured administrator password (env ADMINS_MIN_PASSWORD_LENGTH). Values below 8 are raised to 8.",
+      "defaultValue": 8
     },
     {
       "name": "app.admins.admin1.email",
@@ -401,7 +401,7 @@
     {
       "name": "app.admins.admin1.password",
       "type": "java.lang.String",
-      "description": "Password of administrator 1 (env ADMIN1_PASSWORD). SENSITIVE: supply it only through .env or the environment and never commit it. No default. At least 12 characters (at most 72 bytes), three of lower case, upper case, digits and symbols, not a well-known password and not containing the email or username. Stored only as a BCrypt hash, never logged, and ignored for an account that already exists. Change it after the first sign-in."
+      "description": "Password of administrator 1 (env ADMIN1_PASSWORD). SENSITIVE: supply it only through .env or the environment and never commit it. No default. At least 8 characters (at most 72 bytes), three of lower case, upper case, digits and symbols, not a well-known password and not containing the email or username. Stored only as a BCrypt hash, never logged, and ignored for an account that already exists. Change it after the first sign-in."
     },
     {
       "name": "app.admins.admin2.email",
@@ -436,7 +436,7 @@
     {
       "name": "app.admins.admin2.password",
       "type": "java.lang.String",
-      "description": "Password of administrator 2 (env ADMIN2_PASSWORD). SENSITIVE: supply it only through .env or the environment and never commit it. No default. At least 12 characters (at most 72 bytes), three of lower case, upper case, digits and symbols, not a well-known password and not containing the email or username. Stored only as a BCrypt hash, never logged, and ignored for an account that already exists. Change it after the first sign-in."
+      "description": "Password of administrator 2 (env ADMIN2_PASSWORD). SENSITIVE: supply it only through .env or the environment and never commit it. No default. At least 8 characters (at most 72 bytes), three of lower case, upper case, digits and symbols, not a well-known password and not containing the email or username. Stored only as a BCrypt hash, never logged, and ignored for an account that already exists. Change it after the first sign-in."
     },
     {
       "name": "app.admins.admin3.email",
@@ -471,7 +471,7 @@
     {
       "name": "app.admins.admin3.password",
       "type": "java.lang.String",
-      "description": "Password of administrator 3 (env ADMIN3_PASSWORD). SENSITIVE: supply it only through .env or the environment and never commit it. No default. At least 12 characters (at most 72 bytes), three of lower case, upper case, digits and symbols, not a well-known password and not containing the email or username. Stored only as a BCrypt hash, never logged, and ignored for an account that already exists. Change it after the first sign-in."
+      "description": "Password of administrator 3 (env ADMIN3_PASSWORD). SENSITIVE: supply it only through .env or the environment and never commit it. No default. At least 8 characters (at most 72 bytes), three of lower case, upper case, digits and symbols, not a well-known password and not containing the email or username. Stored only as a BCrypt hash, never logged, and ignored for an account that already exists. Change it after the first sign-in."
     },
     {
       "name": "app.storage.type",
