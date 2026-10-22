@@ -333,6 +333,38 @@ public class HomeOwnerApplicationService {
         return view(saved);
     }
 
+    /**
+     * Reopens a rejected application for corrections. It goes back to INFO_REQUESTED, so the normal editing and
+     * submit calls apply, and the submission is recorded as a resubmission. The earlier decision stays in the timeline.
+     */
+    public ApplicationResponse reapply(String id) {
+        User user = currentUser.require();
+        HomeOwnerApplication app = loadOwned(id, user);
+
+        String blocked = mapper.reapplyBlockReason(app);
+        if (blocked != null) {
+            throw ApiException.conflict(blocked);
+        }
+        Eligibility eligibility = eligibilityFor(user);
+        if (!eligibility.canApply()) {
+            throw new ApiException(org.springframework.http.HttpStatus.CONFLICT, eligibility.reason(), eligibility);
+        }
+
+        String rejectionReason = app.getDecisionReason() != null ? app.getDecisionReason() : app.getLatestReviewerMessage();
+        app.setStatus(ApplicationStatus.INFO_REQUESTED);
+        app.setReapplyCount(app.getReapplyCount() + 1);
+        app.setDecidedAt(null);
+        app.setDecisionReason(null);
+        app.setLatestReviewerMessage(rejectionReason);
+
+        ApplicationEvents.add(app, ApplicationEventType.REOPENED, ApplicationStatus.REJECTED,
+                ApplicationStatus.INFO_REQUESTED, user, true, "Reopened to correct and reapply");
+        HomeOwnerApplication saved = repository.save(app);
+        log.info("Rejected application {} reopened by its applicant (reopen {})",
+                saved.getApplicationNumber(), saved.getReapplyCount());
+        return view(saved);
+    }
+
     public ApplicationResponse withdraw(String id, String reason) {
         User user = currentUser.require();
         HomeOwnerApplication app = loadOwned(id, user);

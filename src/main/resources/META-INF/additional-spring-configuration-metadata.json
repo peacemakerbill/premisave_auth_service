@@ -564,6 +564,12 @@
       "defaultValue": 3
     },
     {
+      "name": "home-owner-application.max-reapplications",
+      "type": "java.lang.Integer",
+      "description": "How many times an applicant may reopen a rejected application to correct it and reapply (env HOME_OWNER_MAX_REAPPLICATIONS). 0 turns reapplying off. A reviewer can also close a single application for good when rejecting it.",
+      "defaultValue": 3
+    },
+    {
       "name": "home-owner-application.frontend-path",
       "type": "java.lang.String",
       "description": "Frontend path the emails link to.",

@@ -85,8 +85,13 @@ public class ApplicationEmailService {
             }
             case REJECTED -> {
                 headline = "Your application was not approved";
-                intro = "We are sorry, we could not approve this application. The reason is below. You are welcome to apply again once it is addressed.";
-                cta = "View details";
+                if (app.isReapplyBlocked()) {
+                    intro = "We are sorry, we could not approve this application. The reason is below. You are welcome to start a new application once it is addressed.";
+                    cta = "View details";
+                } else {
+                    intro = "We are sorry, we could not approve this application. The reason is below. You can correct the points raised and reapply from the same application, without starting over.";
+                    cta = "Correct and reapply";
+                }
             }
             case WITHDRAWN -> {
                 headline = "Your application was withdrawn";

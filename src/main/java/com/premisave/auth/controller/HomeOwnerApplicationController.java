@@ -111,6 +111,15 @@ public class HomeOwnerApplicationController {
         return ResponseEntity.ok(service.submit(id));
     }
 
+    /**
+     * Reopen a rejected application so it can be corrected and submitted again. The application returns to
+     * INFO_REQUESTED with the rejection reason as the message; the usual PATCH, document and submit calls follow.
+     */
+    @PostMapping("/{id}/reapply")
+    public ResponseEntity<ApplicationResponse> reapply(@PathVariable String id) {
+        return ResponseEntity.ok(service.reapply(id));
+    }
+
     @PostMapping("/{id}/withdraw")
     public ResponseEntity<ApplicationResponse> withdraw(@PathVariable String id,
                                                         @Valid @RequestBody(required = false) Withdraw request) {

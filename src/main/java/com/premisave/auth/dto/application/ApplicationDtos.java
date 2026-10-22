@@ -96,6 +96,7 @@ public final class ApplicationDtos {
             String latestMessage,
             String decisionReason,
             boolean editable,
+            boolean canReapply,
 
             String applicantId,
             String applicantName,

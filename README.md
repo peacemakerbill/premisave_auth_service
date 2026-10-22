@@ -542,10 +542,19 @@ A signed-in `CLIENT` can apply to become a `HOME_OWNER`. They fill in a guided f
 | `INFO_REQUESTED` | The applicant must fix or add something, then resubmit | yes | `REJECTED` |
 | `VERIFIED` | Details and documents confirmed | no | `PROCESSING`, `INFO_REQUESTED`, `REJECTED`, or promote (admin) |
 | `ACCEPTED` | Promoted to Home Owner. Final. | no | none |
-| `REJECTED` | Not approved, with a reason. Final. An admin may reopen it to `PROCESSING`. | no | admin only |
+| `REJECTED` | Not approved, with a reason. The applicant can correct it and reapply (see below) unless the reviewer closed it. An admin may also reopen it to `PROCESSING`. | no | admin only |
 | `WITHDRAWN` | Cancelled by the applicant. Final. | no | none |
 
-A rejected or withdrawn applicant can start a new application. Only one application can be open at a time.
+A withdrawn applicant can start a new application. Only one application can be open at a time.
+
+### Correcting and reapplying after a rejection
+
+A rejected applicant does not have to start over. `POST /home-owner/applications/{id}/reapply` reopens the same application: it returns to `INFO_REQUESTED` with the rejection reason shown as the reviewer's message, the existing details and documents are kept, and the applicant edits what was raised and calls `POST .../submit`. The submission is recorded as a resubmission and the review team sees it in the queue again. The earlier rejection stays in the timeline.
+
+* The response field `canReapply` tells the front end when to show a **Reapply** button.
+* `HOME_OWNER_MAX_REAPPLICATIONS` (default `3`) limits how many times one application can be reopened. `0` turns reapplying off.
+* A reviewer can close an application for good by sending `"allowReapply": false` with the `REJECTED` status change, for example after a failed identity check. The applicant can then only start a new application.
+* Reapplying is refused with `409` when the application is not rejected, was closed by the reviewer, reached the limit, or the applicant already has another open application.
 
 ### What the form collects
 

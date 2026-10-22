@@ -194,7 +194,7 @@ app:
     strict: ${ADMINS_STRICT:false}
     # true: an existing VERIFIED, active, non-admin account with the same email is promoted to ADMIN.
     # false (default): it is left alone and a warning is logged, so configuration alone never escalates an account.
-    promote-existing: ${ADMINS_PROMOTE_EXISTING:true}
+    promote-existing: ${ADMINS_PROMOTE_EXISTING:false}
     # Never lower than 8, whatever is set here.
     min-password-length: ${ADMINS_MIN_PASSWORD_LENGTH:8}
     admin1:
@@ -254,6 +254,8 @@ home-owner-application:
   max-file-size-mb: ${HOME_OWNER_MAX_FILE_SIZE_MB:8}
   max-documents: ${HOME_OWNER_MAX_DOCUMENTS:25}
   review-sla-days: ${HOME_OWNER_REVIEW_SLA_DAYS:3}
+  # How many times a rejected application may be reopened for corrections. 0 turns reapplying off.
+  max-reapplications: ${HOME_OWNER_MAX_REAPPLICATIONS:3}
   frontend-path: ${HOME_OWNER_FRONTEND_PATH:/home-owner/application}
 
 # ── Logging ──

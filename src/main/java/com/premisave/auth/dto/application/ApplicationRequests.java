@@ -25,6 +25,13 @@ public final class ApplicationRequests {
         /** Optional remark kept for staff only. */
         @Size(max = 2000, message = "Internal note is too long")
         private String internalNote;
+
+        /**
+         * Only used with REJECTED. Omit or send true to let the applicant correct the application and reapply;
+         * send false to close it for good (for example after a failed identity check). The applicant can still
+         * start a brand new application when no other one is open.
+         */
+        private Boolean allowReapply;
     }
 
     @Data

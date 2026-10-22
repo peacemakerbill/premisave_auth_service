@@ -112,6 +112,9 @@ public class HomeOwnerApplication {
     private String latestReviewerMessage;
     private String decisionReason;
     private int submissionCount;
+    // Reapplication after a rejection: how many times the applicant reopened this one, and whether a reviewer closed it
+    private int reapplyCount;
+    private boolean reapplyBlocked;
     private LocalDateTime submittedAt;
     private LocalDateTime lastSubmittedAt;
     private LocalDateTime reviewStartedAt;

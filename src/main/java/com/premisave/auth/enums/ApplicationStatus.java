@@ -9,7 +9,9 @@ package com.premisave.auth.enums;
  *   INFO_REQUESTED  the applicant must fix or add something, then resubmit
  *   VERIFIED        details and documents are confirmed; an admin can now promote the user
  *   ACCEPTED        the user has been promoted to HOME_OWNER (final)
- *   REJECTED        not approved (final, the applicant may start a new application)
+ *   REJECTED        not approved. The applicant may correct the points raised and reapply (the application
+ *                   returns to INFO_REQUESTED) unless the reviewer closed it or the limit was reached;
+ *                   otherwise a new application can be started
  *   WITHDRAWN       cancelled by the applicant (final)
  */
 public enum ApplicationStatus {

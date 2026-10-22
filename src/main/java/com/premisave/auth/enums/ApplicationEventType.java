@@ -7,6 +7,7 @@ public enum ApplicationEventType {
     DOCUMENT_REVIEWED,
     SUBMITTED,
     RESUBMITTED,
+    REOPENED,
     STATUS_CHANGED,
     ASSIGNED,
     PROMOTED,

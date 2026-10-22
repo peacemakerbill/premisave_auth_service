@@ -330,6 +330,7 @@ public class ApplicationReviewService {
                 if (reopen) {
                     app.setDecidedAt(null);
                     app.setDecisionReason(null);
+                    app.setReapplyBlocked(false);
                 }
                 app.setLatestReviewerMessage(message);
                 if (app.getAssignedReviewerId() == null) {
@@ -340,6 +341,7 @@ public class ApplicationReviewService {
                 app.setDecidedAt(now);
                 app.setDecisionReason(message);
                 app.setLatestReviewerMessage(message);
+                app.setReapplyBlocked(Boolean.FALSE.equals(change.getAllowReapply()));
             }
             default -> app.setLatestReviewerMessage(message);
         }

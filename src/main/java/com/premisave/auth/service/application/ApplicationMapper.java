@@ -28,9 +28,30 @@ public class ApplicationMapper {
     private static final String STAFF_LABEL = "Premisave review team";
 
     private final int reviewSlaDays;
+    private final int maxReapplications;
 
-    public ApplicationMapper(@Value("${home-owner-application.review-sla-days:3}") int reviewSlaDays) {
+    public ApplicationMapper(@Value("${home-owner-application.review-sla-days:3}") int reviewSlaDays,
+                             @Value("${home-owner-application.max-reapplications:3}") int maxReapplications) {
         this.reviewSlaDays = reviewSlaDays;
+        this.maxReapplications = Math.max(0, maxReapplications);
+    }
+
+    /** Why this application cannot be reopened for corrections, or null when it can. */
+    public String reapplyBlockReason(HomeOwnerApplication a) {
+        if (a.getStatus() != ApplicationStatus.REJECTED) {
+            return "Only a rejected application can be corrected and reapplied.";
+        }
+        if (a.isReapplyBlocked()) {
+            return "The reviewer closed this application, so it cannot be reopened. You can start a new application "
+                    + "or contact support if you think this is a mistake.";
+        }
+        if (a.getReapplyCount() >= maxReapplications) {
+            return maxReapplications == 0
+                    ? "Reapplying is turned off. You can start a new application instead."
+                    : "This application has already been reopened " + a.getReapplyCount()
+                    + " time(s), which is the limit. You can start a new application instead.";
+        }
+        return null;
     }
 
     public String reviewTimeHint() {
@@ -81,6 +102,7 @@ public class ApplicationMapper {
                 a.getId(), a.getApplicationNumber(), status, status.getLabel(), status.getDescription(),
                 status.getColor(), nextStep(a, readiness), reviewTimeHint(),
                 a.getLatestReviewerMessage(), a.getDecisionReason(), status.isApplicantEditable(),
+                reapplyBlockReason(a) == null,
 
                 a.getApplicantId(), a.getApplicantName(), a.getApplicantEmail(),
 
@@ -166,7 +188,9 @@ public class ApplicationMapper {
             case INFO_REQUESTED -> "Read the reviewer's message, fix or replace what was flagged, then resubmit.";
             case VERIFIED -> "Your details and documents are verified. Final approval is the last step.";
             case ACCEPTED -> "You are now a Home Owner. Sign out and back in if you do not see the new features yet.";
-            case REJECTED -> "This application was not approved. You can start a new application when you are ready.";
+            case REJECTED -> reapplyBlockReason(a) == null
+                    ? "This application was not approved. Read the reason, correct what was raised, then press Reapply to send it back for review. You can also start a new application."
+                    : "This application was not approved. You can start a new application when you are ready.";
             case WITHDRAWN -> "You withdrew this application. You can start a new one at any time.";
         };
     }

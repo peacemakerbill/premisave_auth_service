@@ -85,7 +85,10 @@ public class StaffApplicationController {
         return ResponseEntity.ok(reviewService.assign(id, request.getReviewerId()));
     }
 
-    /** Move the application to PROCESSING, INFO_REQUESTED, VERIFIED or REJECTED. The applicant is emailed. */
+    /**
+     * Move the application to PROCESSING, INFO_REQUESTED, VERIFIED or REJECTED. The applicant is emailed.
+     * A rejection lets the applicant correct and reapply unless allowReapply is false.
+     */
     @PostMapping("/{id}/status")
     public ResponseEntity<ApplicationResponse> changeStatus(@PathVariable String id,
                                                             @Valid @RequestBody StatusChange request) {
