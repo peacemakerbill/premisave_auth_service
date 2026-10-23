@@ -567,7 +567,8 @@ Errors: `403` for non-admins, `409` if the application is not VERIFIED, already 
 | 400, 403, 404, 409 | `{ "timestamp", "status", "message" }` |
 | 422 | `{ "timestamp", "status": 422, "message", "details": [ { "field", "message" } ] }` |
 | 413 | `{ "timestamp", "status": 413, "message" }` for oversized uploads |
-| 401 | Missing or expired token |
+| 401 | `{ "timestamp", "status": 401, "error": "Unauthorized", "message" }` for a missing, expired or revoked token |
+| 404, 405, 415 | `{ "timestamp", "status", "message" }` for an unknown path, a wrong method or a wrong content type |
 | 403 | `{ "timestamp", "status": 403, "error": "Forbidden", "message": "You are not authorized to access this resource." }` for a non-staff token on `/staff/**` or a non-admin on `/admin/**` |
 
 # Suggested test order

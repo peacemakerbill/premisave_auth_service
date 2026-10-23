@@ -1,8 +1,8 @@
 {
 	"info": {
-		"_postman_id": "3b5c1317-e6d6-488a-8873-7ff829f1b409",
+		"_postman_id": "d65ea42c-1348-45ac-84f8-fa900429cce2",
 		"name": "premisave-backend",
-		"description": "# Premisave backend\n\nRequests for every Premisave microservice, grouped by service. Import this collection together with the **Premisave Local** environment, select the environment, then follow the quick start.\n\n## Quick start\n\n1. Select the **Premisave Local** environment and fill in `email` and `password` (and the `base_url_*` values if your ports differ).\n2. Run **Auth Service > Authentication > Sign up**, open the activation email, copy the token from the link into `verification_token` and run **Verify email**. Skip this if the account exists.\n3. Run **Auth Service > Authentication > Sign in (email and password)**. The test script saves `token`, `refresh_token`, `session_id` and `my_user_id`.\n4. Run anything else. Every request uses the saved token automatically.\n\n## Services and base URLs\n\n| Folder | Variable | Local default |\n|---|---|---|\n| Auth Service | `base_url` | `http://localhost:8080` |\n| Listing Service | `base_url_listing` | `http://localhost:8082` |\n| Wallet Service | `base_url_wallet` | `http://localhost:8084` |\n| Messenger Service | `base_url_m_service` | `http://localhost:8085` |\n| Property Service | `base_url_property` | `http://localhost:8086` |\n| C2B Hakikisha Service | `base_url_c2b_hakikisha` | `http://localhost:8087` |\n\nOnly the auth (8080) and wallet (8084) ports come from the services' own configuration. Change the others to match your setup.\n\n## How authentication works\n\n- The collection sends `Authorization: Bearer {{token}}` on every request. Requests that must be public (sign in, sign up, recovery links, health) are set to **No Auth**, and requests with their own header (for example `X-API-Key`) keep it.\n- The token is a JWT issued by the auth service. All services accept it because they share `JWT_SECRET`.\n- Access tokens can be short-lived (`SECURITY_ACCESS_TOKEN_MINUTES` on the auth service). A **collection pre-request script** renews the token with `refresh_token` about a minute before it expires, so long test sessions keep working. Each refresh token works once and is replaced.\n- **Sign out**, **End one session** and **End all other sessions** make the matching tokens stop working immediately in the auth service.\n- Service-to-service endpoints (`/internal/**`) use `X-API-Key: {{internal_api_key}}`. One value must be set in every service.\n\n## Variables\n\nVariables are filled in three ways:\n\n- **You set them** (environment): base URLs, `email`, `password`, `new_password`, `internal_api_key`, OAuth tokens, provider test keys.\n- **Scripts set them** (dynamic): `token`, `refresh_token`, `session_id`, `other_session_id`, `my_user_id`, `my_role`, `device_id`, `device_token`, `application_id` and `document_id`. The Property Service scripts also save the ids it creates (`property_id`, `unit_id`, `lease_id`, `tenant_id`, `payment_reference` and the rest of its ids). Ids in the other services (listing, wallet and so on) are pasted from a response.\n- **You paste them from an email**: `verification_token` (activation), `reset_token` (password reset), `invitation_token` (admin invitation), `security_action_token` ('This wasn't me').\n\nScripts write to the selected environment, or to the collection variables when no environment is selected.\n`user_id` and `target_id` are for acting on other users and are never overwritten by a script. `my_user_id` is your own id.\n\n## Scripts\n\n- **Collection pre-request:** renews an expiring access token (see above).\n- **Collection tests:** every response is checked for no 5xx and a response time under 5 seconds, and a 401 or 403 prints a hint to the console.\n- **Property Service folder:** a pre-request script gives each payment a `payment_reference`, and tests save the ids it creates and print a hint for 401, 403 and 503 responses.\n- **Request tests:** sign in, refresh, sign out and the security calls assert the status and shape of the response and save ids for the next request. Open the Postman console to see what each script did.\n\n## Naming and order\n\n- Requests are named verb first, sentence case: *List my active sessions*, *Revoke device trust*.\n- Within the Auth Service the folders follow the user journey: sign in, protect the account, profile, social, location, applications, administration, internal, health.\n- In every service the system and health folders come last.\n- Folder descriptions list their endpoints with method, path and auth.\n\n## Testing recipes\n\n- **New-device alert:** sign in, then delete the `ps_did` cookie for the auth host in Postman's Cookies manager and sign in again. The account receives an alert email with a 'This wasn't me' link.\n- **Lock-out:** send **Sign in** with a wrong password five times. The sixth answer is `429`. A wrong password and an unknown email always return the same `401` message.\n- **Session revocation:** sign in twice (second time after deleting the cookie), then **List my active sessions**, **End one session**, and call any endpoint with the old token to see `401`.\n- **'This wasn't me':** copy the token from the alert email into `security_action_token`, run **inspect** (changes nothing), then **confirm**. Running confirm again fails because the token is single use.\n- **Pay rent:** sign in as the home owner and the tenant (**Sign in by role**), then follow the Property Service folder description (suggested order). Fund the tenant's wallet first, run **Pay rent on a lease**, and send it again with the same `payment_reference` to see that a retry is not charged twice.\n- **Admin provisioning:** set `INITIAL_ADMIN_EMAILS`, restart the auth service, open the invitation email, put its token in `invitation_token` and run **Accept admin invitation**, then sign in.\n\n## Security notes\n\n- Do not store real passwords, API keys or provider secrets in the collection. Put them in the environment, mark them secret and do not share the environment file. Provider secret keys that were in an earlier version of this collection should be rotated.\n- The earlier hardcoded admin credentials were removed. There is no default admin account.\n",
+		"description": "# Premisave backend\n\nRequests for every Premisave microservice, grouped by service. Import this collection together with the **Premisave Local** environment, select the environment, then follow the quick start.\n\n## Quick start\n\n1. Select the **Premisave Local** environment and fill in `email` and `password` (and the `base_url_*` values if your ports differ).\n2. Run **Auth Service > Authentication > Sign up**, open the activation email, copy the token from the link into `verification_token` and run **Verify email**. Skip this if the account exists.\n3. Run **Auth Service > Authentication > Sign in (email and password)**. The test script saves `token`, `refresh_token`, `session_id` and `my_user_id`.\n4. Run anything else. Every request uses the saved token automatically.\n\n## Services and base URLs\n\n| Folder | Variable | Local default |\n|---|---|---|\n| Auth Service | `base_url` | `http://localhost:8080` |\n| Listing Service | `base_url_listing` | `http://localhost:8082` |\n| Wallet Service | `base_url_wallet` | `http://localhost:8084` |\n| Messenger Service | `base_url_m_service` | `http://localhost:8085` |\n| Property Service | `base_url_property` | `http://localhost:8086` |\n| C2B Hakikisha Service | `base_url_c2b_hakikisha` | `http://localhost:8087` |\n\nOnly the auth (8080) and wallet (8084) ports come from the services' own configuration. Change the others to match your setup.\n\n## How authentication works\n\n- The collection sends `Authorization: Bearer {{token}}` on every request. Requests that must be public (sign in, sign up, recovery links, health) are set to **No Auth**, and requests with their own header (for example `X-API-Key`) keep it.\n- The token is a JWT issued by the auth service. All services accept it because they share `JWT_SECRET`.\n- Access tokens can be short-lived (`SECURITY_ACCESS_TOKEN_MINUTES` on the auth service). A **collection pre-request script** renews the token with `refresh_token` about a minute before it expires, so long test sessions keep working. Each refresh token works once and is replaced.\n- **Sign out**, **End one session** and **End all other sessions** make the matching tokens stop working immediately in the auth service.\n- Service-to-service endpoints (`/internal/**`) use `X-API-Key: {{internal_api_key}}`. One value must be set in every service.\n\n## Variables\n\nVariables are filled in three ways:\n\n- **You set them** (environment): base URLs, `email`, `password`, `new_password`, `internal_api_key`, OAuth tokens, provider test keys.\n- **Scripts set them** (dynamic): `token`, `refresh_token`, `session_id`, `other_session_id`, `my_user_id`, `my_role`, `device_id`, `device_token`, `application_id` and `document_id`. The Wallet Service transfer request saves `transfer_reference`. The Property Service scripts also save the ids it creates (`property_id`, `unit_id`, `lease_id`, `tenant_id`, `payment_reference` and the rest of its ids). Ids in the other services (listing, wallet and so on) are pasted from a response.\n- **You paste them from an email**: `verification_token` (activation), `reset_token` (password reset), `invitation_token` (admin invitation), `security_action_token` ('This wasn't me').\n\nScripts write to the selected environment, or to the collection variables when no environment is selected.\n`user_id` and `target_id` are for acting on other users and are never overwritten by a script. `my_user_id` is your own id.\n\n## Scripts\n\n- **Collection pre-request:** renews an expiring access token (see above).\n- **Collection tests:** every response is checked for no 5xx and a response time under 5 seconds, and a 401 or 403 prints a hint to the console.\n- **Property Service folder:** a pre-request script gives each payment a `payment_reference`, and tests save the ids it creates and print a hint for 401, 403 and 503 responses.\n- **Request tests:** sign in, refresh, sign out and the security calls assert the status and shape of the response and save ids for the next request. Open the Postman console to see what each script did.\n\n## Naming and order\n\n- Requests are named verb first, sentence case: *List my active sessions*, *Revoke device trust*.\n- Within the Auth Service the folders follow the user journey: sign in, protect the account, profile, social, location, applications, administration, internal, health.\n- In every service the system and health folders come last.\n- Folder descriptions list their endpoints with method, path and auth.\n\n## Testing recipes\n\n- **New-device alert:** sign in, then delete the `ps_did` cookie for the auth host in Postman's Cookies manager and sign in again. The account receives an alert email with a 'This wasn't me' link.\n- **Lock-out:** send **Sign in** with a wrong password five times. The sixth answer is `429`. A wrong password and an unknown email always return the same `401` message.\n- **Session revocation:** sign in twice (second time after deleting the cookie), then **List my active sessions**, **End one session**, and call any endpoint with the old token to see `401`.\n- **'This wasn't me':** copy the token from the alert email into `security_action_token`, run **inspect** (changes nothing), then **confirm**. Running confirm again fails because the token is single use.\n- **Pay rent:** sign in as the home owner and the tenant (**Sign in by role**), then follow the Property Service folder description (suggested order). Fund the tenant's wallet first, run **Pay rent on a lease**, and send it again with the same `payment_reference` to see that a retry is not charged twice.\n- **Admin provisioning:** set `INITIAL_ADMIN_EMAILS`, restart the auth service, open the invitation email, put its token in `invitation_token` and run **Accept admin invitation**, then sign in.\n\n## Security notes\n\n- Do not store real passwords, API keys or provider secrets in the collection. Put them in the environment, mark them secret and do not share the environment file. Provider secret keys that were in an earlier version of this collection should be rotated.\n- The earlier hardcoded admin credentials were removed. There is no default admin account.\n",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "19395068"
 	},
@@ -614,7 +614,7 @@
 										"{{verification_token}}"
 									]
 								},
-								"description": "Confirms the email address with the token from the activation email. Applies the administrator configuration, so a listed address becomes ADMIN here.\n\n**Auth:** None (public endpoint)\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | `Account verified successfully. You can now login.` |\n| 400 | Token invalid, used or expired |\n\nPaste the token from the email link (`/verify/<token>`) into the `verification_token` variable."
+								"description": "Confirms the email address with the token from the activation email. Applies the administrator configuration, so a listed address becomes ADMIN here.\n\n**Auth:** None (public endpoint)\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | `{ \"message\": \"Account verified successfully. You can now login.\" }` |\n| 400 | Token invalid, used or expired |\n\nPaste the token from the email link (`/verify/<token>`) into the `verification_token` variable."
 							},
 							"response": []
 						},
@@ -657,7 +657,7 @@
 										}
 									]
 								},
-								"description": "Sends a new activation email. The answer is identical whether or not the address has an unverified account.\n\n**Auth:** None (public endpoint)\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | `If an unverified account exists for that address, a new activation email is on its way.` |"
+								"description": "Sends a new activation email. The answer is identical whether or not the address has an unverified account.\n\n**Auth:** None (public endpoint)\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | `{ \"message\": \"If an unverified account exists for that address, a new activation email is on its way.\" }` |"
 							},
 							"response": []
 						},
@@ -1362,7 +1362,7 @@
 										"forgot-password"
 									]
 								},
-								"description": "Sends a password reset link. The answer is the same whether or not the address has an account.\n\n**Auth:** None (public endpoint)\n\n**Body**\n\n| Field | Description |\n|---|---|\n| email | Account email |\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | `If an account exists for that address, a password reset link has been sent.` |"
+								"description": "Sends a password reset link. The answer is the same whether or not the address has an account.\n\n**Auth:** None (public endpoint)\n\n**Body**\n\n| Field | Description |\n|---|---|\n| email | Account email |\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | `{ \"message\": \"If an account exists for that address, a password reset link has been sent.\" }` |"
 							},
 							"response": []
 						},
@@ -1408,7 +1408,7 @@
 										"reset-password"
 									]
 								},
-								"description": "Sets a new password using the token from the reset email. Every session of the account is ended and the owner is notified.\n\n**Auth:** None (public endpoint)\n\n**Body**\n\n| Field | Description |\n|---|---|\n| token | Token from the email link, stored in `{{reset_token}}` |\n| newPassword | New password (8+ characters) |\n| confirmPassword | Must match |\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | `Password reset successfully` |\n| 400 | Token invalid, used or expired, or passwords do not match |\n\nThe route is `/auth/reset-password`. The earlier `/auth/reset-password/confirm` does not exist."
+								"description": "Sets a new password using the token from the reset email. Every session of the account is ended and the owner is notified.\n\n**Auth:** None (public endpoint)\n\n**Body**\n\n| Field | Description |\n|---|---|\n| token | Token from the email link, stored in `{{reset_token}}` |\n| newPassword | New password (8+ characters) |\n| confirmPassword | Must match |\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | `{ \"message\": \"Password reset successfully\" }` |\n| 400 | Token invalid, used or expired, or passwords do not match |\n\nThe route is `/auth/reset-password`. The earlier `/auth/reset-password/confirm` does not exist."
 							},
 							"response": []
 						},
@@ -1451,7 +1451,7 @@
 										"change-password"
 									]
 								},
-								"description": "Changes the password of the signed-in user. All other sessions end, the current one stays, and the owner gets an email.\n\n**Auth:** Bearer token (collection setting, filled from `{{token}}`)\n\n**Body**\n\n| Field | Description |\n|---|---|\n| oldPassword | Current password |\n| newPassword | New password |\n| confirmPassword | Must match |\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | Password changed |\n| 400 | Wrong current password or mismatch |"
+								"description": "Changes the password of the signed-in user. All other sessions end, the current one stays, and the owner gets an email.\n\n**Auth:** Bearer token (collection setting, filled from `{{token}}`)\n\n**Body**\n\n| Field | Description |\n|---|---|\n| oldPassword | Current password |\n| newPassword | New password |\n| confirmPassword | Must match |\n\n**Responses**\n\n| Status | Meaning |\n|---|---|\n| 200 | `{ \"message\": \"Password changed successfully\" }` |\n| 400 | Wrong current password or mismatch |"
 							},
 							"response": []
 						},
@@ -5095,7 +5095,7 @@
 									"formdata": [
 										{
 											"key": "request",
-											"value": "{\n  \"title\": \"Cozy Studio in Kilimani\",\n  \"description\": \"Bright, modern studio near Yaya Centre. Perfect for a quick day-use meeting or an overnight stay.\",\n  \"category\": \"SHORT_TERM_RENTAL\",\n  \"pricePerDay\": 40,\n  \"pricePerNight\": 55,\n  \"latitude\": -1.2921,\n  \"longitude\": 36.7833,\n  \"address\": \"Argwings Kodhek Road\",\n  \"city\": \"Nairobi\",\n  \"country\": \"Kenya\",\n  \"maxGuests\": 2,\n  \"bedrooms\": 1,\n  \"bathrooms\": 1,\n  \"hasWifi\": true,\n  \"hasKitchen\": true,\n  \"amenities\": [\"Parking\", \"Backup Generator\"]\n}",
+											"value": "{\n  \"title\": \"Cozy Studio in Kilimani\",\n  \"description\": \"Bright, modern studio near Yaya Centre. Perfect for a quick day-use meeting or an overnight stay.\",\n  \"category\": \"SHORT_TERM_RENTAL\",\n  \"pricePerDay\": 40,\n  \"pricePerNight\": 55,\n  \"latitude\": -1.2921,\n  \"longitude\": 36.7833,\n  \"address\": \"Argwings Kodhek Road\",\n  \"city\": \"Nairobi\",\n  \"country\": \"Kenya\",\n  \"maxGuests\": 2,\n  \"cancellationPolicy\": \"MODERATE\",\n  \"bedrooms\": 1,\n  \"bathrooms\": 1,\n  \"hasWifi\": true,\n  \"hasKitchen\": true,\n  \"amenities\": [\"Parking\", \"Backup Generator\"]\n}",
 											"contentType": "application/json",
 											"type": "text"
 										},
@@ -5398,6 +5398,272 @@
 						}
 					],
 					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Create Listing | POST | `/listings` | Bearer token |\n| Update Listing | PUT | `/listings/{{listing_id}}` | Bearer token |\n| Archive Listing | POST | `/listings/{{listing_id}}/archive` | Bearer token |\n| Unarchive Listing | POST | `/listings/{{listing_id}}/unarchive` | Bearer token |\n| Delete Listing | DELETE | `/listings/{{listing_id}}` | Bearer token |\n| Upload Images | POST | `/listings/upload-images` | Bearer token |\n| Get Listing by ID | GET | `/listings/{{listing_id}}` | Bearer token |\n| Get Short Term Rentals | GET | `/listings/short-term?city=Nairobi` | Bearer token |\n| Get My Listings | GET | `/listings/me` | Bearer token |\n| Get Listings by Owner | GET | `/listings/owner/{{owner_id}}` | Bearer token |\n| Search Listings | GET | `/listings/search` | Bearer token |"
+				},
+				{
+					"name": "Listing images",
+					"item": [
+						{
+							"name": "Add images to a listing",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "files",
+											"type": "file",
+											"src": []
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url_listing}}/listings/{{listing_id}}/images",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"listings",
+										"{{listing_id}}",
+										"images"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Remove an image",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_listing}}/listings/{{listing_id}}/images/{{file_id}}",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"listings",
+										"{{listing_id}}",
+										"images",
+										"{{file_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Set the cover image",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"fileId\": \"{{file_id}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_listing}}/listings/{{listing_id}}/images/cover",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"listings",
+										"{{listing_id}}",
+										"images",
+										"cover"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Reorder images",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"fileIds\": [\n    \"{{file_id}}\"\n  ]\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_listing}}/listings/{{listing_id}}/images/order",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"listings",
+										"{{listing_id}}",
+										"images",
+										"order"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get an image",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_listing}}/images/{{file_id}}?size=medium",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"images",
+										"{{file_id}}"
+									],
+									"query": [
+										{
+											"key": "size",
+											"value": "medium"
+										}
+									]
+								},
+								"description": "size is thumb, medium or original (default medium). The id is the last part of an image URL on a listing."
+							},
+							"response": []
+						}
+					],
+					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Add images to a listing | POST | `/listings/{{listing_id}}/images` | Home owner token |\n| Remove an image | DELETE | `/listings/{{listing_id}}/images/{{file_id}}` | Home owner token |\n| Set the cover image | PUT | `/listings/{{listing_id}}/images/cover` | Home owner token |\n| Reorder images | PUT | `/listings/{{listing_id}}/images/order` | Home owner token |\n| Get an image | GET | `/images/{{file_id}}?size=medium` | No auth |\n\n**Token:** this folder sends `{{home_owner_token}}` (run **Sign in as home owner** first). `file_id` is the last part of an image URL on a listing. JPEG and PNG only, 10 MB per file; a listing keeps at most 20 images. Reorder needs every image id of the listing in the order you want.",
+					"auth": {
+						"type": "bearer",
+						"bearer": [
+							{
+								"key": "token",
+								"value": "{{home_owner_token}}",
+								"type": "string"
+							}
+						]
+					}
+				},
+				{
+					"name": "Availability",
+					"item": [
+						{
+							"name": "Get availability",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_listing}}/listings/{{listing_id}}/availability?from=2026-11-01&to=2026-11-30",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"listings",
+										"{{listing_id}}",
+										"availability"
+									],
+									"query": [
+										{
+											"key": "from",
+											"value": "2026-11-01"
+										},
+										{
+											"key": "to",
+											"value": "2026-11-30"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Block dates",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"from\": \"2026-12-24\",\n  \"to\": \"2026-12-27\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_listing}}/listings/{{listing_id}}/blocked-dates",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"listings",
+										"{{listing_id}}",
+										"blocked-dates"
+									]
+								},
+								"description": "Blocks the nights from `from` up to, but not including, `to` (same rule as a check-out date). Copy the block id from the response into block_id to remove it."
+							},
+							"response": []
+						},
+						{
+							"name": "Unblock dates",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_listing}}/listings/{{listing_id}}/blocked-dates/{{block_id}}",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"listings",
+										"{{listing_id}}",
+										"blocked-dates",
+										"{{block_id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					],
+					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Get availability | GET | `/listings/{{listing_id}}/availability?from=2026-11-01&to=2026-11-30` | No auth |\n| Block dates | POST | `/listings/{{listing_id}}/blocked-dates` | Home owner token |\n| Unblock dates | DELETE | `/listings/{{listing_id}}/blocked-dates/{{block_id}}` | Home owner token |\n\n**Token:** this folder sends `{{home_owner_token}}` (run **Sign in as home owner** first). Availability is public. Booked nights and owner blocks both show as unavailable.",
+					"auth": {
+						"type": "bearer",
+						"bearer": [
+							{
+								"key": "token",
+								"value": "{{home_owner_token}}",
+								"type": "string"
+							}
+						]
+					}
 				},
 				{
 					"name": "Admin listing",
@@ -6298,12 +6564,37 @@
 					"item": [
 						{
 							"name": "Promote a Listing",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"// Sends a fresh Idempotency-Key with every request, like a real client does for a new action.",
+											"// To test a retry, set retry_same_key to true: the saved key is then reused and the original result comes back.",
+											"const store = pm.environment.name ? pm.environment : pm.collectionVariables;",
+											"const retry = pm.variables.get('retry_same_key') === 'true';",
+											"if (!retry || !pm.variables.get('listing_idempotency_key')) {",
+											"    store.set('listing_idempotency_key', pm.variables.replaceIn('{{$guid}}'));",
+											"}"
+										]
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [
 									{
 										"key": "Content-Type",
 										"value": " application/json",
+										"type": "text"
+									},
+									{
+										"key": "Idempotency-Key",
+										"value": "{{listing_idempotency_key}}",
+										"description": "A new key is generated for every send. Set retry_same_key to true to reuse the last one and see the original result returned.",
 										"type": "text"
 									}
 								],
@@ -6331,12 +6622,37 @@
 						},
 						{
 							"name": "Extend Promotion",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"// Sends a fresh Idempotency-Key with every request, like a real client does for a new action.",
+											"// To test a retry, set retry_same_key to true: the saved key is then reused and the original result comes back.",
+											"const store = pm.environment.name ? pm.environment : pm.collectionVariables;",
+											"const retry = pm.variables.get('retry_same_key') === 'true';",
+											"if (!retry || !pm.variables.get('listing_idempotency_key')) {",
+											"    store.set('listing_idempotency_key', pm.variables.replaceIn('{{$guid}}'));",
+											"}"
+										]
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [
 									{
 										"key": "Content-Type",
 										"value": " application/json",
+										"type": "text"
+									},
+									{
+										"key": "Idempotency-Key",
+										"value": "{{listing_idempotency_key}}",
+										"description": "A new key is generated for every send. Set retry_same_key to true to reuse the last one and see the original result returned.",
 										"type": "text"
 									}
 								],
@@ -6501,12 +6817,54 @@
 					"item": [
 						{
 							"name": "Create Booking",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"// Sends a fresh Idempotency-Key with every request, like a real client does for a new action.",
+											"// To test a retry, set retry_same_key to true: the saved key is then reused and the original result comes back.",
+											"const store = pm.environment.name ? pm.environment : pm.collectionVariables;",
+											"const retry = pm.variables.get('retry_same_key') === 'true';",
+											"if (!retry || !pm.variables.get('listing_idempotency_key')) {",
+											"    store.set('listing_idempotency_key', pm.variables.replaceIn('{{$guid}}'));",
+											"}"
+										]
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"// Saves the new booking id for the cancel and quote requests.",
+											"if (pm.response.code < 300) {",
+											"    const j = pm.response.json();",
+											"    if (j && j.id) {",
+											"        (pm.environment.name ? pm.environment : pm.collectionVariables).set('booking_id', j.id);",
+											"    }",
+											"}"
+										]
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [
 									{
 										"key": "Content-Type",
 										"value": " application/json",
+										"type": "text"
+									},
+									{
+										"key": "Idempotency-Key",
+										"value": "{{listing_idempotency_key}}",
+										"description": "A new key is generated for every send. Set retry_same_key to true to reuse the last one and see the original result returned.",
 										"type": "text"
 									}
 								],
@@ -6559,6 +6917,26 @@
 										}
 									]
 								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get cancellation quote",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_listing}}/bookings/{{booking_id}}/cancellation-quote",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"bookings",
+										"{{booking_id}}",
+										"cancellation-quote"
+									]
+								},
+								"description": "What cancelling this booking would refund right now for the caller (tenant or owner). Changes nothing."
 							},
 							"response": []
 						},
@@ -6643,7 +7021,99 @@
 							"response": []
 						}
 					],
-					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Create Booking | POST | `/bookings` | Bearer token |\n| Cancel Booking | POST | `/bookings/{{booking_id}}/cancel?reason=Change of plans` | Bearer token |\n| Get My Bookings (as tenant) | GET | `/bookings/me?status=CONFIRMED&page=0&size=20&sort=createdAt,desc` | Bearer token |\n| Get Received Bookings (as owner) | GET | `/bookings/received?status=CANCELLED&page=0&size=20` | Bearer token |"
+					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Create Booking | POST | `/bookings` | Bearer token |\n| Cancel Booking | POST | `/bookings/{{booking_id}}/cancel?reason=Change of plans` | Bearer token |\n| Get cancellation quote | GET | `/bookings/{{booking_id}}/cancellation-quote` | Bearer token |\n| Get My Bookings (as tenant) | GET | `/bookings/me?status=CONFIRMED&page=0&size=20&sort=createdAt,desc` | Bearer token |\n| Get Received Bookings (as owner) | GET | `/bookings/received?status=CANCELLED&page=0&size=20` | Bearer token |\n\n**Escrow:** with `ESCROW_ENABLED=true` the payment is held by wallet-service and the response includes `fundingAmount` (price plus wallet fee). With escrow off the tenant pays the owner directly. A cancellation refunds the price under the listing's cancellation policy; the wallet fee is not refunded.\n\n**Retries:** Create Booking, Promote a Listing and Extend Promotion send an `Idempotency-Key` header, a new one on every send. To test a retry, set `retry_same_key` to `true` in the environment and send again: the original booking comes back instead of a second charge. Set it back to blank afterwards."
+				},
+				{
+					"name": "Admin bookings",
+					"item": [
+						{
+							"name": "List bookings needing review",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_listing}}/admin/bookings/needs-review?page=0&size=20",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"admin",
+										"bookings",
+										"needs-review"
+									],
+									"query": [
+										{
+											"key": "page",
+											"value": "0"
+										},
+										{
+											"key": "size",
+											"value": "20"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Re-queue a failed payout",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_listing}}/admin/bookings/{{booking_id}}/retry-payout",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"admin",
+										"bookings",
+										"{{booking_id}}",
+										"retry-payout"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Resolve an unconfirmed payment",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_listing}}/admin/bookings/{{booking_id}}/resolve-payment?paid=true",
+									"host": [
+										"{{base_url_listing}}"
+									],
+									"path": [
+										"admin",
+										"bookings",
+										"{{booking_id}}",
+										"resolve-payment"
+									],
+									"query": [
+										{
+											"key": "paid",
+											"value": "true"
+										}
+									]
+								},
+								"description": "Use after checking the wallet history for the booking reference (booking-ID). paid=true confirms the booking, paid=false fails it and frees the nights."
+							},
+							"response": []
+						}
+					],
+					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| List bookings needing review | GET | `/admin/bookings/needs-review?page=0&size=20` | Admin token |\n| Re-queue a failed payout | POST | `/admin/bookings/{{booking_id}}/retry-payout` | Admin token |\n| Resolve an unconfirmed payment | POST | `/admin/bookings/{{booking_id}}/resolve-payment?paid=true` | Admin token |\n\n**Token:** this folder sends `{{admin_token}}` (run **Sign in as admin** first). Allowed for the ADMIN and FINANCE roles. Use it for bookings whose payment or escrow payout the automatic jobs gave up on.",
+					"auth": {
+						"type": "bearer",
+						"bearer": [
+							{
+								"key": "token",
+								"value": "{{admin_token}}",
+								"type": "string"
+							}
+						]
+					}
 				},
 				{
 					"name": "Interests",
@@ -6837,7 +7307,7 @@
 					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Health Check | GET | `/system/health` | Bearer token |\n| Health Details | GET | `/system/health/details` | Bearer token |\n| Test Token | GET | `/system/test-token` | Bearer token |"
 				}
 			],
-			"description": "Real estate listings, promotions, interests, currency and listing administration.\n\n**Base URL variable:** `{{base_url_listing}}`  \n**Requests:** 64  \n**Auth:** Bearer token from the auth service (collection setting) unless a request shows its own header or auth."
+			"description": "Real estate listings, promotions, interests, currency and listing administration.\n\n**Base URL variable:** `{{base_url_listing}}`  \n**Requests:** 76  \n**Auth:** Bearer token from the auth service (collection setting) unless a request shows its own header or auth."
 		},
 		{
 			"name": "Property Service",
@@ -10763,6 +11233,23 @@
 						},
 						{
 							"name": "Create Private Chat",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"let body = {};",
+											"try { body = pm.response.json(); } catch (e) { /* not JSON */ }",
+											"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+											"pm.test('Chat id is returned', function () { pm.expect(body && body.id).to.be.ok; });",
+											"if (body && body.id) { store.set('chatId', body.id); }"
+										]
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [
@@ -10868,11 +11355,29 @@
 					"item": [
 						{
 							"name": "Create New Group",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"let body = {};",
+											"try { body = pm.response.json(); } catch (e) { /* not JSON */ }",
+											"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+											"pm.test('Group created (200)', function () { pm.response.to.have.status(200); });",
+											"if (body && body.id) { store.set('groupId', body.id); }",
+											"if (body && body.chatId) { store.set('chatId', body.chatId); }"
+										]
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [],
 								"url": {
-									"raw": "{{base_url_m_service}}/api/groups?name=api support&description=Technical Support",
+									"raw": "{{base_url_m_service}}/api/groups?name=api support&description=Technical Support&memberIds={{user_id}}",
 									"host": [
 										"{{base_url_m_service}}"
 									],
@@ -10888,9 +11393,35 @@
 										{
 											"key": "description",
 											"value": "Technical Support"
+										},
+										{
+											"key": "memberIds",
+											"value": "{{user_id}}",
+											"description": "Optional. Repeat the parameter to add several people at once."
 										}
 									]
-								}
+								},
+								"description": "Creates a group and its chat. You become the owner. `memberIds` is optional and can be repeated. The response includes `id` (saved as `groupId`), `chatId` (saved as `chatId`) and the resolved `members`."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Group (details and members)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_m_service}}/api/groups/{{groupId}}",
+									"host": [
+										"{{base_url_m_service}}"
+									],
+									"path": [
+										"api",
+										"groups",
+										"{{groupId}}"
+									]
+								},
+								"description": "One group with its `chatId` and every member resolved to a profile, with a `role` of OWNER, ADMIN or MEMBER. Members only."
 							},
 							"response": []
 						},
@@ -10910,6 +11441,33 @@
 										"my-groups"
 									]
 								}
+							},
+							"response": []
+						},
+						{
+							"name": "Rename Group",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_m_service}}/api/groups/{{groupId}}/name?name=Renamed group",
+									"host": [
+										"{{base_url_m_service}}"
+									],
+									"path": [
+										"api",
+										"groups",
+										"{{groupId}}",
+										"name"
+									],
+									"query": [
+										{
+											"key": "name",
+											"value": "Renamed group"
+										}
+									]
+								},
+								"description": "Owner only."
 							},
 							"response": []
 						},
@@ -10965,7 +11523,8 @@
 										"{{groupId}}",
 										"photo"
 									]
-								}
+								},
+								"description": "Admin only. Images only; the file type is checked from its contents. The previous photo is deleted after the new one is saved."
 							},
 							"response": []
 						},
@@ -10991,7 +11550,8 @@
 											"value": "{{user_id}}"
 										}
 									]
-								}
+								},
+								"description": "Owner only. The person is added to the group and its chat, and is notified live on `/user/queue/groups`."
 							},
 							"response": []
 						},
@@ -11082,7 +11642,7 @@
 								"method": "POST",
 								"header": [],
 								"url": {
-									"raw": "{{base_url_m_service}}/api/groups/{{groupId}}/members/{{user_id}}",
+									"raw": "{{base_url_m_service}}/api/groups/{{groupId}}/leave",
 									"host": [
 										"{{base_url_m_service}}"
 									],
@@ -11090,10 +11650,10 @@
 										"api",
 										"groups",
 										"{{groupId}}",
-										"members",
-										"{{user_id}}"
+										"leave"
 									]
-								}
+								},
+								"description": "Leaves the group. The owner must transfer ownership first, unless they are the only member."
 							},
 							"response": []
 						},
@@ -11103,7 +11663,7 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url_m_service}}/api/groups/{{groupId}}/members/",
+									"raw": "{{base_url_m_service}}/api/groups/{{groupId}}/members",
 									"host": [
 										"{{base_url_m_service}}"
 									],
@@ -11111,8 +11671,7 @@
 										"api",
 										"groups",
 										"{{groupId}}",
-										"members",
-										""
+										"members"
 									]
 								}
 							},
@@ -11252,13 +11811,132 @@
 							"response": []
 						}
 					],
-					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Create New Group | POST | `/api/groups?name=api support&description=Technical Support` | Bearer token |\n| Get My Groups | GET | `/api/groups/my-groups` | Bearer token |\n| Update Group Description | PUT | `/api/groups/{{groupId}}/description?description=Amazing group` | Bearer token |\n| Upload group Photo | POST | `/api/groups/{{groupId}}/photo` | Bearer token |\n| Add Member to Group | POST | `/api/groups/{{groupId}}/members?userId={{user_id}}` | Bearer token |\n| Add Members-Bulk | POST | `/api/groups/{{groupId}}/members/bulk` | Bearer token |\n| Remove Member | DELETE | `/api/groups/{{groupId}}/members/{{user_id}}` | Bearer token |\n| Remove Members-Bulk | DELETE | `/api/groups/{{groupId}}/members/bulk` | Bearer token |\n| Leave Group | POST | `/api/groups/{{groupId}}/members/{{user_id}}` | Bearer token |\n| Get Group members | GET | `/api/groups/{{groupId}}/members/` | Bearer token |\n| Transfer Admin | POST | `/api/groups/{{groupId}}/transfer-admin?newAdminId={{user_id}}` | Bearer token |\n| Promote User to Admin | POST | `/api/groups/{{groupId}}/admins?userId={{user_id}}` | Bearer token |\n| Promote Admins-Bulk | POST | `/api/groups/{{groupId}}/admins/bulk` | Bearer token |\n| Demote Admin | DELETE | `/api/groups/{{groupId}}/admins/{{user_id}}` | Bearer token |\n| Demote Admin-Bulk | DELETE | `/api/groups/{{groupId}}/admins/bulk` | Bearer token |"
+					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Create New Group | POST | `/api/groups?name=api support&description=Technical Support` | Bearer token |\n| Get My Groups | GET | `/api/groups/my-groups` | Bearer token |\n| Update Group Description | PUT | `/api/groups/{{groupId}}/description?description=Amazing group` | Bearer token |\n| Upload group Photo | POST | `/api/groups/{{groupId}}/photo` | Bearer token |\n| Add Member to Group | POST | `/api/groups/{{groupId}}/members?userId={{user_id}}` | Bearer token |\n| Add Members-Bulk | POST | `/api/groups/{{groupId}}/members/bulk` | Bearer token |\n| Remove Member | DELETE | `/api/groups/{{groupId}}/members/{{user_id}}` | Bearer token |\n| Remove Members-Bulk | DELETE | `/api/groups/{{groupId}}/members/bulk` | Bearer token |\n| Leave Group | POST | `/api/groups/{{groupId}}/members/{{user_id}}` | Bearer token |\n| Get Group members | GET | `/api/groups/{{groupId}}/members/` | Bearer token |\n| Transfer Admin | POST | `/api/groups/{{groupId}}/transfer-admin?newAdminId={{user_id}}` | Bearer token |\n| Promote User to Admin | POST | `/api/groups/{{groupId}}/admins?userId={{user_id}}` | Bearer token |\n| Promote Admins-Bulk | POST | `/api/groups/{{groupId}}/admins/bulk` | Bearer token |\n| Demote Admin | DELETE | `/api/groups/{{groupId}}/admins/{{user_id}}` | Bearer token |\n| Demote Admin-Bulk | DELETE | `/api/groups/{{groupId}}/admins/bulk` | Bearer token |\n| Get Group (details and members) | GET | `/api/groups/{{groupId}}` | Bearer token |\n| Rename Group | PUT | `/api/groups/{{groupId}}/name` | Bearer token |"
 				},
 				{
 					"name": "Messages",
 					"item": [
 						{
-							"name": "Send Message",
+							"name": "Send Message (text)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"let body = {};",
+											"try { body = pm.response.json(); } catch (e) { /* not JSON */ }",
+											"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+											"pm.test('Message id is returned', function () { pm.expect(body && body.id).to.be.ok; });",
+											"if (body && body.id) { store.set('messageId', body.id); }"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"chatId\": \"{{chatId}}\",\n  \"content\": \"Hello from Postman\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_m_service}}/api/messages",
+									"host": [
+										"{{base_url_m_service}}"
+									],
+									"path": [
+										"api",
+										"messages"
+									]
+								},
+								"description": "Plain text message as JSON. `chatId` comes from **Create Private Chat** or **Get All My Chats**. Saves `messageId`."
+							},
+							"response": []
+						},
+						{
+							"name": "Send Message with Attachment",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"let body = {};",
+											"try { body = pm.response.json(); } catch (e) { /* not JSON */ }",
+											"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+											"pm.test('Message id is returned', function () { pm.expect(body && body.id).to.be.ok; });",
+											"if (body && body.id) { store.set('messageId', body.id); }"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"chatId\": \"{{chatId}}\",\n  \"content\": \"Optional caption\",\n  \"attachmentId\": \"{{attachment_id}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_m_service}}/api/messages",
+									"host": [
+										"{{base_url_m_service}}"
+									],
+									"path": [
+										"api",
+										"messages"
+									]
+								},
+								"description": "Sends a file you already uploaded with **Attachments > Upload Attachment**. The attachment can be claimed once, only by the person who uploaded it, and only in the chat it was uploaded for. `messageType` is worked out from the file, so leave it out. Add `replyToMessageId` to reply."
+							},
+							"response": []
+						},
+						{
+							"name": "Send Message with File (one request)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"let body = {};",
+											"try { body = pm.response.json(); } catch (e) { /* not JSON */ }",
+											"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+											"pm.test('Message id is returned', function () { pm.expect(body && body.id).to.be.ok; });",
+											"if (body && body.id) { store.set('messageId', body.id); }"
+										]
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -11272,7 +11950,7 @@
 										},
 										{
 											"key": "content",
-											"value": "Hello, here is the document",
+											"value": "Optional caption",
 											"type": "text"
 										},
 										{
@@ -11282,8 +11960,9 @@
 										},
 										{
 											"key": "replyToMessageId",
-											"value": "{{messageId}}",
-											"type": "text"
+											"value": "",
+											"type": "text",
+											"disabled": true
 										}
 									]
 								},
@@ -11296,12 +11975,83 @@
 										"api",
 										"messages"
 									]
-								}
+								},
+								"description": "Uploads and sends in one call (multipart). Fine for small files; for big ones use Upload Attachment first so a failed send does not repeat the upload. Tick `replyToMessageId` to reply."
 							},
 							"response": []
 						},
 						{
 							"name": "Reply Message",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"let body = {};",
+											"try { body = pm.response.json(); } catch (e) { /* not JSON */ }",
+											"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+											"pm.test('Message id is returned', function () { pm.expect(body && body.id).to.be.ok; });",
+											"if (body && body.id) { store.set('messageId', body.id); }"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"chatId\": \"{{chatId}}\",\n  \"content\": \"Replying to that\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_m_service}}/api/messages/{{messageId}}/reply",
+									"host": [
+										"{{base_url_m_service}}"
+									],
+									"path": [
+										"api",
+										"messages",
+										"{{messageId}}",
+										"reply"
+									]
+								},
+								"description": "Replies to `{{messageId}}`. JSON body; add `attachmentId` to reply with a file."
+							},
+							"response": []
+						},
+						{
+							"name": "Reply Message with File",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"let body = {};",
+											"try { body = pm.response.json(); } catch (e) { /* not JSON */ }",
+											"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+											"pm.test('Message id is returned', function () { pm.expect(body && body.id).to.be.ok; });",
+											"if (body && body.id) { store.set('messageId', body.id); }"
+										]
+									}
+								}
+							],
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -11315,7 +12065,7 @@
 										},
 										{
 											"key": "content",
-											"value": "Hello, here is the document",
+											"value": "Optional caption",
 											"type": "text"
 										},
 										{
@@ -11336,23 +12086,39 @@
 										"{{messageId}}",
 										"reply"
 									]
-								}
+								},
+								"description": "Replies to `{{messageId}}` with a file in the same request (multipart)."
 							},
 							"response": []
 						},
 						{
 							"name": "Get Messages in Chat",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Messages returned (200)', function () { pm.response.to.have.status(200); });",
+											"let rows = [];",
+											"try { rows = pm.response.json(); } catch (e) { /* not JSON */ }",
+											"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+											"const hit = (rows || []).find(function (r) { return r.mediaUrl && /\\/api\\/attachments\\//.test(r.mediaUrl); });",
+											"if (hit) {",
+											"    const q = hit.mediaUrl.match(/\\/api\\/attachments\\/([^/]+)\\/content\\?exp=(\\d+)&sig=([^&]+)/);",
+											"    if (q) { store.set('attachment_id', q[1]); store.set('attachment_exp', q[2]); store.set('attachment_sig', q[3]); }",
+											"}"
+										]
+									}
+								}
+							],
 							"request": {
 								"method": "GET",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": " application/json",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"url": {
-									"raw": "{{base_url_m_service}}/api/messages/chat/{{chatId}}?page&size",
+									"raw": "{{base_url_m_service}}/api/messages/chat/{{chatId}}?page=0&size=40",
 									"host": [
 										"{{base_url_m_service}}"
 									],
@@ -11365,14 +12131,15 @@
 									"query": [
 										{
 											"key": "page",
-											"value": null
+											"value": "0"
 										},
 										{
 											"key": "size",
-											"value": null
+											"value": "40"
 										}
 									]
-								}
+								},
+								"description": "Newest first. `size` is capped at 100. Messages you deleted for yourself are left out. Each file message carries a fresh signed `mediaUrl`; this request saves `attachment_id`, `attachment_exp` and `attachment_sig` from the first one so you can try **Attachments > Download with Signed Link**."
 							},
 							"response": []
 						},
@@ -11380,13 +12147,7 @@
 							"name": "Mark Message as Read",
 							"request": {
 								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": " application/json",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"url": {
 									"raw": "{{base_url_m_service}}/api/messages/read/{{messageId}}",
 									"host": [
@@ -11406,13 +12167,7 @@
 							"name": "Delete Message For Everyone",
 							"request": {
 								"method": "DELETE",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": " application/json",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"url": {
 									"raw": "{{base_url_m_service}}/api/messages/{{messageId}}",
 									"host": [
@@ -11423,7 +12178,8 @@
 										"messages",
 										"{{messageId}}"
 									]
-								}
+								},
+								"description": "Sender only. Marks the message deleted for everyone and removes the stored file, if there was one."
 							},
 							"response": []
 						},
@@ -11443,27 +12199,209 @@
 										"{{messageId}}",
 										"me"
 									]
-								}
+								},
+								"description": "Hides the message for you only. It stays out of **Get Messages in Chat** after a reload."
 							},
 							"response": []
 						}
 					],
-					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Send Message | POST | `/api/messages` | Bearer token |\n| Reply Message | POST | `/api/messages/{{messageId}}/reply` | Bearer token |\n| Get Messages in Chat | GET | `/api/messages/chat/{{chatId}}?page&size` | Bearer token |\n| Mark Message as Read | POST | `/api/messages/read/{{messageId}}` | Bearer token |\n| Delete Message For Everyone | DELETE | `/api/messages/{{messageId}}` | Bearer token |\n| Delete Message For Me | DELETE | `/api/messages/{{messageId}}/me` | Bearer token |"
+					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Send Message (text) | POST | `/api/messages` (JSON) | Bearer token |\n| Send Message with Attachment | POST | `/api/messages` (JSON, `attachmentId`) | Bearer token |\n| Send Message with File (one request) | POST | `/api/messages` (multipart) | Bearer token |\n| Reply Message | POST | `/api/messages/{{messageId}}/reply` (JSON) | Bearer token |\n| Reply Message with File | POST | `/api/messages/{{messageId}}/reply` (multipart) | Bearer token |\n| Get Messages in Chat | GET | `/api/messages/chat/{{chatId}}?page&size` | Bearer token |\n| Mark Message as Read | POST | `/api/messages/read/{{messageId}}` | Bearer token |\n| Delete Message For Everyone | DELETE | `/api/messages/{{messageId}}` | Bearer token |\n| Delete Message For Me | DELETE | `/api/messages/{{messageId}}/me` | Bearer token |"
+				},
+				{
+					"name": "Attachments",
+					"item": [
+						{
+							"name": "Upload Attachment",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Uploaded (200)', function () { pm.response.to.have.status(200); });",
+											"let body = {};",
+											"try { body = pm.response.json(); } catch (e) { /* not JSON */ }",
+											"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+											"pm.test('attachmentId is returned', function () { pm.expect(body && body.attachmentId).to.be.ok; });",
+											"if (body && body.attachmentId) { store.set('attachment_id', body.attachmentId); }"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "file",
+											"type": "file",
+											"src": []
+										},
+										{
+											"key": "chatId",
+											"value": "{{chatId}}",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url_m_service}}/api/attachments",
+									"host": [
+										"{{base_url_m_service}}"
+									],
+									"path": [
+										"api",
+										"attachments"
+									]
+								},
+								"description": "Step 1 of sending a file. Any file type, up to `STORAGE_MAX_FILE_SIZE` (50MB by default). The type is detected from the file contents. Returns an `attachmentId` (saved as `attachment_id`); send it with **Send Message with Attachment**. An upload nobody sends is deleted after `STORAGE_UNCLAIMED_TTL` (24h)."
+							},
+							"response": []
+						},
+						{
+							"name": "Download Attachment",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('File returned (200)', function () { pm.response.to.have.status(200); });",
+											"pm.test('Content type is set', function () { pm.expect(pm.response.headers.get('Content-Type')).to.be.ok; });"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_m_service}}/api/attachments/{{attachment_id}}/content",
+									"host": [
+										"{{base_url_m_service}}"
+									],
+									"path": [
+										"api",
+										"attachments",
+										"{{attachment_id}}",
+										"content"
+									]
+								},
+								"description": "Streams the file with your Bearer token. Range requests work, so audio and video can seek. Images, video, audio and PDFs open inline; every other type downloads. An upload that has not been sent yet is visible only to the person who uploaded it. Use **Send and Save Response** in Postman to write the file to disk."
+							},
+							"response": []
+						},
+						{
+							"name": "Download with Signed Link",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Signed link works without a token (200)', function () { pm.response.to.have.status(200); });"
+										]
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_m_service}}/api/attachments/{{attachment_id}}/content?exp={{attachment_exp}}&sig={{attachment_sig}}",
+									"host": [
+										"{{base_url_m_service}}"
+									],
+									"path": [
+										"api",
+										"attachments",
+										"{{attachment_id}}",
+										"content"
+									],
+									"query": [
+										{
+											"key": "exp",
+											"value": "{{attachment_exp}}"
+										},
+										{
+											"key": "sig",
+											"value": "{{attachment_sig}}"
+										}
+									]
+								},
+								"description": "The same file with no token, the way a browser tag loads it. `exp` and `sig` come from the `mediaUrl` of a message; run **Messages > Get Messages in Chat** first and they are filled in for you. A link lasts `STORAGE_URL_TTL` (6h by default); a changed or expired link returns 403."
+							},
+							"response": []
+						},
+						{
+							"name": "Signed Link with a Wrong Signature (expect 403)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Bad signature is refused (403)', function () { pm.response.to.have.status(403); });"
+										]
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_m_service}}/api/attachments/{{attachment_id}}/content?exp={{attachment_exp}}&sig=not-a-real-signature",
+									"host": [
+										"{{base_url_m_service}}"
+									],
+									"path": [
+										"api",
+										"attachments",
+										"{{attachment_id}}",
+										"content"
+									],
+									"query": [
+										{
+											"key": "exp",
+											"value": "{{attachment_exp}}"
+										},
+										{
+											"key": "sig",
+											"value": "not-a-real-signature"
+										}
+									]
+								},
+								"description": "Negative check. A signature that does not match must be refused."
+							},
+							"response": []
+						}
+					],
+					"description": "Send files of any type in a chat. Upload first, then send a message carrying the `attachmentId`.\n\n| Request | Method | Path | Auth |\n|---|---|---|---|\n| Upload Attachment | POST | `/api/attachments` | Bearer token |\n| Download Attachment | GET | `/api/attachments/{{attachment_id}}/content` | Bearer token |\n| Download with Signed Link | GET | `/api/attachments/{{attachment_id}}/content?exp&sig` | None (signed link) |\n| Signed Link with a Wrong Signature | GET | same, bad `sig` | None |"
 				},
 				{
 					"name": "Media",
 					"item": [
 						{
-							"name": "Upload image/video",
+							"name": "Upload Public File",
 							"request": {
 								"method": "POST",
-								"header": [
-									{
-										"key": "Content-Type",
-										"value": " application/json",
-										"type": "text"
-									}
-								],
+								"header": [],
 								"body": {
 									"mode": "formdata",
 									"formdata": [
@@ -11474,7 +12412,8 @@
 										},
 										{
 											"key": "type",
-											"value": "images / videos / documents / voice",
+											"value": "images",
+											"description": "Folder name: lowercase letters, digits and dashes, up to 32 characters. Defaults to images.",
 											"type": "text"
 										}
 									]
@@ -11489,12 +12428,13 @@
 										"media",
 										"upload"
 									]
-								}
+								},
+								"description": "Stores a file in public media and returns its public URL as plain text. Files are served without a token from `/api/media/files/{folder}/{month}/{name}`. For files sent inside a chat use **Attachments** instead; those stay private."
 							},
 							"response": []
 						}
 					],
-					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Upload image/video | POST | `/api/media/upload` | Bearer token |"
+					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Upload Public File | POST | `/api/media/upload` | Bearer token |\n\nGroup photos use the same storage (**Group Chats > Upload group Photo**)."
 				},
 				{
 					"name": "Social",
@@ -11502,6 +12442,43 @@
 						{
 							"name": "Profile",
 							"item": [
+								{
+									"name": "Get Me (real user id)",
+									"event": [
+										{
+											"listen": "test",
+											"script": {
+												"type": "text/javascript",
+												"packages": {},
+												"requests": {},
+												"exec": [
+													"pm.test('Profile returned (200)', function () { pm.response.to.have.status(200); });",
+													"let body = {};",
+													"try { body = pm.response.json(); } catch (e) { /* not JSON */ }",
+													"const store = (pm.environment.name ? pm.environment : pm.collectionVariables);",
+													"if (body && body.id) { store.set('my_user_id', body.id); }"
+												]
+											}
+										}
+									],
+									"request": {
+										"method": "GET",
+										"header": [],
+										"url": {
+											"raw": "{{base_url_m_service}}/api/users/me",
+											"host": [
+												"{{base_url_m_service}}"
+											],
+											"path": [
+												"api",
+												"users",
+												"me"
+											]
+										},
+										"description": "The caller's own profile from auth-service, with the real user id (the JWT subject is an email). Saves `my_user_id`."
+									},
+									"response": []
+								},
 								{
 									"name": "Get All Users",
 									"request": {
@@ -12537,7 +13514,7 @@
 					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Full Health Check | GET | `/health` | Own header |\n| Readiness Probe | GET | `/health/ready` | Own header |\n| Liveness Probe | GET | `/health/live` | Own header |\n| Startup Probe | GET | `/health/startup` | Own header |\n| Service Info | GET | `/info` | Own header |\n| Actuator Health | GET | `/actuator/health` | Own header |\n| Actuator Info | GET | `/actuator/info` | Own header |\n| List All Metrics | GET | `/actuator/metrics` | Own header |\n| Get Specific Metric (message send latency) | GET | `/actuator/metrics/messenger.message.send.latency` | Own header |\n| Get Specific Metric (websocket connections) | GET | `/actuator/metrics/messenger.websocket.connections.active` | Own header |\n| Prometheus Scrape Endpoint | GET | `/actuator/prometheus` | Own header |"
 				}
 			],
-			"description": "Private and group chats, messages, media, social features and monitoring.\n\n**Base URL variable:** `{{base_url_m_service}}`  \n**Requests:** 66  \n**Auth:** Bearer token from the auth service (collection setting) unless a request shows its own header or auth."
+			"description": "Private and group chats, messages, media, social features and monitoring.\n\n**Base URL variable:** `{{base_url_m_service}}`  \n**Requests:** 76  \n**Auth:** Bearer token from the auth service (collection setting) unless a request shows its own header or auth."
 		},
 		{
 			"name": "Wallet Service",
@@ -15277,6 +16254,27 @@
 						},
 						{
 							"name": "Transfer Funds (Internal API Key)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Transfer accepted', function () { pm.response.to.have.status(200); });",
+											"if (pm.response.code === 200) {",
+											"    const body = pm.response.json();",
+											"    const ref = body && body.data && (body.data.transactionId || body.data.reference);",
+											"    if (ref) {",
+											"        (pm.environment.name ? pm.environment : pm.collectionVariables).set('transfer_reference', ref);",
+											"        console.log('Saved transfer_reference = ' + ref);",
+											"    }",
+											"}"
+										]
+									}
+								}
+							],
 							"request": {
 								"auth": {
 									"type": "noauth"
@@ -15296,7 +16294,7 @@
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n    \"senderUserId\": \"69fb94e91b08bb5028283c2b\",\n    \"recipientAccountNumber\": \"{{recipient_email}}\",\n    \"amount\": 50.00,\n    \"description\": \"Maintenance fee split\",\n    \"initiatedBy\": \"PROPERTY_SERVICE\"\n}",
+									"raw": "{\n    \"senderUserId\": \"69fb94e91b08bb5028283c2b\",\n    \"recipientAccountNumber\": \"{{recipient_email}}\",\n    \"amount\": 50.0,\n    \"description\": \"Maintenance fee split\",\n    \"initiatedBy\": \"PROPERTY_SERVICE\",\n    \"reference\": \"transfer-{{$timestamp}}\"\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -15312,12 +16310,291 @@
 										"internal",
 										"transfer"
 									]
+								},
+								"description": "Wallet to wallet transfer for another Premisave service. The sender pays amount plus commission, the recipient receives exactly amount. `reference` is the idempotency key: repeating it is rejected with 409 and moves no money. The test script saves it as `transfer_reference`, which the next two requests use."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Transfer by Reference (Internal API Key)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Transfer found', function () { pm.response.to.have.status(200); });",
+											"if (pm.response.code === 200) {",
+											"    const data = pm.response.json().data || {};",
+											"    pm.test('Reference matches', function () { pm.expect(data.reference).to.eql(pm.variables.get('transfer_reference')); });",
+											"    pm.test('Shows what the sender paid', function () { pm.expect(data).to.have.property('totalDebited'); });",
+											"} else if (pm.response.code === 404) {",
+											"    console.log('No transfer used this reference. Run Transfer Funds (Internal API Key) first, or paste the reference into transfer_reference.');",
+											"}"
+										]
+									}
 								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{internal_api_key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_wallet}}/internal/transfer/{{transfer_reference}}",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"internal",
+										"transfer",
+										"{{transfer_reference}}"
+									]
+								},
+								"description": "Finds the transfer made with this idempotency reference. 404 when none used it. A transfer record is only written after the balances have moved, so finding one means the money moved. Use it after a timeout, or after a 409 on a repeated reference. Returns id, senderId, senderEmail, recipientId, recipientEmail, amount, totalDebited, currency, description, status, reference, initiatedBy and createdAt."
+							},
+							"response": []
+						},
+						{
+							"name": "Get Commission Rates (Internal API Key)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Rates returned', function () { pm.response.to.have.status(200); });",
+											"if (pm.response.code === 200) {",
+											"    const data = pm.response.json().data || {};",
+											"    pm.test('Has a transfer rate and a gateway rate', function () {",
+											"        pm.expect(data.internalTransferRate).to.be.a('number');",
+											"        pm.expect(data.gatewayRate).to.be.a('number');",
+											"    });",
+											"    pm.test('Commission is charged on top', function () { pm.expect(data.chargedOn).to.eql('ON_TOP'); });",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{internal_api_key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_wallet}}/internal/commission/rates",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"internal",
+										"commission",
+										"rates"
+									]
+								},
+								"description": "The commission rates configured in the wallet service, as decimal fractions (0.01 is 1%). Commission is charged on top: the sender pays amount plus commission and the recipient receives amount. commission = amount * rate, rounded to commissionScale decimals with commissionRounding, once per transfer. There is no exemption for service to service transfers. A service that holds money for others must hold the payout amount plus the commission its payouts will cost."
+							},
+							"response": []
+						},
+						{
+							"name": "Escrow: Hold a Payment (Internal API Key)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Hold accepted', function () { pm.response.to.have.status(200); });",
+											"if (pm.response.code === 200) {",
+											"    const data = pm.response.json().data || {};",
+											"    pm.test('Status is HELD', function () { pm.expect(data.status).to.eql('HELD'); });",
+											"    pm.test('Commission charged once on top', function () { pm.expect(data.totalDebited).to.eql(data.amount + data.commission); });",
+											"    if (data.reference) {",
+											"        (pm.environment.name ? pm.environment : pm.collectionVariables).set('escrow_hold_reference', data.reference);",
+											"        console.log('Saved escrow_hold_reference = ' + data.reference);",
+											"    }",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{internal_api_key}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"senderUserId\": \"69fb94e91b08bb5028283c2b\",\n    \"beneficiaryEmail\": \"{{recipient_email}}\",\n    \"amount\": 100.00,\n    \"description\": \"Booking escrow test\",\n    \"reference\": \"escrow-{{$timestamp}}\",\n    \"initiatedBy\": \"LISTING_SERVICE\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_wallet}}/internal/escrow/hold",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"internal",
+										"escrow",
+										"hold"
+									]
+								},
+								"description": "Escrow for a service that sells now and pays out later (the listing service). The sender is debited amount plus commission once (100.00 at 1% debits 101.00), the commission goes to the company ledger, and 100.00 is held by wallet-service in no user's wallet. `beneficiaryEmail` is the owner and must have an active wallet. `reference` is a unique idempotency key: repeating it answers 409 and moves nothing; a reference whose earlier attempt ended FAILED may be reused. `initiatedBy` must be in ESCROW_ALLOWED_INITIATORS (default LISTING_SERVICE), otherwise 403. The test script saves the reference as `escrow_hold_reference` for the next two requests."
+							},
+							"response": []
+						},
+						{
+							"name": "Escrow: Pay Out of a Hold (Internal API Key)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Payout accepted', function () { pm.response.to.have.status(200); });",
+											"if (pm.response.code === 200) {",
+											"    const data = pm.response.json().data || {};",
+											"    pm.test('Payout succeeded', function () { pm.expect(data.status).to.eql('SUCCESS'); });",
+											"    if (data.reference) {",
+											"        (pm.environment.name ? pm.environment : pm.collectionVariables).set('escrow_payout_reference', data.reference);",
+											"    }",
+											"    console.log('Hold is now ' + data.holdStatus + ', remaining ' + data.holdRemainingAmount);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{internal_api_key}}",
+										"type": "text"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"recipientAccountNumber\": \"{{recipient_email}}\",\n    \"amount\": 100.00,\n    \"description\": \"Payout for booking escrow test\",\n    \"reference\": \"escrow-payout-{{$timestamp}}\",\n    \"initiatedBy\": \"LISTING_SERVICE\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url_wallet}}/internal/escrow/{{escrow_hold_reference}}/payouts",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"internal",
+										"escrow",
+										"{{escrow_hold_reference}}",
+										"payouts"
+									]
+								},
+								"description": "Pays part or all of what is left in the hold to one recipient, with no commission. The recipient must be the hold's sender (a refund) or its beneficiaryEmail (the owner), anything else is 400. 409 when the hold is not HELD or PARTIALLY_PAID or the reference is already used, 422 when the amount is more than what is left. For a split cancellation send it twice with different references and amounts that add up to the held amount. Run `Escrow: Hold a Payment` first so `escrow_hold_reference` is set."
+							},
+							"response": []
+						},
+						{
+							"name": "Escrow: Get a Hold and its Payouts (Internal API Key)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"packages": {},
+										"requests": {},
+										"exec": [
+											"pm.test('Hold found', function () { pm.response.to.have.status(200); });",
+											"if (pm.response.code === 200) {",
+											"    const data = pm.response.json().data || {};",
+											"    pm.test('Reference matches', function () { pm.expect(data.reference).to.eql(pm.variables.get('escrow_hold_reference')); });",
+											"    pm.test('Has a payouts list', function () { pm.expect(data.payouts).to.be.an('array'); });",
+											"} else if (pm.response.code === 404) {",
+											"    console.log('No hold used this reference. Run Escrow: Hold a Payment first, or paste the reference into escrow_hold_reference.');",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{internal_api_key}}",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_wallet}}/internal/escrow/{{escrow_hold_reference}}",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"internal",
+										"escrow",
+										"{{escrow_hold_reference}}"
+									]
+								},
+								"description": "Returns the hold (status, amount, commission, totalDebited, remainingAmount, failureReason) with every payout made against it. 404 when no hold has this reference. Use it after a timeout or a 409. PENDING means the outcome is not known yet; wallet-service settles a stale PENDING record on its own within a few minutes."
 							},
 							"response": []
 						}
 					],
-					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Payment (Jwt) | POST | `/payments/deduct` | Bearer token |\n| Payment (internal api key) | POST | `/internal/payment` | Own header |\n| Transfer Funds (Jwt) | POST | `/wallet/transfer` | Bearer token |\n| Transfer Funds (Internal API Key) | POST | `/internal/transfer` | Own header |"
+					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Payment (Jwt) | POST | `/payments/deduct` | Bearer token |\n| Payment (internal api key) | POST | `/internal/payment` | Own header |\n| Transfer Funds (Jwt) | POST | `/wallet/transfer` | Bearer token |\n| Transfer Funds (Internal API Key) | POST | `/internal/transfer` | Own header |\n| Get Transfer by Reference (Internal API Key) | GET | `/internal/transfer/{reference}` | Own header |\n| Get Commission Rates (Internal API Key) | GET | `/internal/commission/rates` | Own header |"
 				},
 				{
 					"name": "M-Pesa",
@@ -17874,7 +19151,7 @@
 					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Health Check | GET | `/system/health` | Own header |\n| Health Details | GET | `/system/health/details` | Own header |\n| Test Token | GET | `/system/test-token` | Bearer token |"
 				}
 			],
-			"description": "Wallets, deposits, withdrawals, transfers, provider integrations (M-Pesa, PayPal, Flutterwave, Stripe, NOWPayments), admin finance and social.\n\n**Base URL variable:** `{{base_url_wallet}}`  \n**Requests:** 166  \n**Auth:** Bearer token from the auth service (collection setting) unless a request shows its own header or auth."
+			"description": "Wallets, deposits, withdrawals, transfers, provider integrations (M-Pesa, PayPal, Flutterwave, Stripe, NOWPayments), admin finance and social.\n\n**Base URL variable:** `{{base_url_wallet}}`  \n**Requests:** 168  \n**Auth:** Bearer token from the auth service (collection setting) unless a request shows its own header or auth."
 		},
 		{
 			"name": "C2B Hakikisha Service",
@@ -18213,6 +19490,11 @@
 		},
 		{
 			"key": "transactionId",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "transfer_reference",
 			"value": "",
 			"type": "default"
 		},
@@ -18693,6 +19975,26 @@
 		},
 		{
 			"key": "username",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "block_id",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "file_id",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "listing_idempotency_key",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "retry_same_key",
 			"value": "",
 			"type": "default"
 		}

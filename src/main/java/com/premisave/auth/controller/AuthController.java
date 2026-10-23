@@ -9,7 +9,9 @@ import com.premisave.auth.service.security.ClientContext;
 import com.premisave.auth.service.security.ClientContextResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.premisave.auth.exception.ApiException;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -112,43 +114,50 @@ public class AuthController {
 
     /** Verify account via email token */
     @GetMapping("/verify/{token}")
-    public ResponseEntity<String> verifyAccount(@PathVariable String token) {
+    public ResponseEntity<Map<String, String>> verifyAccount(@PathVariable String token) {
         authService.verifyAccount(token);
-        return ResponseEntity.ok("Account verified successfully. You can now login.");
+        return message("Account verified successfully. You can now login.");
     }
 
     /** Resend activation email. The answer is the same whether or not the address has an account. */
     @PostMapping("/resend-activation")
-    public ResponseEntity<String> resendActivation(@RequestParam String email) {
+    public ResponseEntity<Map<String, String>> resendActivation(@RequestParam String email) {
         try {
             authService.resendActivation(email);
-            return ResponseEntity.ok("If an unverified account exists for that address, a new activation email is on its way.");
+            return message("If an unverified account exists for that address, a new activation email is on its way.");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            // Handled by the global exception handler, which answers with JSON
+            throw e;
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("Failed to resend activation email. Please try again.");
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to resend activation email. Please try again.");
         }
     }
 
     /** Forgot Password: sends reset link. The answer is the same whether or not the address has an account. */
     @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
         authService.forgotPassword(request.getEmail());
-        return ResponseEntity.ok("If an account exists for that address, a password reset link has been sent.");
+        return message("If an account exists for that address, a password reset link has been sent.");
     }
 
     /** Reset Password using token */
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordConfirmRequest request) {
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordConfirmRequest request) {
         authService.confirmResetPassword(request);
-        return ResponseEntity.ok("Password reset successfully");
+        return message("Password reset successfully");
     }
 
     /** Change Password (authenticated user) */
     @PostMapping("/change-password")
-    public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
-        return ResponseEntity.ok("Password changed successfully");
+        return message("Password changed successfully");
+    }
+
+    /** Every plain confirmation is answered as JSON: {"message": "..."} */
+    private static ResponseEntity<Map<String, String>> message(String text) {
+        return ResponseEntity.ok(Map.of("message", text));
     }
 
     private ResponseEntity<AuthResponse> respond(Established established, HttpServletResponse response) {

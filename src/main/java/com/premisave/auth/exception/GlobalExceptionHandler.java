@@ -1,12 +1,21 @@
 package com.premisave.auth.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
@@ -71,6 +80,35 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleUnreadableBody(HttpMessageNotReadableException ex) {
         return simple(HttpStatus.BAD_REQUEST,
                 "The request body is not valid JSON, or one of its values is not allowed (for example an unknown status or date format).");
+    }
+
+    /**
+     * Unknown path (404), wrong method (405), wrong content type (415), missing request parameter (400) and similar.
+     * Without this they would fall into the catch-all below and come back as a 500, or as an HTML error page.
+     */
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class,
+            HttpRequestMethodNotSupportedException.class, HttpMediaTypeNotSupportedException.class,
+            HttpMediaTypeNotAcceptableException.class, MissingServletRequestParameterException.class})
+    public ResponseEntity<Map<String, Object>> handleRequestProblems(Exception ex) {
+        HttpStatusCode status = HttpStatus.BAD_REQUEST;
+        String message = "The request could not be processed.";
+        ResponseEntity.BodyBuilder builder;
+        if (ex instanceof ErrorResponse errorResponse) {
+            status = errorResponse.getStatusCode();
+            String detail = errorResponse.getBody().getDetail();
+            if (detail != null && !detail.isBlank()) {
+                message = detail;
+            }
+            builder = ResponseEntity.status(status).headers(errorResponse.getHeaders());
+        } else {
+            builder = ResponseEntity.status(status);
+        }
+        Map<String, Object> response = new HashMap<>();
+        response.put("timestamp", LocalDateTime.now());
+        response.put("status", status.value());
+        response.put("message", message);
+        // Explicit type so the answer stays JSON even when the client asked for something else
+        return builder.contentType(MediaType.APPLICATION_JSON).body(response);
     }
 
     @ExceptionHandler(RuntimeException.class)

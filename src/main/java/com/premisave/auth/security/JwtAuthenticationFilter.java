@@ -131,7 +131,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void reject(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
-        response.getWriter().write("{\"error\": \"" + message + "\"}");
+        response.setCharacterEncoding("UTF-8");
+        // Same shape as every other error the API returns
+        response.getWriter().write("{\"timestamp\":\"" + java.time.LocalDateTime.now() + "\","
+                + "\"status\":401,\"error\":\"Unauthorized\",\"message\":\"" + jsonEscape(message) + "\"}");
+    }
+
+    private static String jsonEscape(String text) {
+        StringBuilder sb = new StringBuilder();
+        for (char c : (text == null ? "" : text).toCharArray()) {
+            switch (c) {
+                case '"' -> sb.append("\\\"");
+                case '\\' -> sb.append("\\\\");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) {
+                        sb.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+                }
+            }
+        }
+        return sb.toString();
     }
 
     /**
