@@ -1,5 +1,6 @@
 package com.premisave.auth.service;
 
+import com.premisave.auth.dto.ReviewResponse;
 import com.premisave.auth.dto.SocialActionRequest;
 import com.premisave.auth.dto.SocialActionResponse;
 import com.premisave.auth.dto.UserDto;
@@ -13,12 +14,19 @@ import com.premisave.auth.repository.LikeRepository;
 import com.premisave.auth.repository.ReviewRepository;
 import com.premisave.auth.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -30,17 +38,20 @@ public class SocialService {
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
     private final ProfileService profileService;
+    private final MongoTemplate mongoTemplate;
 
     public SocialService(LikeRepository likeRepository,
                          FollowerRepository followerRepository,
                          ReviewRepository reviewRepository,
                          UserRepository userRepository,
-                         ProfileService profileService) {
+                         ProfileService profileService,
+                         MongoTemplate mongoTemplate) {
         this.likeRepository = likeRepository;
         this.followerRepository = followerRepository;
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
         this.profileService = profileService;
+        this.mongoTemplate = mongoTemplate;
     }
 
     // ====================== HELPER ======================
@@ -132,7 +143,13 @@ public class SocialService {
     // ====================== REVIEW ======================
     public SocialActionResponse reviewUser(SocialActionRequest request) {
         User user = getCurrentUser();
-        String targetId = request.getTargetId();
+
+        // Reviews are always stored against the target's real user id, even if the client sent an email
+        User target = findUserByIdOrEmail(request.getTargetId());
+        if (target == null) {
+            return SocialActionResponse.error("REVIEW", "That user could not be found");
+        }
+        String targetId = target.getId();
 
         if (user.getId().equals(targetId)) {
             return SocialActionResponse.error("REVIEW", "You cannot review yourself");
@@ -141,7 +158,7 @@ public class SocialService {
             return SocialActionResponse.error("REVIEW", "Rating must be between 1 and 5");
         }
 
-        if (reviewRepository.findByUserIdAndTargetId(user.getId(), targetId).isPresent()) {
+        if (alreadyReviewed(user, target)) {
             return SocialActionResponse.error("REVIEW", "You have already reviewed this user");
         }
 
@@ -214,8 +231,147 @@ public class SocialService {
         return SocialActionResponse.success("DELETE_REVIEW", "Review deleted successfully");
     }
 
-    public List<Review> getUserReviews(String targetId) {
-        return reviewRepository.findByTargetId(targetId);
+    /**
+     * Reviews written about a user, with each reviewer's details attached. The path value may be the user's id or,
+     * for convenience, an email; older reviews that were stored under the email are included.
+     */
+    public List<ReviewResponse> getUserReviews(String targetRef) {
+        User target = findUserByIdOrEmail(targetRef);
+        List<Review> reviews = reviewRepository.findByTargetIdIn(targetKeys(target, targetRef));
+        return toResponses(reviews, target);
+    }
+
+    /** The values a review's targetId may hold for this user: the id, and the email used by older records. */
+    private static Set<String> targetKeys(User target, String fallback) {
+        Set<String> keys = new LinkedHashSet<>();
+        if (target == null) {
+            if (fallback != null && !fallback.isBlank()) {
+                keys.add(fallback.trim());
+            }
+            return keys;
+        }
+        keys.add(target.getId());
+        if (target.getEmail() != null && !target.getEmail().isBlank()) {
+            keys.add(target.getEmail());
+            keys.add(target.getEmail().toLowerCase());
+        }
+        return keys;
+    }
+
+    private boolean alreadyReviewed(User reviewer, User target) {
+        for (String key : targetKeys(target, null)) {
+            if (reviewRepository.findByUserIdAndTargetId(reviewer.getId(), key).isPresent()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** A user by id, or by email when the value looks like one. Null when there is no such user. */
+    private User findUserByIdOrEmail(String ref) {
+        if (ref == null || ref.isBlank()) {
+            return null;
+        }
+        String value = ref.trim();
+        if (value.contains("@")) {
+            return userRepository.findByEmail(value)
+                    .or(() -> userRepository.findByEmail(value.toLowerCase()))
+                    .orElse(null);
+        }
+        return userRepository.findById(value).orElse(null);
+    }
+
+    // ====================== REVIEW RESPONSES ======================
+
+    /**
+     * Builds the response for a list of reviews. Reviewers are read from the users already attached to the reviews,
+     * and the targets that are stored as emails are resolved once each, so no user is looked up twice.
+     *
+     * @param knownTarget the user every review is about, when the caller already has them (may be null)
+     */
+    private List<ReviewResponse> toResponses(List<Review> reviews, User knownTarget) {
+        Map<String, String> targetIds = new HashMap<>();
+        if (knownTarget != null) {
+            for (String key : targetKeys(knownTarget, null)) {
+                targetIds.put(key, knownTarget.getId());
+            }
+        }
+
+        List<ReviewResponse> out = new ArrayList<>();
+        for (Review review : reviews) {
+            ReviewResponse r = new ReviewResponse();
+            r.setId(review.getId());
+            r.setTargetId(realTargetId(review.getTargetId(), targetIds));
+            r.setRating(review.getRating());
+            r.setComment(review.getComment());
+            r.setCreatedAt(review.getCreatedAt());
+            r.setUpdatedAt(review.getUpdatedAt());
+
+            User reviewer = review.getUser();
+            if (reviewer != null) {
+                r.setUserId(reviewer.getId());
+                r.setReviewerName(displayName(reviewer));
+                r.setReviewerEmail(reviewer.getEmail());
+                r.setReviewerProfilePicture(reviewer.getProfilePictureUrl());
+            } else {
+                // The reviewer's account is gone: keep who it was, leave the rest empty
+                r.setUserId(storedReviewerId(review.getId()));
+            }
+            out.add(r);
+        }
+        out.sort(Comparator.comparing(ReviewResponse::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+        return out;
+    }
+
+    /** The real user id for a stored target value. Emails are resolved once; anything unknown is returned as stored. */
+    private String realTargetId(String stored, Map<String, String> cache) {
+        if (stored == null || !stored.contains("@")) {
+            return stored;
+        }
+        return cache.computeIfAbsent(stored, key -> {
+            User user = findUserByIdOrEmail(key);
+            return user == null ? key : user.getId();
+        });
+    }
+
+    /** First and last name, then the username. Never the email. */
+    private static String displayName(User user) {
+        StringBuilder name = new StringBuilder();
+        if (user.getFirstName() != null && !user.getFirstName().isBlank()) {
+            name.append(user.getFirstName().trim());
+        }
+        if (user.getLastName() != null && !user.getLastName().isBlank()) {
+            if (name.length() > 0) {
+                name.append(' ');
+            }
+            name.append(user.getLastName().trim());
+        }
+        if (name.length() > 0) {
+            return name.toString();
+        }
+        String handle = user.getDisplayUsername();
+        return handle == null || handle.equalsIgnoreCase(user.getEmail()) ? null : handle;
+    }
+
+    /**
+     * The id of the reviewer as stored on a review whose user could not be loaded. Read straight from the
+     * stored document, because the loaded entity has no user at all.
+     */
+    private String storedReviewerId(String reviewId) {
+        try {
+            org.bson.Document doc = mongoTemplate.findById(reviewId, org.bson.Document.class, "reviews");
+            Object ref = doc == null ? null : doc.get("user");
+            if (ref instanceof org.bson.Document refDoc) {
+                ref = refDoc.get("$id") != null ? refDoc.get("$id") : refDoc.get("_id");
+            }
+            if (ref instanceof org.bson.types.ObjectId oid) {
+                return oid.toHexString();
+            }
+            return ref == null ? null : ref.toString();
+        } catch (RuntimeException e) {
+            log.debug("Could not read the stored reviewer of review {}", reviewId);
+            return null;
+        }
     }
 
     public UserInteractionDto getUserStats(String userId) {
@@ -314,14 +470,14 @@ public class SocialService {
                 .collect(Collectors.toList());
     }
 
-    public List<Review> getMyReviews() {
+    public List<ReviewResponse> getMyReviews() {
         User currentUser = getCurrentUser();
-        return reviewRepository.findByTargetId(currentUser.getId());
+        return toResponses(reviewRepository.findByTargetIdIn(targetKeys(currentUser, null)), currentUser);
     }
 
-    public List<Review> getMyWrittenReviews() {
+    public List<ReviewResponse> getMyWrittenReviews() {
         User currentUser = getCurrentUser();
-        return reviewRepository.findByUserId(currentUser.getId());
+        return toResponses(reviewRepository.findByUserId(currentUser.getId()), null);
     }
 
     // ====================== RELATIONSHIP STATUS CHECKS ======================
@@ -337,9 +493,13 @@ public class SocialService {
         return followerRepository.findByUserIdAndFollowerId(targetId, currentUser.getId()).isPresent();
     }
 
-    public boolean didIReviewUser(String targetId) {
+    public boolean didIReviewUser(String targetRef) {
         User currentUser = getCurrentUser();
-        return reviewRepository.findByUserIdAndTargetId(currentUser.getId(), targetId).isPresent();
+        User target = findUserByIdOrEmail(targetRef);
+        if (target == null) {
+            return reviewRepository.findByUserIdAndTargetId(currentUser.getId(), targetRef).isPresent();
+        }
+        return alreadyReviewed(currentUser, target);
     }
 
     public boolean isMutualFollow(String targetId) {

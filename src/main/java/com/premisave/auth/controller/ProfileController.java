@@ -5,6 +5,7 @@ import com.premisave.auth.dto.ProfileUpdateRequest;
 import com.premisave.auth.dto.ProfileUploadResponse;
 import com.premisave.auth.dto.UserDirectoryDto;
 import com.premisave.auth.dto.UserDto;
+import com.premisave.auth.exception.ApiException;
 import com.premisave.auth.service.ProfileService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/profile")
@@ -48,7 +50,7 @@ public class ProfileController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UserDto>> searchUsers(@RequestParam String query) {
         if (query == null || query.trim().isEmpty()) {
-            return ResponseEntity.badRequest().build();
+            throw ApiException.badRequest("Enter a name, username or email to search for.");
         }
         
         List<UserDto> users = profileService.searchUsers(query.trim());
@@ -76,9 +78,9 @@ public class ProfileController {
 
     @PutMapping("/update")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
+    public ResponseEntity<Map<String, String>> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
         profileService.updateProfile(request);
-        return ResponseEntity.ok("Profile updated successfully");
+        return ResponseEntity.ok(Map.of("message", "Profile updated successfully"));
     }
 
     @PostMapping("/upload-profile-picture")
@@ -90,12 +92,12 @@ public class ProfileController {
 
     @PostMapping("/change-password")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<String> changePassword(@Valid @RequestBody PasswordChangeRequest request) {
+    public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody PasswordChangeRequest request) {
         profileService.updatePassword(
             request.getCurrentPassword(), 
             request.getNewPassword(), 
             request.getConfirmPassword()
         );
-        return ResponseEntity.ok("Password changed successfully");
+        return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
     }
 }

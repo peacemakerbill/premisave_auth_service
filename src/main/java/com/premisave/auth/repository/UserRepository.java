@@ -14,13 +14,6 @@ public interface UserRepository extends MongoRepository<User, String> {
     // Find by email (exact match)
     Optional<User> findByEmail(String email);
     
-    // Social login lookups by provider account id
-    Optional<User> findByGoogleId(String googleId);
-
-    Optional<User> findByFacebookId(String facebookId);
-
-    Optional<User> findByGithubId(String githubId);
-
     // Find by username (exact match)
     Optional<User> findByUsername(String username);
     
@@ -51,7 +44,9 @@ public interface UserRepository extends MongoRepository<User, String> {
             + "{'firstName': {'$regex': ?0, '$options': 'i'}}, "
             + "{'lastName': {'$regex': ?0, '$options': 'i'}}, "
             + "{'username': {'$regex': ?0, '$options': 'i'}}, "
-            + "{'phoneNumber': {'$regex': ?0, '$options': 'i'}}"
+            + "{'phoneNumber': {'$regex': ?0, '$options': 'i'}}, "
+            + "{'$expr': {'$regexMatch': {'input': {'$concat': [{'$ifNull': ['$firstName', '']}, ' ', {'$ifNull': ['$lastName', '']}]}, "
+            + "'regex': ?0, 'options': 'i'}}}"
             + "]}")
     List<User> searchUsers(String query);
     
@@ -68,6 +63,13 @@ public interface UserRepository extends MongoRepository<User, String> {
             + "]}")
     List<User> searchUsersWithFilters(String query, boolean active, boolean archived);
     
+    // Social sign-in: the account already linked to a provider account
+    Optional<User> findByGoogleId(String googleId);
+
+    Optional<User> findByFacebookId(String facebookId);
+
+    Optional<User> findByGithubId(String githubId);
+
     // Check if email exists (for validation)
     boolean existsByEmail(String email);
     

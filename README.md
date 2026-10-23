@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/peacemakerbill">
-    <img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/262163756&w=240&h=240&fit=cover&mask=circle" width="110" height="110" style="border-radius:50%;border:3px solid #1E40AF;" alt="Bill Graham Peacemaker (peacemakerbill) GitHub profile picture" />
+    <img src="https://avatars.githubusercontent.com/u/262163756?v=4&s=200" width="110" height="110" alt="Bill Graham Peacemaker (peacemakerbill) GitHub profile picture" />
   </a>
   <br/>
   <sub>Built by <a href="https://github.com/peacemakerbill"><b>Bill Graham Peacemaker</b></a> (<code>@peacemakerbill</code>) · Backend Developer &amp; API Support Engineer · Nairobi, Kenya</sub>
@@ -51,7 +51,6 @@
   <a href="#authentication-flows">Authentication flows</a> ·
   <a href="#api-reference">API reference</a> ·
   <a href="#configuration-reference">Configuration</a> ·
-  <a href="#home-owner-applications">Home Owner applications</a> &middot;
   <a href="#troubleshooting">Troubleshooting</a>
 </p>
 
@@ -72,17 +71,16 @@
 7. [Build and run](#build-and-run)
 8. [Configuration reference](#configuration-reference)
 9. [API reference](#api-reference)
-10. [Home Owner applications](#home-owner-applications)
-11. [Testing with Postman or curl](#testing-with-postman-or-curl)
-12. [Roles and access control](#roles-and-access-control)
-13. [Data model](#data-model)
-14. [Going live](#going-live)
-15. [Security notes](#security-notes)
-16. [Project structure](#project-structure)
-17. [Troubleshooting](#troubleshooting)
-18. [Roadmap ideas](#roadmap-ideas)
-19. [Contributing](#contributing)
-20. [Author](#author)
+10. [Testing with Postman or curl](#testing-with-postman-or-curl)
+11. [Roles and access control](#roles-and-access-control)
+12. [Data model](#data-model)
+13. [Going live](#going-live)
+14. [Security notes](#security-notes)
+15. [Project structure](#project-structure)
+16. [Troubleshooting](#troubleshooting)
+17. [Roadmap ideas](#roadmap-ideas)
+18. [Contributing](#contributing)
+19. [Author](#author)
 
 ---
 
@@ -97,7 +95,6 @@ Concretely, it:
 - issues signed JWTs carrying the user's ID, email, and role, and revokes them on logout through a Redis blacklist,
 - owns the user profile (names, contact details, language, profile picture on Cloudinary),
 - provides the social layer used across the platform: likes, follows, star-rated reviews, and "who viewed my profile",
-- lets a client apply to become a Home Owner, stores their documents on a local disk or a network share (for example a Synology NAS), and lets staff review and verify the application before an administrator promotes the account,
 - records a user's location history,
 - gives administrators a full user-management surface (create, edit, archive, activate, verify, change role, reset password),
 - exposes a small, API-key-protected `/internal/**` API so sibling services can validate and look up users without a user JWT.
@@ -114,9 +111,7 @@ Concretely, it:
 | **Profile pictures** | Validated image upload (JPEG, PNG, GIF, WEBP) pushed to Cloudinary on a background thread with a 400x400 transformation. |
 | **Social graph** | Likes, follows, mutual-follow check, 1 to 5 star reviews with comments, and aggregate stats per user. |
 | **Profile views** | Records views (deduplicated to one per viewer per 24 hours), with "who viewed me", "who I viewed", and view statistics. |
-| **Home Owner applications** | A guided application with over 30 fields, a document checklist that depends on who is applying, uploads kept on a local disk or NAS share and checked by file signature, a status workflow with per-document review, internal staff notes, a full timeline, and an email at every change. An admin promotes a verified client to Home Owner with one request. |
 | **Location history** | Current location plus full history, newest first. |
-| **Automatic usernames** | Optional at signup. A background job generates a unique username from the person's name for anyone without one, flags it as generated, and the user can change it later. |
 | **Admin user management** | Role-gated CRUD, archive, activate, verify, role changes with a last-admin safeguard, and password management. |
 | **Internal service API** | Email validation and user-detail lookup for sibling services, protected by `X-API-Key`. |
 | **Rate limiting** | Token-bucket throttling with Bucket4j on signup, signin, password reset, and social write endpoints. |
@@ -146,7 +141,7 @@ Concretely, it:
 - **One identity provider for the whole platform.** Other services never store passwords or run login flows; they validate this service's JWTs with the shared secret and read the `userId` and `roles` claims.
 - **Email is the login identity.** `User.getUsername()` returns the email address for Spring Security, so the JWT subject is always the email. The display username is a separate, editable field.
 - **Two separate trust boundaries.** End users authenticate with JWTs. Service-to-service calls use a shared `X-API-Key` on `/internal/**`, handled by its own filter, so the two never mix.
-- **OAuth by credential verification, not backend redirects.** The frontend completes the sign-in itself, with Google's and Facebook's own SDKs or GitHub's OAuth App authorization flow, and sends the result as a single `token` to that provider's own endpoint: `POST /auth/google`, `POST /auth/facebook` or `POST /auth/github`. There is no provider field in the payload, because the endpoint decides the provider. Every client secret stays server-side; only the public client and app IDs are ever exposed to a frontend. This keeps the backend stateless and works identically for web and Flutter clients.
+- **OAuth by credential verification, not backend redirects.** The frontend completes the sign-in itself — Google and Facebook's own SDKs, or GitHub's OAuth App authorization flow — and sends the resulting token or code to `POST /auth/oauth`. Every client secret stays server-side; only Google's client ID and GitHub's client ID are ever exposed to a frontend. This keeps the backend stateless and works identically for web and Flutter clients.
 - **One client class per provider.** `GoogleOAuthClient`, `FacebookOAuthClient` and `GitHubOAuthClient` each implement the same small interface and are the only things that know a given provider's API shape. Adding a fourth provider means adding one more implementation, not touching the other three.
 
 ## Authentication flows
@@ -210,14 +205,14 @@ sequenceDiagram
 
     U->>P: Sign in with provider
     P-->>U: Google ID token, Facebook access token, or GitHub code
-    U->>AS: POST /auth/google, /auth/facebook or /auth/github with a single token
+    U->>AS: POST /auth/oauth { provider, token or code }
     alt Google
         AS->>AS: Verify ID token signature, audience and email_verified
     else Facebook
         AS->>P: GET /debug_token (confirms the token belongs to this app)
         AS->>P: GET /me with an appsecret_proof
     else GitHub
-        AS->>P: Exchange the authorization code for an access token, or verify a client-supplied access token
+        AS->>P: Exchange the authorization code for an access token
         AS->>P: GET /user and /user/emails (verified email only)
     end
     AS->>DB: Find user by linked provider id, else by email (and link it), else create one
@@ -227,26 +222,11 @@ sequenceDiagram
     AS-->>U: JWT and role
 ```
 
-Each provider is independently optional. `oauth.google.client-id`, `oauth.facebook.app-id`/`app-secret`, and `oauth.github.client-id`/`client-secret` (plus the optional `oauth.github.redirect-uri`) all default to blank, so the service starts with any subset configured; requesting an unconfigured provider returns a clear error instead of the service failing to boot.
+Each provider is independently optional. `oauth.google.client-id`, `oauth.facebook.app-id`/`app-secret`, and `oauth.github.client-id`/`client-secret` all default to blank, so the service starts with any subset configured; requesting an unconfigured provider returns a clear error instead of the service failing to boot.
 
 Signing in with a provider whose email already matches an existing account links that provider to the account (and marks it verified) rather than creating a duplicate. A provider picture is copied into Cloudinary — not linked directly — because some providers' picture URLs (Facebook's in particular) are signed and expire.
 
-### Automatic usernames
-
-A username is optional at signup. Whoever is created without one gets a generated username, and can change it any time with `PUT /profile/update` (the profile update already checks that the new one is free).
-
-| Where the user comes from | What happens |
-|---|---|
-| Email signup with a username | Used as given (checked for uniqueness, ignoring case) |
-| Email signup without a username | Saved straight away, then a username is generated on a background thread within moments |
-| Google, Facebook or GitHub sign-up | Generated immediately from the provider handle or the name, so the first response already has one |
-| Existing users, admin-created users, anything missed | A scheduled sweep (every 5 minutes by default) fills in every user whose username is missing or blank |
-
-Generated names come from the person's name, never from the email address: `john.doe`, then `johnd`, then `john.doe48` (two random digits, growing to three or four if crowded). Accents are removed, reserved words such as `admin` and `support` are never used, and a user whose name has no Latin letters gets `user` plus digits. Every generated username sets `usernameGenerated: true`, which flips to `false` when the user picks their own, so a frontend can show a "Choose your username" prompt.
-
-The sweep writes with a conditional update, so running several servers is safe and it can never overwrite a username a user has just chosen.
-
-
+### Password reset
 
 `POST /auth/forgot-password` emails a link to `{FRONTEND_URL}/reset-password?token=...`. The frontend posts the token and the new password to `POST /auth/reset-password`. Tokens are single-use and expire after 24 hours.
 
@@ -339,23 +319,9 @@ Every setting lives in `src/main/resources/application.yml` and can be overridde
 | `GOOGLE_CLIENT_ID` | blank (disabled) | no | Audience checked when verifying Google ID tokens. Comma-separate several client IDs (web, Android, iOS) to accept a token issued to any of them. Leave unset to disable Google sign-in without affecting anything else. |
 | `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | blank (disabled) | no | Facebook app credentials, used to confirm a token belongs to this app (`/debug_token`) and to sign Graph API calls (`appsecret_proof`). Leave both unset to disable Facebook sign-in. |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | blank (disabled) | no | GitHub OAuth App credentials, used to exchange an authorization code and to verify a client-supplied token belongs to this app. Leave both unset to disable GitHub sign-in. |
-| `GITHUB_REDIRECT_URI` | blank | no | Optional. When set, it is sent with the GitHub code exchange and must equal the `redirect_uri` used when the code was requested and the callback URL registered on the OAuth App. |
-| `STORAGE_TYPE` | `LOCAL` | no | Where application documents are kept: `LOCAL` (a directory on this server) or `NETWORK` (a share such as a Synology NAS, mounted by the operating system). |
-| `STORAGE_LOCAL_PATH` | `~/premisave-file-storage/homeowner-onboarding` | no | Directory for `LOCAL` storage. Set it in your own `.env`; a blank value keeps the default. |
-| `STORAGE_NETWORK_PROTOCOL` / `STORAGE_NETWORK_HOST` / `STORAGE_NETWORK_SHARE` | `SMB` / blank / blank | no | `NETWORK`: how, and from which NAS (IP or host name) and share, the mount was made. Used to verify the mount, never to connect. |
-| `STORAGE_NETWORK_MOUNT_PATH` / `STORAGE_NETWORK_DIRECTORY` | `/mnt/premisave-nas` / `homeowner-onboarding` | no | Where the share is mounted, and the folder inside it. |
-| `STORAGE_NETWORK_REQUIRE_MOUNT` | `true` | no | Refuse to read or write unless the share is really mounted. |
-| `STORAGE_CREATE_DIRECTORIES` / `STORAGE_FAIL_ON_UNAVAILABLE` / `STORAGE_MIN_FREE_MB` | `true` / `false` / `100` | no | Create missing directories; refuse to start when storage is unusable; refuse uploads when less space is free. |
-| `HOME_OWNER_MAX_FILE_SIZE_MB` | `8` | no | Largest accepted upload. Keep below `spring.servlet.multipart.max-file-size` (10MB). |
-| `HOME_OWNER_MAX_DOCUMENTS` | `25` | no | Most files one application can hold. |
-| `HOME_OWNER_REVIEW_SLA_DAYS` | `3` | no | Working days quoted to applicants as the usual review time. |
-| `HOME_OWNER_FRONTEND_PATH` | `/home-owner/application` | no | Frontend path the emails link to, appended to `FRONTEND_URL`. |
-| `username-generation.enabled` | `true` | no | Turns the background username sweep on or off. |
-| `username-generation.interval-ms` / `initial-delay-ms` | `300000` / `30000` | no | Pause between sweeps and the wait after start-up before the first one. |
-| `username-generation.batch-size` / `max-batches` | `200` / `25` | no | Users handled per batch and batches per sweep. |
 | `RATE_LIMIT_REQUESTS_PER_MINUTE` | `20` | no | Bucket capacity and refill rate for rate-limited endpoints. |
 
-`JWT_SECRET`, `API_KEY`, and the three Cloudinary variables have no default in `application.yml` and must come from `.env` or the environment — the service fails to start without them. The three OAuth providers are the opposite: each defaults to blank and is simply unavailable at its `/auth/google`, `/auth/facebook` or `/auth/github` endpoint until configured, so a missing or misconfigured provider can never take down the whole service.
+`JWT_SECRET`, `API_KEY`, and the three Cloudinary variables have no default in `application.yml` and must come from `.env` or the environment — the service fails to start without them. The three OAuth providers are the opposite: each defaults to blank and is simply unavailable via `/auth/oauth` until configured, so a missing or misconfigured provider can never take down the whole service.
 
 Also configurable in `application.yml`: `spring.servlet.multipart.max-file-size` (default `10MB`) and `profile-views.max-history-size` (default `20`).
 
@@ -370,9 +336,6 @@ Base URL (local): `http://localhost:8080`
 | `/profile/views/**` | JWT | Profile view tracking and statistics |
 | `/social/**` | JWT | Likes, follows, reviews, stats |
 | `/location/**` | JWT | Current location and history |
-| `/home-owner/applications/**` | JWT, any signed-in user | Apply to become a Home Owner (own applications only) |
-| `/staff/applications/**` | JWT, `ADMIN`, `OPERATIONS`, `FINANCE` or `SUPPORT` | Review queue, document review, status changes |
-| `/admin/applications/**` | JWT, `ADMIN` role | Promote a verified applicant to Home Owner |
 | `/admin/users/**` | JWT, `ADMIN` role | User management |
 | `/internal/users/**` | `X-API-Key` | Service-to-service validation and lookup |
 
@@ -382,9 +345,7 @@ Base URL (local): `http://localhost:8080`
 |---|---|---|
 | `POST` | `/auth/signup` | Register. Sends an activation email. Rate limited. |
 | `POST` | `/auth/signin` | Email and password login. Rate limited. |
-| `POST` | `/auth/google` | Google sign-in or sign-up with a Google ID token. Creates and links accounts, imports the provider picture. |
-| `POST` | `/auth/facebook` | Facebook sign-in or sign-up with a Facebook user access token. |
-| `POST` | `/auth/github` | GitHub sign-in or sign-up with an authorization code or a GitHub access token. |
+| `POST` | `/auth/oauth` | Google, Facebook or GitHub sign-in. Creates and links accounts, imports the provider picture. |
 | `POST` | `/auth/logout` | Blacklist the bearer token. |
 | `POST` | `/auth/refresh` | Exchange a still-valid token for a fresh one. |
 | `GET` | `/auth/verify/{token}` | Verify an account from the emailed link. |
@@ -419,21 +380,25 @@ Response (`200`):
 }
 ```
 
-#### `POST /auth/google`, `POST /auth/facebook`, `POST /auth/github`
-
-All three endpoints take the same body, a single `token`. There is no `provider` field, because the endpoint decides the provider.
+#### `POST /auth/oauth`
 
 ```json
-{ "token": "<credential from the provider>" }
+{ "provider": "google", "token": "<ID token from Google Sign-In>" }
 ```
 
-| Endpoint | What `token` holds |
-|---|---|
-| `POST /auth/google` | The Google ID token from Google Identity Services or `google_sign_in`. |
-| `POST /auth/facebook` | The Facebook user access token from the Facebook Login SDK (permissions `public_profile` and `email`). |
-| `POST /auth/github` | The authorization code GitHub returns to your redirect URI, or a GitHub access token issued to this OAuth App. |
+```json
+{ "provider": "facebook", "token": "<access token from Facebook Login>" }
+```
 
-For GitHub, the service tells the two apart by shape: a 20 character hexadecimal value is an authorization code and is exchanged on the server, and anything else is treated as an access token and checked with GitHub to confirm it was issued to this app. A code can be used once and expires in about ten minutes.
+```json
+{ "provider": "github", "code": "<authorization code>", "redirectUri": "<redirect_uri used to request the code>" }
+```
+
+GitHub also accepts an access token directly instead of a code:
+
+```json
+{ "provider": "github", "token": "<GitHub access token issued to this OAuth app>" }
+```
 
 Returns the same `AuthResponse` shape as signin. An unconfigured or misused provider returns `400` with a plain message, for example `"Facebook sign-in is not configured on this server"` or `"This email is already linked to a different Google account"`.
 
@@ -471,11 +436,11 @@ Returns the same `AuthResponse` shape as signin. An unconfigured or misused prov
 | `POST` | `/social/review` | Review a user (`targetId`, `rating` 1 to 5, `comment`). Rate limited. |
 | `PUT` | `/social/review` | Edit own review (`reviewId`). |
 | `DELETE` | `/social/review/{reviewId}` | Delete own review. |
-| `GET` | `/social/reviews/{targetId}` | Reviews of a user. |
+| `GET` | `/social/reviews/{targetId}` | Reviews of a user, newest first. Each review carries the reviewer's `userId`, `reviewerName`, `reviewerEmail` and `reviewerProfilePicture`. |
 | `GET` | `/social/stats/{userId}` | Followers, following, likes, average rating, review count. |
 | `GET` | `/social/my-likes`, `/social/my-following` | Users I liked or follow. |
 | `GET` | `/social/my-likers`, `/social/my-followers` | Users who liked or follow me. |
-| `GET` | `/social/my-reviews`, `/social/my-written-reviews` | Reviews about me and by me. |
+| `GET` | `/social/my-reviews`, `/social/my-written-reviews` | Reviews about me and by me, in the same shape as above. |
 | `GET` | `/social/{like,follow,review}/status/{targetId}` | Whether I liked, follow, or reviewed a user. |
 | `GET` | `/social/follow/mutual/{targetId}` | Whether the follow is mutual. |
 
@@ -516,116 +481,6 @@ All under `/admin/users`, `ADMIN` role required.
 
 Both require `X-API-Key`. The wallet service calls `validate-email` during M-Pesa C2B validation and `details` to put real names on transfer and payment emails.
 
-## Home Owner applications
-
-A signed-in `CLIENT` can apply to become a `HOME_OWNER`. They fill in a guided form, upload their documents (stored on a local disk or a mounted NAS share), and submit. Staff review the application and each document, the applicant is emailed at every change, and once everything is verified an administrator presses one button to promote the account.
-
-### The journey
-
-| Step | Who | What happens |
-|---|---|---|
-| 1. Start | Client | `POST /home-owner/applications`. A draft is created with an application number such as `HOA-2026-000042`. Country, address and phone are pre-filled from the profile. |
-| 2. Fill in | Client | `PATCH /home-owner/applications/{id}` saves any subset of fields, so a form can autosave section by section. |
-| 3. Upload | Client | `POST /home-owner/applications/{id}/documents` for each file. The checklist and a progress percentage come back with every response. |
-| 4. Submit | Client | `POST .../submit` is refused with a list of exactly what is missing until the application is complete. |
-| 5. Review | Staff | Claim it, verify or reject each document, ask for more information, add private notes. |
-| 6. Verified | Staff | Allowed only when every required document is verified and every required detail is present. |
-| 7. Make Home Owner | Admin | `POST /admin/applications/{id}/promote`. The role changes from `CLIENT` to `HOME_OWNER`, the application becomes `ACCEPTED`, and the applicant is emailed. |
-
-### Statuses
-
-| Status | Meaning | Applicant can edit | Next steps for staff |
-|---|---|---|---|
-| `DRAFT` | Being filled in | yes | none (staff do not see drafts in the queue) |
-| `SUBMITTED` | Waiting for a reviewer | no | `PROCESSING`, `INFO_REQUESTED`, `REJECTED` |
-| `PROCESSING` | A reviewer is checking | no | `INFO_REQUESTED`, `VERIFIED`, `REJECTED` |
-| `INFO_REQUESTED` | The applicant must fix or add something, then resubmit | yes | `REJECTED` |
-| `VERIFIED` | Details and documents confirmed | no | `PROCESSING`, `INFO_REQUESTED`, `REJECTED`, or promote (admin) |
-| `ACCEPTED` | Promoted to Home Owner. Final. | no | none |
-| `REJECTED` | Not approved, with a reason. The applicant can correct it and reapply (see below) unless the reviewer closed it. An admin may also reopen it to `PROCESSING`. | no | admin only |
-| `WITHDRAWN` | Cancelled by the applicant. Final. | no | none |
-
-A withdrawn applicant can start a new application. Only one application can be open at a time.
-
-### Correcting and reapplying after a rejection
-
-A rejected applicant does not have to start over. `POST /home-owner/applications/{id}/reapply` reopens the same application: it returns to `INFO_REQUESTED` with the rejection reason shown as the reviewer's message, the existing details and documents are kept, and the applicant edits what was raised and calls `POST .../submit`. The submission is recorded as a resubmission and the review team sees it in the queue again. The earlier rejection stays in the timeline.
-
-* The response field `canReapply` tells the front end when to show a **Reapply** button.
-* `HOME_OWNER_MAX_REAPPLICATIONS` (default `3`) limits how many times one application can be reopened. `0` turns reapplying off.
-* A reviewer can close an application for good by sending `"allowReapply": false` with the `REJECTED` status change, for example after a failed identity check. The applicant can then only start a new application.
-* Reapplying is refused with `409` when the application is not rejected, was closed by the reviewer, reached the limit, or the applicant already has another open application.
-
-### What the form collects
-
-| Section | Fields |
-|---|---|
-| Who is applying | `ownerType` (`INDIVIDUAL`, `COMPANY`, `PROPERTY_MANAGER`), company name and registration number for companies |
-| Identity | ID type (national ID, passport, driving licence or residence permit), ID number, issuing country, tax ID (TIN, PIN, SSN, EIN, VAT or similar), date of birth (18 or older), nationality |
-| Contact and address | Phone and alternate phone in international format (`+254712345678`, `+14155552671`), country (ISO code, any of the 249), state or region, city, street address, postal address or ZIP code |
-| Portfolio | Number of properties, estimated total units, property types (multi-select), main property location, short description, how you manage today, years as a landlord |
-| Payouts | Bank transfer (bank name, account name, account number or IBAN, optional SWIFT or BIC and branch), mobile money (provider such as M-Pesa, MTN MoMo or Airtel Money, plus number), or PayPal email |
-| About you | Why you want to join, how you heard about Premisave |
-| Consent | Terms, privacy consent and a truthfulness declaration, with the time they were given |
-
-`GET /home-owner/applications/meta` returns every dropdown, all ISO countries, the document checklist for each owner type and the upload limits, so a frontend never hardcodes them.
-
-### Documents
-
-| Document | Notes |
-|---|---|
-| Identity: government ID card (front and back), passport photo page, or driving licence | Required, any one of the three |
-| Tax ID document | Optional, shows the tax ID entered |
-| Proof of ownership | Required, one of title deed, sale agreement, head lease or allotment letter |
-| Certificate of incorporation | Required for companies |
-| Power of attorney | Required for property managers |
-| Selfie holding ID, proof of address, tax compliance certificate, directors listing, property tax clearance | Optional, can speed up verification |
-
-Files must be PDF, JPG, PNG or WEBP, up to 8MB each. The application is not tied to any one country: countries, phone numbers (E.164) and payout methods are international, and the tax ID is free text so every country's format works. The file type is checked from the file's own bytes, not its name or the type the browser claims. Uploading the same file twice is refused. A verified document cannot be replaced or removed by the applicant.
-
-### How staff work the queue
-
-| Action | Endpoint | Who |
-|---|---|---|
-| Dashboard counters | `GET /staff/applications/stats` | ADMIN, OPERATIONS, FINANCE, SUPPORT |
-| Queue with search and filters | `GET /staff/applications?status=SUBMITTED&assignee=none&country=KE&q=john` | staff |
-| Open an application | `GET /staff/applications/{id}` | staff |
-| Claim it | `POST /staff/applications/{id}/claim` | staff |
-| Give it to a colleague | `PUT /staff/applications/{id}/assign` | admin (anyone can claim for themselves) |
-| Verify or reject a document | `POST /staff/applications/{id}/documents/{docId}/review` | staff |
-| Change status | `POST /staff/applications/{id}/status` | staff |
-| Private note | `POST /staff/applications/{id}/notes` | staff |
-| View or download a file | `GET /staff/applications/{id}/documents/{docId}/download` | staff |
-| **Make Home Owner** | `POST /admin/applications/{id}/promote` | **admin only** |
-
-Rules the service enforces:
-
-- Asking for more information or rejecting requires a message, which is shown to the applicant and emailed.
-- `VERIFIED` is refused unless every required detail is present and every required document is verified.
-- Rejecting a document with `requestReupload: true` also moves the application to `INFO_REQUESTED`. Rejecting a document on a `VERIFIED` application sends it back to `PROCESSING`.
-- `ACCEPTED` can only be reached through promote, never through the status endpoint.
-- Promote re-checks everything, requires the account to still be a `CLIENT`, saves the new role, clears the cached user in Redis so the change applies at once, and emails the applicant.
-- Applicants never see staff names (only "Premisave review team") or internal notes.
-
-### Emails
-
-The applicant gets a branded email when they submit, when a reviewer starts, when information is requested, when a document is verified or needs replacing, when the application is verified, rejected or withdrawn, and when they become a Home Owner. All dynamic text is HTML-escaped. Emails are sent in the background and a mail failure never fails the request.
-
-### Document storage setup
-
-Documents are kept on a disk, one folder per application. Files are never public: applicants and staff download them through this service, which checks who is asking. With nothing configured the service stores them under `~/premisave-file-storage/homeowner-onboarding` for the user running it.
-
-For a specific folder on your machine, set it in your own `.env` (not committed):
-
-```env
-STORAGE_TYPE=LOCAL
-STORAGE_LOCAL_PATH=/home/your-user/file-storage/premisave-homeowner-onboarding/
-```
-
-For a Synology NAS, mount the share on the server (SMB or NFS) and set `STORAGE_TYPE=NETWORK` with the NAS address, share name and mount path. The NAS username and password belong to the mount, in a root-only credentials file, and are not application settings. The step-by-step guide, including `fstab` lines for SMB and NFS, is in [`docs/DOCUMENT_STORAGE.md`](docs/DOCUMENT_STORAGE.md).
-
-If storage is not usable (share not mounted, directory not writable, disk full), the service still starts and uploads answer `503` until it is fixed. Set `STORAGE_FAIL_ON_UNAVAILABLE=true` to refuse to start instead.
-
 ## Testing with Postman or curl
 
 ```bash
@@ -659,43 +514,18 @@ curl -s -X POST "$BASE/auth/logout" -H "Authorization: Bearer $TOKEN"
 
 **Collection variables worth saving in Postman:** `base_url_auth`, `jwt_token`, `api_key`, `test_user_id`, `test_user_email`.
 
-### Testing social sign-in
-
-Provider tokens cannot be produced inside Postman, so the repository includes a browser test console, `oauth-test/oauth-test.html`. It has two modes:
-
-- **Sign in with backend** runs the provider login, posts the token to the matching endpoint and shows the JWT that comes back, with a profile check and a logout check.
-- **Token only** runs the provider login and shows the raw token in full, with buttons to copy the token, the request body (`{ "token": "..." }`) and the endpoint URL. Paste it into Postman and send it to `POST /auth/google`, `/auth/facebook` or `/auth/github`.
-
-```bash
-cd oauth-test
-python3 -m http.server 3000
-# then open http://localhost:3000/oauth-test.html
-```
-
-Paste the public IDs into the page (the same values as `GOOGLE_CLIENT_ID`, `FACEBOOK_APP_ID` and `GITHUB_CLIENT_ID`). Never enter a secret there. They are kept in your browser's local storage only; generated tokens live in session storage for the tab and are cleared when it closes.
-
-| Provider | Console setting required |
-|---|---|
-| Google | Add `http://localhost:3000` (and `http://localhost`) to the OAuth Web client's **Authorized JavaScript origins**. While the consent screen is in Testing mode, add your account as a test user. |
-| Facebook | Add the Facebook Login product, allow `localhost`, keep the app in Development mode, and sign in with an account that has a role on the app. |
-| GitHub | Set the OAuth App's **Authorization callback URL** to exactly `http://localhost:3000/oauth-test.html`. |
-
-A GitHub authorization code works only once, so do not use the same code both in Postman and with the page's "Send to backend now" button. Google ID tokens last about an hour and Facebook access tokens are short lived, so generate a fresh token for each test.
-
 ## Roles and access control
 
 | Role | Intended for |
 |---|---|
-| `CLIENT` | Default for new users, tenants and buyers. Can apply to become a Home Owner. |
-| `HOME_OWNER` | Property owners and landlords. Reached only by a verified application that an admin promotes. |
+| `CLIENT` | Default for new users, tenants and buyers. |
+| `HOME_OWNER` | Property owners and landlords. |
 | `ADMIN` | Full platform administration, including `/admin/**` here. |
-| `OPERATIONS` | Operations staff. Can review Home Owner applications here. |
-| `FINANCE` | Finance staff. Can review Home Owner applications here. |
-| `SUPPORT` | Customer support staff. Can review Home Owner applications here. |
+| `OPERATIONS` | Operations staff (enforced by sibling services). |
+| `FINANCE` | Finance staff (enforced by sibling services, for example wallet reports). |
+| `SUPPORT` | Customer support staff. |
 
 Spring Security authorities are the role name prefixed with `ROLE_`, so `hasRole('ADMIN')` matches `ADMIN`.
-
-**After a promotion:** this service reads the role from the database on every request, so the new access applies here immediately. The `roles` claim inside a JWT that was issued earlier stays `CLIENT` for sibling services until the user signs in again or refreshes their token, so tell new Home Owners to sign out and back in. The promotion email says so.
 
 ## Data model
 
@@ -722,7 +552,7 @@ A user can sign in only when `active` and `verified` are both true. Archived use
 5. **Change the seeded administrator's password** on first boot.
 6. **Turn down logging.** Disable `mail.debug` and set `com.premisave.auth` and Spring Data MongoDB logging back to `INFO`.
 7. **Restrict `/internal/**`** at the network layer where possible, in addition to the API key.
-8. **Register production origins and redirect URIs** with each OAuth provider you enable: your frontend origin in Google, your domain in Facebook, and the callback URL in GitHub. If you set `GITHUB_REDIRECT_URI`, it must equal the callback registered on the GitHub OAuth App and the `redirect_uri` your frontend sends to GitHub. Remove the `oauth-test` console from anything you deploy.
+8. **Register production redirect URIs** with each OAuth provider you enable — GitHub in particular rejects a code exchange whose `redirectUri` doesn't exactly match what's registered on the OAuth App.
 
 ## Security notes
 
@@ -747,25 +577,21 @@ A user can sign in only when `active` and `verified` are both true. Archived use
 premisave_auth_service/
 ├── src/main/java/com/premisave/auth/
 │   ├── config/          # Security, Redis, Mongo auditing, mail, Cloudinary, async, rate limiting, OAuth RestClient, admin seeding
-│   ├── controller/      # Auth, profile, profile views, social, location, admin, internal, home, Home Owner applications (applicant, staff, admin)
-│   ├── dto/             # Request and response DTOs, including SocialLoginRequest/OAuthUserInfo
+│   ├── controller/      # Auth, profile, profile views, social, location, admin, internal, home
+│   ├── dto/             # Request and response DTOs, including OAuthRequest/OAuthUserInfo
 │   ├── entity/          # User (with googleId/facebookId/githubId), Token, Like, Follower, Review, ProfileView, UserLocation
 │   ├── enums/           # Role, TokenType, Language
 │   ├── exception/       # Global exception handler
 │   ├── repository/      # Spring Data MongoDB repositories
 │   ├── security/        # JWT service and filter, API key filter, UserDetailsService
 │   ├── service/         # Business logic, email, profile picture storage
-│   │   ├── application/ # Home Owner applications: applicant and review services, readiness, emails
-│   │   ├── storage/     # Document storage on a local disk or a mounted network share
 │   │   └── oauth/       # OAuthProviderClient + one implementation per provider (Google, Facebook, GitHub)
 │   ├── util/            # Rate limiter interceptor
 │   └── PremisaveAuthServiceApplication.java
 ├── src/main/resources/
 │   ├── application.yml
-│   ├── templates/email/ # activation-email.html, reset-password-email.html, application-update-email.html, security emails
+│   ├── templates/       # activation-email.html, reset-password-email.html
 │   └── META-INF/additional-spring-configuration-metadata.json
-├── oauth-test/
-│   └── oauth-test.html  # Browser console for testing Google, Facebook and GitHub sign-in
 ├── .env.example         # Committable environment template — copy to .env and fill in
 └── pom.xml
 ```
@@ -821,45 +647,9 @@ An account with that email already exists and is linked to a different provider 
 </details>
 
 <details>
-<summary><b>Uploading a document says document storage is temporarily unavailable</b></summary>
-
-The upload answers `503` while the storage location is unusable. The log says why: the NAS share is not mounted at `STORAGE_NETWORK_MOUNT_PATH`, the directory is missing or not writable by the service user, or the disk is nearly full. Fix it; no restart is needed for a share that gets mounted. See Document storage setup under Home Owner applications.
-</details>
-
-<details>
-<summary><b>An upload is refused as too large</b></summary>
-
-Files are limited to 8MB (`HOME_OWNER_MAX_FILE_SIZE_MB`). Raise it together with `spring.servlet.multipart.max-file-size` and `max-request-size`, which default to 10MB.
-</details>
-
-<details>
-<summary><b>A newly promoted Home Owner still looks like a Client in another service</b></summary>
-
-That service reads the role from the JWT, which was issued before the promotion. Ask the user to sign out and sign in again.
-</details>
-
-<details>
 <summary><b>GitHub sign-in fails with "did not return a verified email"</b></summary>
 
 Request the `user:email` scope when starting the GitHub OAuth flow, and make sure the GitHub account has at least one verified email address. A public profile email that isn't verified is not accepted.
-</details>
-
-<details>
-<summary><b>Google shows "Access blocked: no registered origin" (Error 401: invalid_client)</b></summary>
-
-The page's address is not in the OAuth client's **Authorized JavaScript origins**. Add `http://localhost:3000` (and `http://localhost`) to a client of type **Web application**, make sure the client ID on the page is the one you edited, save, wait a few minutes, and hard-refresh. The origin must match the browser address bar exactly, including scheme and port.
-</details>
-
-<details>
-<summary><b>GitHub shows a 404 page when starting sign-in</b></summary>
-
-The `client_id` in the authorize URL is not a valid OAuth App client ID. Copy the short **Client ID** at the top of the OAuth App's page (not the client secret) into both the page and `GITHUB_CLIENT_ID`.
-</details>
-
-<details>
-<summary><b>GitHub says "The redirect_uri is not associated with this application"</b></summary>
-
-The callback URL registered on the OAuth App does not match the one the page sends. Set **Authorization callback URL** to exactly `http://localhost:3000/oauth-test.html` and retry.
 </details>
 
 <details>
@@ -911,7 +701,7 @@ Found a bug or have a question? [Open an issue](https://github.com/peacemakerbil
   <tr>
     <td align="center" width="180">
       <a href="https://github.com/peacemakerbill">
-        <img src="https://images.weserv.nl/?url=avatars.githubusercontent.com/u/262163756&w=240&h=240&fit=cover&mask=circle" width="120" height="120" style="border-radius:50%;border:3px solid #1E40AF;" alt="Bill Graham Peacemaker, GitHub @peacemakerbill" /><br/>
+        <img src="https://avatars.githubusercontent.com/u/262163756?v=4&s=160" width="120" height="120" alt="Bill Graham Peacemaker, GitHub @peacemakerbill" /><br/>
         <sub><b>Bill Graham Peacemaker</b></sub>
       </a>
     </td>

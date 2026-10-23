@@ -9,6 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/users")
@@ -47,45 +48,45 @@ public class UserManagementController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable String id) {
         userManagementService.deleteUser(id);
-        return ResponseEntity.ok("User deleted successfully");
+        return ResponseEntity.ok(Map.of("message", "User deleted successfully"));
     }
 
     @PutMapping("/archive/{id}")
-    public ResponseEntity<String> archiveUser(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> archiveUser(@PathVariable String id) {
         userManagementService.archiveUser(id);
-        return ResponseEntity.ok("User archived successfully");
+        return ResponseEntity.ok(Map.of("message", "User archived successfully"));
     }
 
     @PutMapping("/unarchive/{id}")
-    public ResponseEntity<String> unarchiveUser(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> unarchiveUser(@PathVariable String id) {
         userManagementService.unarchiveUser(id);
-        return ResponseEntity.ok("User unarchived successfully");
+        return ResponseEntity.ok(Map.of("message", "User unarchived successfully"));
     }
 
     @PutMapping("/activate/{id}")
-    public ResponseEntity<String> activateUser(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> activateUser(@PathVariable String id) {
         userManagementService.activateUser(id);
-        return ResponseEntity.ok("User activated successfully");
+        return ResponseEntity.ok(Map.of("message", "User activated successfully"));
     }
 
     @PutMapping("/deactivate/{id}")
-    public ResponseEntity<String> deactivateUser(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> deactivateUser(@PathVariable String id) {
         userManagementService.deactivateUser(id);
-        return ResponseEntity.ok("User deactivated successfully");
+        return ResponseEntity.ok(Map.of("message", "User deactivated successfully"));
     }
 
     @PutMapping("/verify/{id}")
-    public ResponseEntity<String> verifyUser(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> verifyUser(@PathVariable String id) {
         userManagementService.verifyUser(id);
-        return ResponseEntity.ok("User verified successfully");
+        return ResponseEntity.ok(Map.of("message", "User verified successfully"));
     }
 
     @PutMapping("/unverify/{id}")
-    public ResponseEntity<String> unverifyUser(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> unverifyUser(@PathVariable String id) {
         userManagementService.unverifyUser(id);
-        return ResponseEntity.ok("User unverified successfully");
+        return ResponseEntity.ok(Map.of("message", "User unverified successfully"));
     }
 
     @PostMapping("/search")
@@ -94,29 +95,29 @@ public class UserManagementController {
     }
 
     @PutMapping("/update-password/{id}")
-    public ResponseEntity<String> updatePassword(
+    public ResponseEntity<Map<String, String>> updatePassword(
             @PathVariable String id,
             @Valid @RequestBody PasswordUpdateRequest request) {
         userManagementService.updatePassword(id, request.getNewPassword());
-        return ResponseEntity.ok("Password updated successfully");
+        return ResponseEntity.ok(Map.of("message", "Password updated successfully"));
     }
 
     @PutMapping("/reset-password/{id}")
-    public ResponseEntity<String> resetPassword(@PathVariable String id) {
+    public ResponseEntity<Map<String, String>> resetPassword(@PathVariable String id) {
         userManagementService.resetPassword(id);
-        return ResponseEntity.ok("Password reset successfully. Temporary password sent to user.");
+        return ResponseEntity.ok(Map.of("message", "Password reset started. The user has been emailed a link to choose a new password."));
     }
 
     /**
      * Change User Role with proper validation
      */
     @PutMapping("/change-role/{id}")
-    public ResponseEntity<String> changeUserRole(
+    public ResponseEntity<Map<String, String>> changeUserRole(
             @PathVariable String id,
             @Valid @RequestBody RoleChangeRequest request) {
         
         userManagementService.changeUserRole(id, request.getRole());
-        return ResponseEntity.ok("User role updated successfully");
+        return ResponseEntity.ok(Map.of("message", "User role updated successfully"));
     }
 
     @GetMapping("/active")

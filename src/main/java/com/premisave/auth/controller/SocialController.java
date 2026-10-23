@@ -1,10 +1,10 @@
 package com.premisave.auth.controller;
 
+import com.premisave.auth.dto.ReviewResponse;
 import com.premisave.auth.dto.SocialActionRequest;
 import com.premisave.auth.dto.SocialActionResponse;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.dto.UserInteractionDto;
-import com.premisave.auth.entity.Review;
 import com.premisave.auth.service.ProfileService;
 import com.premisave.auth.service.SocialService;
 import jakarta.validation.Valid;
@@ -60,10 +60,10 @@ public class SocialController {
         return ResponseEntity.ok(socialService.deleteReview(reviewId));
     }
 
+    /** Reviews written about a user. {targetId} is the user's id (an email is also accepted and resolved to the id). */
     @GetMapping("/reviews/{targetId}")
-    public ResponseEntity<List<Review>> getUserReviews(@PathVariable String targetId) {
-        List<Review> reviews = socialService.getUserReviews(targetId);
-        return ResponseEntity.ok(reviews);
+    public ResponseEntity<List<ReviewResponse>> getUserReviews(@PathVariable String targetId) {
+        return ResponseEntity.ok(socialService.getUserReviews(targetId));
     }
 
     @GetMapping("/stats/{userId}")
@@ -97,12 +97,12 @@ public class SocialController {
     }
 
     @GetMapping("/my-reviews")
-    public ResponseEntity<List<Review>> getMyReviews() {
+    public ResponseEntity<List<ReviewResponse>> getMyReviews() {
         return ResponseEntity.ok(socialService.getMyReviews());
     }
 
     @GetMapping("/my-written-reviews")
-    public ResponseEntity<List<Review>> getMyWrittenReviews() {
+    public ResponseEntity<List<ReviewResponse>> getMyWrittenReviews() {
         return ResponseEntity.ok(socialService.getMyWrittenReviews());
     }
 

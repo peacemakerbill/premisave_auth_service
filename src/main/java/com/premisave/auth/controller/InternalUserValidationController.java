@@ -1,6 +1,7 @@
 package com.premisave.auth.controller;
 
 import com.premisave.auth.dto.UserDetailsInternalResponse;
+import com.premisave.auth.exception.ApiException;
 import com.premisave.auth.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -108,7 +109,7 @@ public class InternalUserValidationController {
         log.debug("Internal user-details lookup requested for: {}", email);
 
         if (email == null || email.isBlank() || !email.contains("@")) {
-            return ResponseEntity.badRequest().build();
+            throw ApiException.badRequest("A valid email address is required.");
         }
 
         return userRepository.findByEmail(email.trim().toLowerCase())
@@ -117,11 +118,12 @@ public class InternalUserValidationController {
                         user.getFirstName(), user.getMiddleName(), user.getLastName())))
                 .orElseGet(() -> {
                     log.debug("User-details lookup: no account found for — {}", email);
-                    return ResponseEntity.notFound().build();
+                    throw ApiException.notFound("No account found for that email.");
                 });
     }
 
     private ResponseEntity<Map<String, Object>> validationResponse(boolean valid, String reason) {
         return ResponseEntity.ok(Map.<String, Object>of("valid", valid, "reason", reason));
     }
+
 }

@@ -7,10 +7,7 @@ import com.premisave.auth.dto.ProfileUploadResponse;
 import com.premisave.auth.dto.UserDirectoryDto;
 import com.premisave.auth.dto.UserDto;
 import com.premisave.auth.entity.User;
-import com.premisave.auth.enums.SecurityEventType;
 import com.premisave.auth.repository.UserRepository;
-import com.premisave.auth.service.security.PasswordChangeSecurityHandler;
-import com.premisave.auth.service.security.RequestAttributes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
@@ -31,7 +28,6 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
     private final PasswordEncoder passwordEncoder;
-    private final PasswordChangeSecurityHandler passwordChanges;
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = new HashSet<>(
             Arrays.asList("image/jpeg", "image/png", "image/gif", "image/webp"));
@@ -44,12 +40,10 @@ public class ProfileService {
 
     private long maxFileSizeBytes;
 
-    public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder,
-                          PasswordChangeSecurityHandler passwordChanges) {
+    public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.cloudinary = cloudinary;
         this.passwordEncoder = passwordEncoder;
-        this.passwordChanges = passwordChanges;
         this.maxFileSizeBytes = parseMaxFileSize();
     }
 
@@ -254,19 +248,33 @@ public class ProfileService {
         return dto;
     }
 
+    /** Matches name (first, last or "first last"), username, email and phone. The text is searched literally. */
     public List<UserDto> searchUsers(String query) {
-        List<User> users = userRepository.searchUsers(query);
+        List<User> users = userRepository.searchUsers(java.util.regex.Pattern.quote(query.trim()));
         return users.stream()
                 .filter(user -> user.isActive() && !user.isArchived())
-                .map(this::convertToPublicDto)
+                .map(this::convertToListDto)
                 .collect(Collectors.toList());
     }
 
     public List<UserDto> getAllUsers() {
         List<User> users = userRepository.findByActiveTrueAndArchivedFalse();
         return users.stream()
-                .map(this::convertToPublicDto)
+                .map(this::convertToListDto)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Used by the people lists (search and browse). Carries what other services need to show a person: id, username,
+     * email, names, display name and picture. Phone number, addresses and the password are never included.
+     */
+    private UserDto convertToListDto(User user) {
+        UserDto dto = convertToDto(user);
+        dto.setPhoneNumber(null);
+        dto.setAddress1(null);
+        dto.setAddress2(null);
+        dto.setPassword(null);
+        return dto;
     }
 
     public UserDto convertToPublicDto(User user) {
@@ -311,11 +319,6 @@ public class ProfileService {
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
-
-        // Other devices are signed out; this one stays signed in.
-        passwordChanges.afterPasswordChange(user, RequestAttributes.currentSessionId(),
-                SecurityEventType.PASSWORD_CHANGED, user.getId(), "Changed from your profile",
-                RequestAttributes.currentClient());
     }
 
     private UserDto convertToDto(User user) {

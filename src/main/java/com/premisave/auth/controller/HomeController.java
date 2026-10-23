@@ -2,49 +2,41 @@ package com.premisave.auth.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @RestController
 public class HomeController {
 
+    /** A browser gets the landing page; every other client gets JSON. */
     @GetMapping("/")
-    public String home(HttpServletRequest request) {
+    public ResponseEntity<?> home(HttpServletRequest request) {
         String acceptHeader = request.getHeader("Accept");
 
         if (acceptHeader != null && acceptHeader.contains(MediaType.TEXT_HTML_VALUE)) {
-            return getHtmlResponse();
+            return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(getHtmlResponse());
         }
-        return getPlainTextResponse();
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("service", "auth-service");
+        body.put("platform", "Premisave");
+        body.put("status", "RUNNING");
+        body.put("message", "Ready to handle authentication requests.");
+        return ResponseEntity.ok(body);
     }
 
     @GetMapping("/health")
-    public String health() {
-        return """
-                
-                **************************************************************
-                *                                                            *
-                *                      P R E M I S A V E                    *
-                *                                                            *
-                **************************************************************
-                *                                                            *
-                *        +-----------+       +-----------+                   *
-                *        |  [=====]  |       |  [=====]  |                   *
-                *        |  | ### |  |  / \\  |  | ### |  |                   *
-                *        |  |_____|  | /___\\ |  |_____|  |                   *
-                *        |  |     |  ||     ||  |     |  |                   *
-                *        +--+-----+--++-----++--+-----+--+                   *
-                *                                                            *
-                *              PROPERTY MANAGEMENT PLATFORM                  *
-                *                                                            *
-                **************************************************************
-                *                                                            *
-                *    >>  STATUS .............................  [ UP ]  <<     *
-                *    >>  SERVICE ................  AUTH SERVICE         <<     *
-                *    >>  HEALTH ........................  PASSING       <<     *
-                *                                                            *
-                **************************************************************
-                """;
+    public ResponseEntity<Map<String, Object>> health() {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("status", "UP");
+        body.put("service", "auth-service");
+        body.put("health", "PASSING");
+        body.put("timestamp", Instant.now().toString());
+        return ResponseEntity.ok(body);
     }
 
     private String getHtmlResponse() {
@@ -104,31 +96,6 @@ public class HomeController {
                     </div>
                 </body>
                 </html>
-                """;
-    }
-
-    private String getPlainTextResponse() {
-        return """
-                
-                ============================================================
-                                   PREMISAVE
-                ============================================================
-                
-                   _____                  _               
-                  |  __ \\                (_)              
-                  | |__) | ___ _ __ ___   ___ ___  __ _ 
-                  |  ___/ / _ \\ '_ ` _ \\ / _ \\ __|/ _` |
-                  | |    |  __/ | | | | |  __/ (__| (_| |
-                  |_|     \\___|_| |_| |_|\\___|\\___|\\__,_|
-                
-                ============================================================
-                Property Management Platform
-                Secure Authentication & User Management System
-                
-                Status: RUNNING SUCCESSFULLY
-                -----------------------------------------------------------
-                Ready to handle authentication requests.
-                ============================================================
                 """;
     }
 }

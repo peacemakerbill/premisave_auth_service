@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 @JsonPropertyOrder({
     "id", "username", "email",
-    "firstName", "middleName", "lastName", "fullName",
+    "firstName", "middleName", "lastName", "fullName", "displayName",
     "phoneNumber", "country", "address1", "address2",
     "language", "profilePictureUrl",
     "role",
@@ -58,6 +58,25 @@ public class UserDto {
      * No backing field — Jackson serializes this as "fullName" automatically
      * because it's a public no-arg getter following bean convention.
      */
+    /**
+     * The name to show for this user: first and last name, falling back to the username.
+     * Computed like fullName, so it is always in step with the name fields.
+     */
+    public String getDisplayName() {
+        StringBuilder sb = new StringBuilder();
+        if (firstName != null && !firstName.isBlank()) {
+            sb.append(firstName.trim());
+        }
+        if (lastName != null && !lastName.isBlank()) {
+            if (sb.length() > 0) sb.append(" ");
+            sb.append(lastName.trim());
+        }
+        if (sb.length() > 0) {
+            return sb.toString();
+        }
+        return username != null && !username.isBlank() && !username.contains("@") ? username : null;
+    }
+
     public String getFullName() {
         StringBuilder sb = new StringBuilder();
         if (firstName != null && !firstName.isBlank()) {
