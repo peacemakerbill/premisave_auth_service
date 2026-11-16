@@ -602,7 +602,7 @@ input[type=file].inp { padding: 5px 8px; height: auto; }
 /* ============================================================
    Premisave Auth Console: a stand-in client for testing the
    auth service (sign up and sign in, social login, sessions and
-   devices, profiles, social features, home owner applications,
+   devices, profiles, social features, location and address search, home owner applications,
    staff review and administration).
    ============================================================ */
 
@@ -631,7 +631,7 @@ const DEFAULT_VARS = {
   user_id: '', target_id: '', reviewId: '', reviewer_id: '',
   verification_token: '', reset_token: '', invitation_token: '', security_action_token: '',
   refresh_token: '', session_id: '', other_session_id: '', device_id: '', device_token: '',
-  application_id: '', document_id: '',
+  application_id: '', document_id: '', place_id: '',
   google_oauth_token: '', facebook_oauth_token: '', github_oauth_token: '',
   internal_api_key: '',
   admin_email: '', admin_password: '', operations_email: '', operations_password: '',
@@ -842,7 +842,7 @@ const ERRORS = [
   [413, 'Upload too large', 'The file is bigger than the upload limit.', 'message: ...'],
   [415, 'Unsupported media type', 'The content type is not one the endpoint accepts, for example JSON sent to an upload.', 'message: Content-Type ... is not supported'],
   [422, 'Unprocessable', 'The request was understood but a business rule refused it, for example an application that is missing documents.', 'message: ...'],
-  [429, 'Too many attempts', 'Too many failed sign-ins for the account or the address. Wait for the lockout to pass; the Retry-After header says how long.', 'message: Too many failed attempts'],
+  [429, 'Too many attempts', 'Too many failed sign-ins for the account or the address, or too many activation emails or address searches asked for. Wait a little; the Retry-After header says how long when it is sent.', 'message: Too many failed attempts'],
   [500, 'Server error', 'Unexpected failure. The body is still JSON. Check the service log for the stack trace.', 'message: ...']
 ];
 
@@ -1384,7 +1384,7 @@ const PAYOUTS = ['BANK_TRANSFER', 'MOBILE_MONEY', 'PAYPAL'];
 const REFERRALS = ['SOCIAL_MEDIA', 'SEARCH_ENGINE', 'FRIEND_OR_FAMILY', 'EXISTING_HOME_OWNER', 'TENANT', 'PROPERTY_AGENT', 'EVENT_OR_ADVERT', 'OTHER'];
 const DOC_TYPES = ['GOVERNMENT_ID_FRONT', 'GOVERNMENT_ID_BACK', 'PASSPORT_BIO_PAGE', 'DRIVING_LICENCE', 'SELFIE_WITH_ID', 'TAX_ID_DOCUMENT', 'TAX_COMPLIANCE_CERTIFICATE', 'TITLE_DEED', 'SALE_AGREEMENT', 'LEASE_AGREEMENT', 'ALLOTMENT_LETTER', 'PROPERTY_TAX_CLEARANCE', 'UTILITY_BILL', 'CERTIFICATE_OF_INCORPORATION', 'DIRECTORS_REGISTER', 'POWER_OF_ATTORNEY', 'OTHER'];
 const APP_STATUSES = ['DRAFT', 'SUBMITTED', 'PROCESSING', 'INFO_REQUESTED', 'VERIFIED', 'ACCEPTED', 'REJECTED', 'WITHDRAWN'];
-const EVENT_TYPES = ['SIGN_IN_SUCCESS', 'SIGN_IN_FAILED', 'SIGN_IN_THROTTLED', 'ACCOUNT_LOCKED', 'NEW_DEVICE_SIGN_IN', 'SUSPICIOUS_SIGN_IN', 'SESSION_REVOKED', 'ALL_SESSIONS_REVOKED', 'REFRESH_TOKEN_REUSE', 'PASSWORD_CHANGED', 'PASSWORD_RESET', 'DEVICE_TRUSTED', 'DEVICE_TRUST_REVOKED', 'DEVICE_CREDENTIAL_REVOKED', 'DEVICE_REMOVED', 'UNAUTHORIZED_SIGN_IN_REPORTED', 'ADMIN_PROVISIONED', 'ADMIN_INVITATION_ACCEPTED', 'ADMIN_ROLE_ASSIGNED', 'ADMIN_ROLE_CHANGED', 'ADMIN_SUSPICIOUS_ACTIVITY', 'SOCIAL_ACCOUNT_LINKED', 'SIGN_UP_EXISTING_EMAIL', 'NOTIFICATION_FAILED'];
+const EVENT_TYPES = ['SIGN_IN_SUCCESS', 'SIGN_IN_FAILED', 'SIGN_IN_THROTTLED', 'ACCOUNT_LOCKED', 'NEW_DEVICE_SIGN_IN', 'SUSPICIOUS_SIGN_IN', 'SESSION_REVOKED', 'ALL_SESSIONS_REVOKED', 'REFRESH_TOKEN_REUSE', 'PASSWORD_CHANGED', 'PASSWORD_RESET', 'DEVICE_TRUSTED', 'DEVICE_TRUST_REVOKED', 'DEVICE_CREDENTIAL_REVOKED', 'DEVICE_REMOVED', 'UNAUTHORIZED_SIGN_IN_REPORTED', 'ADMIN_PROVISIONED', 'ADMIN_INVITATION_ACCEPTED', 'ADMIN_ROLE_ASSIGNED', 'ADMIN_ROLE_CHANGED', 'ADMIN_SUSPICIOUS_ACTIVITY', 'SOCIAL_ACCOUNT_LINKED', 'SIGN_UP_EXISTING_EMAIL', 'ACTIVATION_RESENT', 'ACTIVATION_RESEND_VERIFIED_ACCOUNT', 'NOTIFICATION_FAILED'];
 
 // the user picker: finds a person and saves them as {{target_id}}
 const PICK_USER = { l: 'Pick a user', i: 'search', fn: () => pickUser() };
@@ -1422,7 +1422,8 @@ const ACCESS = {
     { id: 'verify', t: 'Verify email', m: 'GET', p: '/auth/verify/{token}', a: N,
       note: 'The activation email links to this call. Paste the token from the link (the last part of the address).', f: [pf('token', 'Verification token', '{{verification_token}}')] },
     { id: 'resend', t: 'Resend activation email', m: 'POST', p: '/auth/resend-activation', a: N,
-      note: 'Answers the same whether or not the address has an account.', f: [qf('email', 'Email', '{{email}}', { r: 1 })] }
+      note: 'The answer is the same whether or not the address has an account, and whether or not it is already verified. The owner is told what applies by email: a new link when unverified, a reminder to sign in when verified. Requests are limited per address and per client, and too many answer 429.',
+      f: [qf('email', 'Email', '{{email}}', { r: 1 })] }
   ],
   'Sign in': [
     { id: 'signin', t: 'Sign in with email and password', m: 'POST', p: '/auth/signin', a: N,
@@ -1433,11 +1434,15 @@ const ACCESS = {
   ],
   'Social login': [
     { id: 'google', t: 'Google (sign up or sign in)', m: 'POST', p: '/auth/google', a: N,
-      note: 'Send a Google ID token. A first login with a new email creates the account; the same email later signs in to it. The Social sign in page gets a token for you.',
-      f: [{ k: 'token', l: 'Google ID token', d: '{{google_oauth_token}}', r: 1, t: 'textarea', rows: 3 }], onOk: res => adoptSession(res, 'google') },
+      note: 'Send a Google ID token. A first login with a new email creates the account; the same email later signs in to it. The Social sign in page gets a token for you. Apps that cannot run Google sign in, such as Linux and Windows desktop, send an authorization code instead: put the code in token and the redirect it was issued for in redirectUri. The service exchanges the code itself, so the Google secret stays on the server, and the redirect must be on OAUTH_ALLOWED_REDIRECT_URIS.',
+      f: [{ k: 'token', l: 'Google ID token or authorization code', d: '{{google_oauth_token}}', r: 1, t: 'textarea', rows: 3 },
+          { k: 'redirectUri', l: 'Redirect URI (authorization code only)', ph: 'leave empty for an ID token', h: 'Needed only when token is an authorization code. Must match the redirect used on the authorize request.' }],
+      onOk: res => adoptSession(res, 'google') },
     { id: 'facebook', t: 'Facebook (sign up or sign in)', m: 'POST', p: '/auth/facebook', a: N,
-      note: 'Send a Facebook user access token that includes the email permission.',
-      f: [{ k: 'token', l: 'Facebook access token', d: '{{facebook_oauth_token}}', r: 1, t: 'textarea', rows: 3 }], onOk: res => adoptSession(res, 'facebook') },
+      note: 'Send a Facebook user access token that includes the email permission. Desktop apps can send an authorization code instead: put the code in token and the redirect it was issued for in redirectUri.',
+      f: [{ k: 'token', l: 'Facebook access token or authorization code', d: '{{facebook_oauth_token}}', r: 1, t: 'textarea', rows: 3 },
+          { k: 'redirectUri', l: 'Redirect URI (authorization code only)', ph: 'leave empty for an access token', h: 'Needed only when token is an authorization code. Must match the redirect used on the authorize request.' }],
+      onOk: res => adoptSession(res, 'facebook') },
     { id: 'github', t: 'GitHub (sign up or sign in)', m: 'POST', p: '/auth/github', a: N,
       note: 'Send the one-time code GitHub redirects back with (or a GitHub access token). A code works once.',
       f: [{ k: 'token', l: 'GitHub code or token', d: '{{github_oauth_token}}', r: 1, t: 'textarea', rows: 3 }], onOk: res => adoptSession(res, 'github') }
@@ -1578,6 +1583,24 @@ const LOCATION = {
   ]
 };
 
+// ----- address search: Google Places through the auth service -----
+const PLACE_SESSION = qf('session', 'Session token', 'console-search-1', { h: '8 to 64 letters, digits, hyphens or underscores. Use one value for a search and the place chosen from it, because Google bills them as one session.' });
+const PLACES = {
+  'Address search': [
+    { id: 'pl-status', t: 'Is Google search on?', m: 'GET', p: '/places/status', a: J,
+      note: 'Answers { enabled, provider }. enabled is false until GOOGLE_MAPS_API_KEY is set on the service. The apps then use a free search instead.' },
+    { id: 'pl-suggest', t: 'Suggest addresses', m: 'GET', p: '/places/suggest', a: J, use: ['place_id'],
+      note: 'Needs 2 to 120 characters. country is an optional two letter code that puts results from that country first. Each row has an id: use it as {{place_id}} to fetch the full place.',
+      f: [qf('q', 'Search text', 'Donholm', { r: 1 }), qf('country', 'Country (2 letters)', 'KE'), PLACE_SESSION] },
+    { id: 'pl-details', t: 'Get a place', m: 'GET', p: '/places/details', a: J,
+      note: 'Coordinates and address parts for a suggestion: name, houseNumber, street, district, city, state, postcode, country and countryCode.',
+      f: [qf('id', 'Place id', '{{place_id}}', { r: 1 }), PLACE_SESSION] },
+    { id: 'pl-reverse', t: 'Find the address at a point', m: 'GET', p: '/places/reverse', a: J,
+      note: 'What the map picker asks when the pin stops moving. Answers 404 when nothing is known at that point.',
+      f: [qf('lat', 'Latitude', -1.2921, { t: 'number', r: 1 }), qf('lng', 'Longitude', 36.8219, { t: 'number', r: 1 })] }
+  ]
+};
+
 // ----- home owner application: the applicant's side -----
 const appCap = p => ({ application_id: p && (p.id || p.applicationId) });
 const HOME_OWNER = {
@@ -1713,7 +1736,7 @@ const SYSTEM = [
 // every group, for the endpoint explorer and the search box
 const GROUPS = [
   ['Sign up and recovery', 'access', ACCESS], ['Sessions and devices', 'security', SECURITY], ['Profile', 'profile', PROFILE], ['Likes, follows, reviews', 'community', COMMUNITY],
-  ['Location', 'location', LOCATION], ['Home owner application', 'application', HOME_OWNER], ['Staff review', 'staff', STAFF], ['Administration', 'admin', ADMIN],
+  ['Location', 'location', LOCATION], ['Address search', 'places', PLACES], ['Home owner application', 'application', HOME_OWNER], ['Staff review', 'staff', STAFF], ['Administration', 'admin', ADMIN],
   ['Internal', 'internal', { Internal: INTERNAL }], ['System', 'system', { System: SYSTEM }]
 ];
 const REG = [];
@@ -1984,7 +2007,7 @@ function renderLogin() {
 // ---------- shell ----------
 const NAV = [
   ['Account', 'overview', 'Overview', 'home'], ['Account', 'access', 'Sign up and recovery', 'plus'], ['Account', 'social', 'Social sign in', 'globe'], ['Account', 'security', 'Sessions and devices', 'lock'], ['Account', 'profile', 'Profile', 'user'],
-  ['Community', 'community', 'Likes, follows, reviews', 'users'], ['Community', 'location', 'Location', 'pin'],
+  ['Community', 'community', 'Likes, follows, reviews', 'users'], ['Community', 'location', 'Location', 'pin'], ['Community', 'places', 'Address search', 'pin'],
   ['Home owners', 'application', 'My application', 'building'], ['Home owners', 'staff', 'Staff review', 'layers', 'STAFF'], ['Home owners', 'admin', 'Administration', 'shield', 'ADMIN'],
   ['Services', 'internal', 'Internal API', 'link'], ['Services', 'system', 'Health', 'bolt'],
   ['Tools', 'explorer', 'All endpoints', 'list'], ['Tools', 'builder', 'Request builder', 'tool'], ['Tools', 'errors', 'Error shapes', 'flag']
@@ -2631,6 +2654,10 @@ PAGES.community = () => h('div', null,
 PAGES.location = () => h('div', null,
   lead('The signed-in user\'s live location. Every update also lands in the history.'),
   tabsFromMap(LOCATION, items => listFor(items, { open: true })));
+
+PAGES.places = () => h('div', null,
+  lead('Address search for the apps, answered by Google through the auth service so the Google key never leaves the server. Search for a place, use a row\'s id, then fetch the full place.'),
+  tabsFromMap(PLACES, items => listFor(items, { open: true })));
 
 // ---------- home owner application ----------
 const PIPE = [['DRAFT', 'Draft', 'Fill in and upload'], ['SUBMITTED', 'Submitted', 'Waiting for a reviewer'], ['PROCESSING', 'In review', 'A reviewer is checking'], ['VERIFIED', 'Verified', 'Final approval next'], ['ACCEPTED', 'Accepted', 'Now a Home Owner']];
