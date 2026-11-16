@@ -265,6 +265,17 @@ home-owner-application:
   max-reapplications: ${HOME_OWNER_MAX_REAPPLICATIONS:3}
   frontend-path: ${HOME_OWNER_FRONTEND_PATH:/home-owner/application}
 
+# ── Places: address search and map pin lookups ──
+# With a key, the apps get Google Places suggestions, which know Nairobi estates, roads and landmarks well.
+# Without one the apps use the free OpenStreetMap search. The key never leaves this service.
+# In Google Cloud: enable "Places API (New)" and "Geocoding API", turn on billing, create a key and restrict
+# it to those two APIs and to this server's IP address.
+places:
+  google-api-key: ${GOOGLE_MAPS_API_KEY:}
+  timeout-ms: ${PLACES_TIMEOUT_MS:4000}
+  # One account cannot make more than this many Google calls a minute
+  requests-per-user-per-minute: ${PLACES_REQUESTS_PER_USER_PER_MINUTE:90}
+
 # ── Logging ──
 logging:
   level:
