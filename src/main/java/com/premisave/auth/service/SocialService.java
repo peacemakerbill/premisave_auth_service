@@ -24,6 +24,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -417,7 +418,7 @@ public class SocialService {
         List<Follower> follows = followerRepository.findByFollowerId(currentUser.getId());
 
         List<String> targetIds = follows.stream()
-                .map(f -> f.getUser().getId())
+                .map(Follower::getUser).filter(Objects::nonNull).map(User::getId)
                 .collect(Collectors.toList());
 
         if (targetIds.isEmpty()) {
@@ -439,7 +440,7 @@ public class SocialService {
         List<Like> likes = likeRepository.findByTargetId(currentUser.getId());
 
         List<String> likerIds = likes.stream()
-                .map(like -> like.getUser().getId())
+                .map(Like::getUser).filter(Objects::nonNull).map(User::getId)
                 .collect(Collectors.toList());
 
         if (likerIds.isEmpty()) {
@@ -457,7 +458,7 @@ public class SocialService {
         List<Follower> followers = followerRepository.findByUserId(currentUser.getId());
 
         List<String> followerIds = followers.stream()
-                .map(f -> f.getFollower().getId())
+                .map(Follower::getFollower).filter(Objects::nonNull).map(User::getId)
                 .collect(Collectors.toList());
 
         if (followerIds.isEmpty()) {
