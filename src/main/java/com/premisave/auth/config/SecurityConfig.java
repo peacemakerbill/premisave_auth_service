@@ -41,7 +41,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/health", "/auth/**", "/oauth2/**",
                                "/error", "/swagger-ui/**", "/v3/api-docs/**",
-                               "/test/**", "/profile/public/directory",
+                               "/test/**", "/contact", "/profile/public/directory",
                                "/internal/**").permitAll()
                 
                 .requestMatchers("/social/**").authenticated()

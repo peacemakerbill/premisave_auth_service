@@ -314,7 +314,7 @@ Every setting lives in `src/main/resources/application.yml` and can be overridde
 | `BACKEND_URL` | `http://localhost:8080` | no | This service's own public base URL. |
 | `MAIL_HOST` / `MAIL_PORT` | `smtp.gmail.com` / `587` | no | SMTP server (STARTTLS). |
 | `GMAIL_USERNAME` / `GMAIL_PASSWORD` | none | **yes** | SMTP credentials. For Gmail, use an App Password. |
-| `SUPPORT_EMAIL` | none | no | Support address shown in email footers. |
+| `SUPPORT_EMAIL` | none | no | Support address shown in email footers. Contact us messages from the app are delivered to this inbox, with the sender as reply-to. |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | none | **yes** | Cloudinary credentials, used for both manual profile-picture uploads and importing an OAuth provider's picture. No built-in default. |
 | `GOOGLE_CLIENT_ID` | blank (disabled) | no | Audience checked when verifying Google ID tokens. Comma-separate several client IDs (web, Android, iOS) to accept a token issued to any of them. Leave unset to disable Google sign-in without affecting anything else. |
 | `GOOGLE_CLIENT_SECRET` / `GOOGLE_CODE_CLIENT_ID` | blank | no | Only for Google sign in by authorization code, used by Linux and Windows desktop where Google's own sign in cannot run. The secret belongs to a Web application client; `GOOGLE_CODE_CLIENT_ID` names it and defaults to the first `GOOGLE_CLIENT_ID`. The client must list the redirect address under Authorized redirect URIs. |

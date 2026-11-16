@@ -101,10 +101,18 @@ public class EmailService {
      * any failure in the audit trail.
      */
     public void sendHtml(String to, String subject, String htmlContent) {
+        sendHtml(to, subject, htmlContent, null);
+    }
+
+    /** Same as above, with a Reply-To address so that answering the email reaches the right person. */
+    public void sendHtml(String to, String subject, String htmlContent, String replyTo) {
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             helper.setTo(to);
+            if (replyTo != null && !replyTo.isBlank()) {
+                helper.setReplyTo(replyTo);
+            }
             helper.setSubject(subject);
             helper.setText(htmlContent, true);
             mailSender.send(mimeMessage);
