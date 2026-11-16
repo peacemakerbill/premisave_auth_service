@@ -1,704 +1,348 @@
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=1E40AF&height=240&section=header&text=Premisave%20Auth%20Service&fontSize=52&fontColor=ffffff&fontAlignY=34&desc=Authentication%2C%20identity%20and%20user%20management%20microservice&descSize=18&descAlignY=58&animation=fadeIn" alt="Premisave Auth Service - authentication, identity and user management microservice banner" />
-</p>
+<div align="center">
 
-<h1 align="center">Premisave Auth Service: Authentication, Identity &amp; User Management API</h1>
+<img src="docs/assets/banner.svg" alt="Premisave Auth Service. Identity, sessions and accounts for Premisave." width="100%"/>
 
-<p align="center">
-  <b>A Spring Boot 4 &amp; MongoDB microservice that issues and revokes the JWTs every other Premisave service trusts, signs users in with email and password or with Google, Facebook and GitHub, and owns user accounts, profiles, social interactions, and location history for the Premisave property platform.</b>
-</p>
+<br/>
 
-<p align="center">
-  <a href="https://github.com/peacemakerbill">
-    <img src="https://avatars.githubusercontent.com/u/262163756?v=4&s=200" width="110" height="110" alt="Bill Graham Peacemaker (peacemakerbill) GitHub profile picture" />
-  </a>
-  <br/>
-  <sub>Built by <a href="https://github.com/peacemakerbill"><b>Bill Graham Peacemaker</b></a> (<code>@peacemakerbill</code>) · Backend Developer &amp; API Support Engineer · Nairobi, Kenya</sub>
-</p>
+[![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Security](https://img.shields.io/badge/Spring_Security-JWT-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)](docs/AUTHENTICATION.md)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io)
+[![Maven](https://img.shields.io/badge/Maven-Wrapper-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white)](docs/DEVELOPMENT.md)
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 21" />
-  <img src="https://img.shields.io/badge/Spring_Boot-4.1.1-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 4.1.1" />
-  <img src="https://img.shields.io/badge/Spring_Framework-7.0.9-6DB33F?style=for-the-badge&logo=spring&logoColor=white" alt="Spring Framework 7" />
-  <img src="https://img.shields.io/badge/Spring_Security-JWT-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white" alt="Spring Security with JWT" />
-  <img src="https://img.shields.io/badge/MongoDB-Spring_Data-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB with Spring Data" />
-  <img src="https://img.shields.io/badge/Redis-Bucket4j-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis and Bucket4j" />
-  <img src="https://img.shields.io/badge/Maven-Build-C71A36?style=for-the-badge&logo=apachemaven&logoColor=white" alt="Apache Maven" />
-</p>
+[![Google](https://img.shields.io/badge/Google-4285F4?style=flat-square&logo=google&logoColor=white)](docs/SOCIAL_SIGN_IN.md#google)
+[![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=flat-square&logo=facebook&logoColor=white)](docs/SOCIAL_SIGN_IN.md#facebook)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)](docs/SOCIAL_SIGN_IN.md#github)
+[![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=flat-square&logo=cloudinary&logoColor=white)](docs/CONFIGURATION.md#mail-and-profile-pictures)
+[![Gmail SMTP](https://img.shields.io/badge/Gmail_SMTP-EA4335?style=flat-square&logo=gmail&logoColor=white)](docs/CONFIGURATION.md#mail-and-profile-pictures)
+[![License: MIT](https://img.shields.io/badge/License-MIT-E3A72F?style=flat-square)](LICENSE)
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Google-Sign--In-4285F4?style=for-the-badge&logo=google&logoColor=white" alt="Google Sign-In" />
-  <img src="https://img.shields.io/badge/Facebook-Login-1877F2?style=for-the-badge&logo=facebook&logoColor=white" alt="Facebook Login" />
-  <img src="https://img.shields.io/badge/GitHub-OAuth-181717?style=for-the-badge&logo=github&logoColor=white" alt="GitHub OAuth" />
-  <img src="https://img.shields.io/badge/Cloudinary-Media-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white" alt="Cloudinary" />
-  <img src="https://img.shields.io/badge/Gmail-SMTP-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail SMTP" />
-  <img src="https://img.shields.io/badge/JJWT-0.12.6-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JJWT 0.12.6" />
-</p>
+[![Last commit](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?style=flat-square&color=14493B)](https://github.com/peacemakerbill/premisave_auth_service/commits/main)
+[![Stars](https://img.shields.io/github/stars/peacemakerbill/premisave_auth_service?style=flat-square&color=14493B)](https://github.com/peacemakerbill/premisave_auth_service/stargazers)
+[![Issues](https://img.shields.io/github/issues/peacemakerbill/premisave_auth_service?style=flat-square&color=14493B)](https://github.com/peacemakerbill/premisave_auth_service/issues)
+[![Frontend](https://img.shields.io/badge/frontend-premisave__flutter__frontend-0E3B2F?style=flat-square&logo=flutter&logoColor=E3A72F)](https://github.com/peacemakerbill/premisave_flutter_frontend)
 
-<p align="center">
-  <a href="https://github.com/peacemakerbill/premisave_auth_service/stargazers"><img src="https://img.shields.io/github/stars/peacemakerbill/premisave_auth_service?style=for-the-badge&logo=github" alt="GitHub stars" /></a>
-  <a href="https://github.com/peacemakerbill/premisave_auth_service/network/members"><img src="https://img.shields.io/github/forks/peacemakerbill/premisave_auth_service?style=for-the-badge&logo=github" alt="GitHub forks" /></a>
-  <a href="https://github.com/peacemakerbill/premisave_auth_service/issues"><img src="https://img.shields.io/github/issues/peacemakerbill/premisave_auth_service?style=for-the-badge" alt="Open issues" /></a>
-  <a href="https://github.com/peacemakerbill/premisave_auth_service/commits"><img src="https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?style=for-the-badge" alt="Last commit" /></a>
-  <img src="https://img.shields.io/github/repo-size/peacemakerbill/premisave_auth_service?style=for-the-badge" alt="Repository size" />
-  <img src="https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge" alt="Proprietary license" />
-  <img src="https://img.shields.io/badge/Made_in-Nairobi,_Kenya-000000?style=for-the-badge" alt="Made in Nairobi, Kenya" />
-</p>
+**[Quick start](#quick-start)** &nbsp;|&nbsp; **[How it works](#how-it-works)** &nbsp;|&nbsp; **[Sign in](#sign-in-and-sessions)** &nbsp;|&nbsp; **[Access](#who-can-reach-what)** &nbsp;|&nbsp; **[Applications](#home-owner-applications)** &nbsp;|&nbsp; **[Docs](#documentation)**
 
-<p align="center">
-  <a href="#quick-start">Quick start</a> ·
-  <a href="#architecture">Architecture</a> ·
-  <a href="#authentication-flows">Authentication flows</a> ·
-  <a href="#api-reference">API reference</a> ·
-  <a href="#configuration-reference">Configuration</a> ·
-  <a href="#troubleshooting">Troubleshooting</a>
-</p>
+</div>
 
-> **If this saves you time building JWT authentication for Spring Boot microservices, please star the repo.** It helps other Kenyan developers find it.
-
-> **Disclaimer.** This is an independent, community-built project shared as a portfolio and reference implementation. It is not affiliated with or endorsed by Google, Meta, Cloudinary, or any other third party it integrates with. Always follow each provider's own current documentation for credentials and production requirements.
-
----
-
-## Table of contents
-
-1. [What is this?](#what-is-this)
-2. [Features](#features)
-3. [Architecture](#architecture)
-4. [Authentication flows](#authentication-flows)
-5. [JWT contract for sibling services](#jwt-contract-for-sibling-services)
-6. [Quick start](#quick-start)
-7. [Build and run](#build-and-run)
-8. [Configuration reference](#configuration-reference)
-9. [API reference](#api-reference)
-10. [Testing with Postman or curl](#testing-with-postman-or-curl)
-11. [Roles and access control](#roles-and-access-control)
-12. [Data model](#data-model)
-13. [Going live](#going-live)
-14. [Security notes](#security-notes)
-15. [Project structure](#project-structure)
-16. [Troubleshooting](#troubleshooting)
-17. [Roadmap ideas](#roadmap-ideas)
-18. [Contributing](#contributing)
-19. [Author](#author)
-
----
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
 
 ## What is this?
 
-**Premisave Auth Service** is the identity layer of the Premisave platform. Every user signs up, signs in, and manages their account here, and every other Premisave microservice (wallet, property, booking) trusts the JWTs this service issues rather than running its own login.
+The auth-service is the identity layer of the Premisave real estate platform. People sign up, sign in and manage their account here, and the other Premisave services (wallet, property, booking) trust the tokens it issues instead of running a login of their own.
 
-Concretely, it:
-
-- registers users with email and password, verifies their address by email, and handles forgotten and changed passwords,
-- signs users in with Google, Facebook or GitHub by verifying the provider's credential server-side, creating the account on first login and importing its profile picture,
-- issues signed JWTs carrying the user's ID, email, and role, and revokes them on logout through a Redis blacklist,
-- owns the user profile (names, contact details, language, profile picture on Cloudinary),
-- provides the social layer used across the platform: likes, follows, star-rated reviews, and "who viewed my profile",
-- records a user's location history,
-- gives administrators a full user-management surface (create, edit, archive, activate, verify, change role, reset password),
-- exposes a small, API-key-protected `/internal/**` API so sibling services can validate and look up users without a user JWT.
-
-## Features
+It is a Spring Boot service with MongoDB for data and Redis for the token blacklist, the session cache and the sign-in throttles. The [Flutter app](https://github.com/peacemakerbill/premisave_flutter_frontend) is its main client, and any other client or service can use the same HTTP API.
 
 | | |
-|---|---|
-| **Email and password accounts** | Signup, activation by emailed link (24-hour token), resend activation, forgot and reset password, change password. |
-| **Social sign-in** | Google (ID token verified with Google's verifier and your client ID), Facebook (access token checked with the Graph API's debug_token endpoint to confirm it belongs to your app, then read with appsecret_proof), and GitHub (authorization code exchanged server-side, or a client-supplied token checked against GitHub's check-token API). New users are created verified, with a unique username and their provider picture imported to Cloudinary. Signing in again with an email that already exists links the provider to that account. Each provider is independently optional: the service starts normally with any subset configured. |
-| **Stateless JWT auth** | HS256-signed tokens with `userId`, `email`, and `roles` claims, shared by every Premisave service. |
-| **Real logout** | Logged-out tokens are blacklisted in Redis until their natural expiry. |
-| **Profiles** | Self profile, public profile of another user (contact details stripped), search, and discovery listing. |
-| **Profile pictures** | Validated image upload (JPEG, PNG, GIF, WEBP) pushed to Cloudinary on a background thread with a 400x400 transformation. |
-| **Social graph** | Likes, follows, mutual-follow check, 1 to 5 star reviews with comments, and aggregate stats per user. |
-| **Profile views** | Records views (deduplicated to one per viewer per 24 hours), with "who viewed me", "who I viewed", and view statistics. |
-| **Location history** | Current location plus full history, newest first. |
-| **Admin user management** | Role-gated CRUD, archive, activate, verify, role changes with a last-admin safeguard, and password management. |
-| **Internal service API** | Email validation and user-detail lookup for sibling services, protected by `X-API-Key`. |
-| **Rate limiting** | Token-bucket throttling with Bucket4j on signup, signin, password reset, and social write endpoints. |
-| **HTML email templates** | Activation and password-reset emails sent asynchronously over SMTP. |
+| --- | --- |
+| **Accounts** | Email and password with activation by email, password reset, and sign in with Google, Facebook or GitHub. |
+| **Sessions you can see** | Every sign in is a server side session with two tokens. People can list their sessions and devices and end any of them. |
+| **Alerts, not guesses** | A new device or an odd pattern sends an email with a "this was not me" link. Nothing is blocked automatically. |
+| **Six roles** | Client, home owner, operations, finance, support and admin. Roles are only ever set on the server. |
+| **Home Owner applications** | A client applies with documents, staff review it, and an admin promotes the account. Files stay on a disk you control. |
+| **Profiles and social** | Profiles with pictures, likes, follows, reviews, profile views, location history and address search. |
+| **A small internal API** | `/internal/**` lets other services check a user or a session with a shared key. |
+| **One service to read** | 203 Java files, about 13 thousand lines, 118 endpoints. See [code at a glance](#code-at-a-glance). |
 
-## Architecture
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
 
-```
-┌──────────────┐   email/password,   ┌──────────────────────────┐      ┌──────────────┐
-│   End User   │   Google, Facebook  │                          │ ───► │   MongoDB    │
-│ (web/Flutter)│ ──────────────────► │   Premisave Auth Service │      ├──────────────┤
-└──────────────┘ ◄────── JWT ─────── │    (this repository)     │ ───► │ Redis        │
-                                     │                          │      │ (blacklist,  │
-┌──────────────┐    X-API-Key        │  /auth  /profile         │      │  user cache) │
-│wallet-service│ ──────────────────► │  /social /location       │      ├──────────────┤
-└──────────────┘  /internal/users    │  /admin  /internal       │ ───► │ Gmail SMTP   │
-                                     └──────────────────────────┘      ├──────────────┤
-┌──────────────┐                                  │                    │ Cloudinary   │
-│property-serv.│  validate the same JWT           │                    ├──────────────┤
-│booking-serv. │  with the shared JWT_SECRET ◄────┘                    │ Google /     │
-└──────────────┘                                                       │ Facebook     │
-                                                                       └──────────────┘
-```
+## Contents
 
-**Design choices**
+- [Quick start](#quick-start)
+- [How it works](#how-it-works)
+- [Sign in and sessions](#sign-in-and-sessions)
+- [Who can reach what](#who-can-reach-what)
+- [Home Owner applications](#home-owner-applications)
+- [Account security](#account-security)
+- [API at a glance](#api-at-a-glance)
+- [Talking to other services](#talking-to-other-services)
+- [Configuration](#configuration)
+- [Project layout](#project-layout)
+- [Everyday commands](#everyday-commands)
+- [Documentation](#documentation)
+- [Known gaps](#known-gaps)
+- [Built with](#built-with)
+- [Code at a glance](#code-at-a-glance)
+- [Contributing](#contributing)
+- [License and author](#license-and-author)
 
-- **One identity provider for the whole platform.** Other services never store passwords or run login flows; they validate this service's JWTs with the shared secret and read the `userId` and `roles` claims.
-- **Email is the login identity.** `User.getUsername()` returns the email address for Spring Security, so the JWT subject is always the email. The display username is a separate, editable field.
-- **Two separate trust boundaries.** End users authenticate with JWTs. Service-to-service calls use a shared `X-API-Key` on `/internal/**`, handled by its own filter, so the two never mix.
-- **OAuth by credential verification, not backend redirects.** The frontend completes the sign-in itself — Google and Facebook's own SDKs, or GitHub's OAuth App authorization flow — and sends the resulting token or code to `POST /auth/oauth`. Every client secret stays server-side; only Google's client ID and GitHub's client ID are ever exposed to a frontend. This keeps the backend stateless and works identically for web and Flutter clients.
-- **One client class per provider.** `GoogleOAuthClient`, `FacebookOAuthClient` and `GitHubOAuthClient` each implement the same small interface and are the only things that know a given provider's API shape. Adding a fourth provider means adding one more implementation, not touching the other three.
-
-## Authentication flows
-
-### Signup and email verification
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as User
-    participant AS as Auth Service
-    participant DB as MongoDB
-    participant M as Gmail SMTP
-
-    U->>AS: POST /auth/signup
-    AS->>DB: Save user (verified=false), save ACTIVATION token (24h)
-    AS-)M: Send activation email (async)
-    AS-->>U: JWT and role
-    U->>AS: GET /auth/verify/{token} (link from email)
-    AS->>DB: Mark user verified, mark token used
-    AS-->>U: Account verified
-```
-
-Until the account is verified, sign-in is rejected because Spring Security treats the user as disabled.
-
-### Sign-in and logout
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as User
-    participant AS as Auth Service
-    participant DB as MongoDB
-    participant R as Redis
-
-    U->>AS: POST /auth/signin (email, password)
-    AS->>DB: Load user by email, check BCrypt hash, verified and active
-    AS->>R: Cache user:{id}
-    AS-->>U: JWT (userId, email, roles)
-
-    Note over U,AS: Authenticated requests send Authorization: Bearer <JWT>
-
-    U->>AS: POST /auth/logout
-    AS->>R: SET blacklist:{jwt} with TTL = remaining token lifetime
-    AS->>R: DEL user:{id}
-    AS-->>U: Logged out
-```
-
-Every request passes through `JwtAuthenticationFilter`, which rejects blacklisted tokens with `401` before validating the signature and expiry.
-
-### Google, Facebook and GitHub sign-in
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as User (web or Flutter)
-    participant P as Google / Facebook / GitHub
-    participant AS as Auth Service
-    participant DB as MongoDB
-    participant C as Cloudinary
-
-    U->>P: Sign in with provider
-    P-->>U: Google ID token, Facebook access token, or GitHub code
-    U->>AS: POST /auth/oauth { provider, token or code }
-    alt Google
-        AS->>AS: Verify ID token signature, audience and email_verified
-    else Facebook
-        AS->>P: GET /debug_token (confirms the token belongs to this app)
-        AS->>P: GET /me with an appsecret_proof
-    else GitHub
-        AS->>P: Exchange the authorization code for an access token
-        AS->>P: GET /user and /user/emails (verified email only)
-    end
-    AS->>DB: Find user by linked provider id, else by email (and link it), else create one
-    opt New user, or no Cloudinary picture yet
-        AS->>C: Import the provider's profile picture
-    end
-    AS-->>U: JWT and role
-```
-
-Each provider is independently optional. `oauth.google.client-id`, `oauth.facebook.app-id`/`app-secret`, and `oauth.github.client-id`/`client-secret` all default to blank, so the service starts with any subset configured; requesting an unconfigured provider returns a clear error instead of the service failing to boot.
-
-Signing in with a provider whose email already matches an existing account links that provider to the account (and marks it verified) rather than creating a duplicate. A provider picture is copied into Cloudinary — not linked directly — because some providers' picture URLs (Facebook's in particular) are signed and expire.
-
-### Password reset
-
-`POST /auth/forgot-password` emails a link to `{FRONTEND_URL}/reset-password?token=...`. The frontend posts the token and the new password to `POST /auth/reset-password`. Tokens are single-use and expire after 24 hours.
-
-## JWT contract for sibling services
-
-| Item | Value |
-|---|---|
-| Algorithm | HS256 |
-| Signing key | `JWT_SECRET`, Base64-decoded, then truncated or zero-padded to exactly 32 bytes |
-| `sub` | User's email |
-| `userId` | MongoDB user ID |
-| `email` | User's email |
-| `roles` | Single role name, for example `CLIENT` or `ADMIN` |
-| Lifetime | `JWT_EXPIRATION` in milliseconds (default 30 days) |
-
-Any service that validates these tokens must use the **same `JWT_SECRET` and the same 32-byte key derivation**, otherwise signatures will not match.
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
 
 ## Quick start
 
-### Prerequisites
+<img src="docs/assets/setup.svg" alt="Six steps: install the tools, clone, configure, run, check and sign in." width="100%"/>
 
-- **Java 21**
-- **Maven 3.9+**
-- **MongoDB** running locally, in Docker, or on Atlas
-- **Redis** running locally or hosted
-- A Gmail account with an **App Password** (or any SMTP server)
-- A Cloudinary account
-- Optional: a Google OAuth client ID, a Facebook app, or a GitHub OAuth App, for social sign-in — the service runs fine with none, some, or all of these configured
+The full walk through, with every prerequisite and the things that usually go wrong, is in **[docs/SETUP.md](docs/SETUP.md)**. The short version:
+
+**1. Install the tools.** Java 21 and git. For the databases, Docker is the quickest way, or install MongoDB and Redis yourself.
+
+**2. Start the databases and get the code.**
 
 ```bash
-# 1. Clone
-git clone https://github.com/peacemakerbill/premisave_auth_service.git
-cd premisave_auth_service
-
-# 2. Start MongoDB and Redis (skip if you already have them)
 docker run -d --name auth-mongo -p 27017:27017 mongo:8
 docker run -d --name auth-redis -p 6379:6379 redis:7
 
-# 3. Copy the environment template, fill it in, then run
+git clone https://github.com/peacemakerbill/premisave_auth_service.git
+cd premisave_auth_service
+```
+
+**3. Configure.** Copy the template and fill in the keys the service cannot start without. They have no defaults on purpose:
+
+```bash
 cp .env.example .env
-mvn spring-boot:run
 ```
 
-`.env` is loaded automatically at startup and holds every setting listed in `.env.example`: `MONGODB_URI`, `REDIS_HOST`/`REDIS_PORT`, `JWT_SECRET`, `JWT_EXPIRATION`, `API_KEY`, `FRONTEND_URL`, `BACKEND_URL`, the Gmail SMTP settings, the Cloudinary credentials, and the three optional OAuth provider settings. Generate `JWT_SECRET` with `openssl rand -base64 32` and `API_KEY` with `openssl rand -hex 32` — both are required, with no built-in default, so the service refuses to start without them.
+| Key | What it is |
+| --- | --- |
+| `JWT_SECRET` | Signs every token. Create one with `openssl rand -base64 32`. Other services that accept these tokens need the same value. |
+| `API_KEY` | The shared secret other services send as `X-API-Key`. Create one with `openssl rand -hex 32`. |
+| `GMAIL_PASSWORD` | A Gmail App Password, used to send activation and alert emails. Set `GMAIL_USERNAME` to the address that sends them. |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Profile pictures. A free account works. |
 
-`.env` itself must never be committed; only `.env.example` is meant to be tracked. Write values without quotes and without trailing spaces.
+MongoDB and Redis default to `localhost`, so a local setup needs nothing else. Set `SECURITY_DEVICE_COOKIE_SECURE=false` while you are on plain `http`, or the browser will not keep the device cookie.
 
-When the service is healthy you will see lines like:
-
-```
-Tomcat started on port 8080 (http) with context path '/'
-Started PremisaveAuthServiceApplication in 4.971 seconds
-```
-
-`GET http://localhost:8080/health` returns a plain-text status banner.
-
-## Build and run
+**4. Run it.**
 
 ```bash
-# Compile and package an executable jar
-mvn clean package
-
-# Run it (environment variables or a .env in the working directory)
-java -jar target/premisave_auth_service-0.0.1-SNAPSHOT.jar
+sh ./mvnw spring-boot:run
 ```
 
-**Notes**
-
-- `.env` is loaded from the working directory at startup and copied into system properties, so real environment variables (Docker, Kubernetes, systemd) work the same way.
-- The service starts on **port 8080** by default (`server.port` in `application.yml`).
-- On first start an initial administrator account is seeded if none exists. **Change its password immediately.**
-
-## Configuration reference
-
-Every setting lives in `src/main/resources/application.yml` and can be overridden by an environment variable or `.env`.
-
-| Environment variable | Default | Required | Description |
-|---|---|---|---|
-| `MONGODB_URI` | `mongodb://localhost:27017/premisave-auth` | no | MongoDB connection string. |
-| `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | no | Redis for the token blacklist and user cache. |
-| `JWT_SECRET` | none | **yes** | Base64 signing secret. Must match every Premisave service that validates tokens. |
-| `JWT_EXPIRATION` | `2592000000` (30 days) | no | Token lifetime in milliseconds. |
-| `API_KEY` | none | **yes** | Shared secret for `X-API-Key` on `/internal/**` and `/profile/public/directory`. Must equal `INTERNAL_API_KEY` in the wallet service. |
-| `FRONTEND_URL` | `http://localhost:3000` | no | Base URL used in activation and reset-password email links. |
-| `BACKEND_URL` | `http://localhost:8080` | no | This service's own public base URL. |
-| `MAIL_HOST` / `MAIL_PORT` | `smtp.gmail.com` / `587` | no | SMTP server (STARTTLS). |
-| `GMAIL_USERNAME` / `GMAIL_PASSWORD` | none | **yes** | SMTP credentials. For Gmail, use an App Password. |
-| `SUPPORT_EMAIL` | none | no | Support address shown in email footers. Contact us messages from the app are delivered to this inbox, with the sender as reply-to. |
-| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | none | **yes** | Cloudinary credentials, used for both manual profile-picture uploads and importing an OAuth provider's picture. No built-in default. |
-| `GOOGLE_CLIENT_ID` | blank (disabled) | no | Audience checked when verifying Google ID tokens. Comma-separate several client IDs (web, Android, iOS) to accept a token issued to any of them. Leave unset to disable Google sign-in without affecting anything else. |
-| `GOOGLE_CLIENT_SECRET` / `GOOGLE_CODE_CLIENT_ID` | blank | no | Only for Google sign in by authorization code, used by Linux and Windows desktop where Google's own sign in cannot run. The secret belongs to a Web application client; `GOOGLE_CODE_CLIENT_ID` names it and defaults to the first `GOOGLE_CLIENT_ID`. The client must list the redirect address under Authorized redirect URIs. |
-| `GOOGLE_MAPS_API_KEY` | blank (free search) | no | Turns on Google Places address search for the apps (`/places/**`). Enable "Places API (New)" and "Geocoding API", turn on billing, and restrict the key to those two APIs and this server's IP address. Blank means the apps use the free OpenStreetMap search. `PLACES_TIMEOUT_MS` (4000) and `PLACES_REQUESTS_PER_USER_PER_MINUTE` (90) tune it. |
-| `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | blank (disabled) | no | Facebook app credentials, used to confirm a token belongs to this app (`/debug_token`) and to sign Graph API calls (`appsecret_proof`). Leave both unset to disable Facebook sign-in. |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | blank (disabled) | no | GitHub OAuth App credentials, used to exchange an authorization code and to verify a client-supplied token belongs to this app. Leave both unset to disable GitHub sign-in. |
-| `OAUTH_ALLOWED_REDIRECT_URIS` | `http://localhost:3000/auth.html` | no | Redirect addresses a client may send with `POST /auth/google` or `/auth/facebook` when it hands over an authorization code instead of a token. Comma-separated, exact match. Set the real addresses in production. |
-| `RATE_LIMIT_REQUESTS_PER_MINUTE` | `20` | no | Bucket capacity and refill rate for rate-limited endpoints. |
-
-`JWT_SECRET`, `API_KEY`, and the three Cloudinary variables have no default in `application.yml` and must come from `.env` or the environment — the service fails to start without them. The three OAuth providers are the opposite: each defaults to blank and is simply unavailable via `/auth/oauth` until configured, so a missing or misconfigured provider can never take down the whole service.
-
-Also configurable in `application.yml`: `spring.servlet.multipart.max-file-size` (default `10MB`) and `profile-views.max-history-size` (default `20`).
-
-## API reference
-
-Base URL (local): `http://localhost:8080`
-
-| Namespace | Auth | Purpose |
-|---|---|---|
-| `/auth/**` | Public (except logout and change-password) | Signup, signin, OAuth, tokens, verification, passwords |
-| `/profile/**` | JWT | Own and other users' profiles, search, picture upload |
-| `/profile/views/**` | JWT | Profile view tracking and statistics |
-| `/social/**` | JWT | Likes, follows, reviews, stats |
-| `/location/**` | JWT | Current location and history |
-| `/admin/users/**` | JWT, `ADMIN` role | User management |
-| `/internal/users/**` | `X-API-Key` | Service-to-service validation and lookup |
-
-### Authentication
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/auth/signup` | Register. Sends an activation email. Rate limited. |
-| `POST` | `/auth/signin` | Email and password login. Rate limited. |
-| `POST` | `/auth/oauth` | Google, Facebook or GitHub sign-in. Creates and links accounts, imports the provider picture. |
-| `POST` | `/auth/logout` | Blacklist the bearer token. |
-| `POST` | `/auth/refresh` | Exchange a still-valid token for a fresh one. |
-| `GET` | `/auth/verify/{token}` | Verify an account from the emailed link. |
-| `POST` | `/auth/resend-activation?email=` | Resend the activation email. The answer is the same for every address; a verified account is told by email that it is already verified. Limited to one request a minute and five an hour per address, and twenty an hour per client (429 beyond that). |
-| `POST` | `/auth/forgot-password` | Email a password-reset link. Rate limited. |
-| `POST` | `/auth/reset-password` | Set a new password with a reset token. Rate limited. |
-| `POST` | `/auth/change-password` | Change password while signed in. |
-
-#### `POST /auth/signup`
-
-```json
-{
-  "username": "janedoe",
-  "firstName": "Jane",
-  "middleName": "W",
-  "lastName": "Doe",
-  "email": "jane@example.com",
-  "phoneNumber": "+254712345678",
-  "country": "Kenya",
-  "language": "ENGLISH",
-  "password": "S3cure!pass"
-}
-```
-
-Response (`200`):
-
-```json
-{
-  "token": "eyJhbGciOiJIUzI1NiJ9...",
-  "role": "CLIENT",
-  "refreshToken": null
-}
-```
-
-#### `POST /auth/oauth`
-
-```json
-{ "provider": "google", "token": "<ID token from Google Sign-In>" }
-```
-
-```json
-{ "provider": "facebook", "token": "<access token from Facebook Login>" }
-```
-
-```json
-{ "provider": "github", "code": "<authorization code>", "redirectUri": "<redirect_uri used to request the code>" }
-```
-
-GitHub also accepts an access token directly instead of a code:
-
-```json
-{ "provider": "github", "token": "<GitHub access token issued to this OAuth app>" }
-```
-
-Returns the same `AuthResponse` shape as signin. An unconfigured or misused provider returns `400` with a plain message, for example `"Facebook sign-in is not configured on this server"` or `"This email is already linked to a different Google account"`.
-
-### Profile
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/profile/me` | Current user's full profile, including a computed `fullName`. |
-| `GET` | `/profile/user/{userId}` | Another user's profile. |
-| `GET` | `/profile/search?query=` | Search active users by name, username, email, or phone. |
-| `GET` | `/profile/all` | All active, non-archived users (contact details stripped). |
-| `PUT` | `/profile/update` | Partial profile update. |
-| `POST` | `/profile/upload-profile-picture` | Multipart upload, form field `file`. |
-| `POST` | `/profile/change-password` | Change password (current, new, confirm). |
-| `GET` | `/profile/public/directory` | Directory of active users. Requires `X-API-Key`. |
-
-### Profile views
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/profile/views/{targetId}` | Record a view (once per viewer per target per 24 hours). |
-| `GET` | `/profile/views/who-viewed-me` | Latest 20 viewers. |
-| `GET` | `/profile/views/who-i-viewed` | Profiles the current user viewed. |
-| `GET` | `/profile/views/my-stats` | Total, last 7 days, last 30 days, unique viewers. |
-| `GET` | `/profile/views/stats/{userId}` | Another user's total views only. |
-
-### Social
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/social/like` | Like a user (`targetId`). Rate limited. |
-| `DELETE` | `/social/unlike/{targetId}` | Remove a like. |
-| `POST` | `/social/follow` | Follow a user (`targetId`). Rate limited. |
-| `DELETE` | `/social/unfollow/{targetId}` | Unfollow. |
-| `POST` | `/social/review` | Review a user (`targetId`, `rating` 1 to 5, `comment`). Rate limited. |
-| `PUT` | `/social/review` | Edit own review (`reviewId`). |
-| `DELETE` | `/social/review/{reviewId}` | Delete own review. |
-| `GET` | `/social/reviews/{targetId}` | Reviews of a user, newest first. Each review carries the reviewer's `userId`, `reviewerName`, `reviewerEmail` and `reviewerProfilePicture`. |
-| `GET` | `/social/stats/{userId}` | Followers, following, likes, average rating, review count. |
-| `GET` | `/social/my-likes`, `/social/my-following` | Users I liked or follow. |
-| `GET` | `/social/my-likers`, `/social/my-followers` | Users who liked or follow me. |
-| `GET` | `/social/my-reviews`, `/social/my-written-reviews` | Reviews about me and by me, in the same shape as above. |
-| `GET` | `/social/{like,follow,review}/status/{targetId}` | Whether I liked, follow, or reviewed a user. |
-| `GET` | `/social/follow/mutual/{targetId}` | Whether the follow is mutual. |
-
-### Location
-
-| Method | Path | Description |
-|---|---|---|
-| `PUT` | `/location` | Set the current location. The previous one is kept as history. |
-| `GET` | `/location/current` | Current location. |
-| `GET` | `/location/history?limit=100` | History, newest first (maximum 500). |
-
-### Admin user management
-
-All under `/admin/users`, `ADMIN` role required.
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/admin/users`, `/active`, `/archived` | List users. |
-| `GET` | `/{id}`, `/email/{email}` | Get one user. |
-| `POST` | `/create` | Create a user. |
-| `PUT` | `/update/{id}` | Update a user. |
-| `DELETE` | `/delete/{id}` | Delete a user. |
-| `PUT` | `/archive/{id}`, `/unarchive/{id}` | Archive state. |
-| `PUT` | `/activate/{id}`, `/deactivate/{id}` | Active state. |
-| `PUT` | `/verify/{id}`, `/unverify/{id}` | Verification state (admins cannot be unverified). |
-| `PUT` | `/change-role/{id}` | Change role. The last remaining admin cannot be demoted. |
-| `PUT` | `/update-password/{id}` | Set a password (strength rules enforced). |
-| `PUT` | `/reset-password/{id}` | Reset to a temporary password. |
-| `POST` | `/search` | Search users. |
-| `GET` | `/exists/email/{email}`, `/exists/username/{username}` | Availability checks. |
-
-### Internal (service-to-service)
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/internal/users/validate-email/{email}` | Always `200` with `{ "valid": bool, "reason": "..." }`. Reasons: `NOT_FOUND`, `INACTIVE`, `UNVERIFIED`, `ARCHIVED`, `INVALID_FORMAT`. |
-| `GET` | `/internal/users/{email}/details` | `id`, `email`, `role`, `active`, `verified`, name fields and `fullName`. `404` if not found. |
-
-Both require `X-API-Key`. The wallet service calls `validate-email` during M-Pesa C2B validation and `details` to put real names on transfer and payment emails.
-
-## Testing with Postman or curl
+**5. Check it.**
 
 ```bash
-BASE=http://localhost:8080
-
-# Sign in and capture the token
-TOKEN=$(curl -s -X POST "$BASE/auth/signin" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"jane@example.com","password":"S3cure!pass"}' | jq -r .token)
-
-# Current profile
-curl -s "$BASE/profile/me" -H "Authorization: Bearer $TOKEN"
-
-# Follow another user
-curl -s -X POST "$BASE/social/follow" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"targetId":"<user id>"}'
-
-# Upload a profile picture
-curl -s -X POST "$BASE/profile/upload-profile-picture" \
-  -H "Authorization: Bearer $TOKEN" \
-  -F "file=@avatar.jpg"
-
-# Internal lookup, as the wallet service does it
-curl -s -H "X-API-Key: $API_KEY" "$BASE/internal/users/jane@example.com/details"
-
-# Log out (the token stops working immediately)
-curl -s -X POST "$BASE/auth/logout" -H "Authorization: Bearer $TOKEN"
+curl http://localhost:8080/health
 ```
 
-**Collection variables worth saving in Postman:** `base_url_auth`, `jwt_token`, `api_key`, `test_user_id`, `test_user_email`.
+**6. Sign in.** Register through the [Flutter app](https://github.com/peacemakerbill/premisave_flutter_frontend), through the [browser console](test-client/README.md) or with curl, then open the activation link in the email. To get an administrator on the first start, set `ADMIN1_*` or `INITIAL_ADMIN_EMAILS` as described in [docs/ADMIN_AND_ACCOUNT_SECURITY.md](docs/ADMIN_AND_ACCOUNT_SECURITY.md).
 
-## Roles and access control
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
 
-| Role | Intended for |
-|---|---|
-| `CLIENT` | Default for new users, tenants and buyers. |
-| `HOME_OWNER` | Property owners and landlords. |
-| `ADMIN` | Full platform administration, including `/admin/**` here. |
-| `OPERATIONS` | Operations staff (enforced by sibling services). |
-| `FINANCE` | Finance staff (enforced by sibling services, for example wallet reports). |
-| `SUPPORT` | Customer support staff. |
+## How it works
 
-Spring Security authorities are the role name prefixed with `ROLE_`, so `hasRole('ADMIN')` matches `ADMIN`.
+<img src="docs/assets/architecture.svg" alt="A request moves from the caller through filters, controllers and services to MongoDB and Redis, and the answer returns the same way." width="100%"/>
 
-## Data model
+Every request goes through the same path. Filters look at who is calling, the route rules decide whether that caller may go on, a controller checks the input and a service does the work against MongoDB and Redis. The counts in the picture are read from the source, see [code at a glance](#code-at-a-glance).
 
-MongoDB collections:
-
-| Collection | Purpose |
-|---|---|
-| `users` | Accounts, profile fields, role, `active` / `verified` / `archived` flags, audit timestamps, last login. |
-| `tokens` | Single-use activation and password-reset tokens with expiry. |
-| `likes` | One document per (user, target), unique index. |
-| `followers` | One document per (followed user, follower), unique index. |
-| `reviews` | Star rating and comment per (reviewer, target). |
-| `profile_views` | Viewer, target, device type, source, timestamp. |
-| `user_locations` | Location history with a single `isCurrent` entry per user. |
-
-A user can sign in only when `active` and `verified` are both true. Archived users are excluded from search, discovery, and internal validation.
-
-## Going live
-
-1. **Serve over HTTPS** behind a reverse proxy or load balancer.
-2. **Use freshly generated secrets for `JWT_SECRET`, `API_KEY`, and the Cloudinary credentials in production's `.env`.** `application.yml` no longer ships with a fallback for any of these, so a deployment fails fast if one is missing — but that only protects you from a missing secret, not a reused one. Never reuse a value that was ever committed to git or pasted anywhere outside your own secret store.
-3. **Fix the signup role field before allowing public registration.** `POST /auth/signup` currently honours a client-supplied `role`, so anyone can self-register as `ADMIN`. See Roadmap.
-4. **Restrict CORS.** The default configuration allows every origin for development. Limit it to your real frontend domains.
-5. **Change the seeded administrator's password** on first boot.
-6. **Turn down logging.** Disable `mail.debug` and set `com.premisave.auth` and Spring Data MongoDB logging back to `INFO`.
-7. **Restrict `/internal/**`** at the network layer where possible, in addition to the API key.
-8. **Register production redirect URIs** with each OAuth provider you enable — GitHub in particular rejects a code exchange whose `redirectUri` doesn't exactly match what's registered on the OAuth App.
-
-## Security notes
-
-- **Passwords** are hashed with BCrypt. OAuth-created accounts get a random, BCrypt-encoded password no one knows.
-- **JWTs** are stateless and signed with HS256. Logout adds the token to a Redis blacklist for the rest of its lifetime.
-- **Malformed tokens** are logged and treated as unauthenticated rather than causing a server error.
-- **Internal API key** authentication is handled by a dedicated filter on `/internal/**` and `/profile/public/directory` only.
-- **Google ID tokens** are verified for signature, audience and `email_verified` before the email is trusted.
-- **Facebook access tokens** are checked with `/debug_token` to confirm they were issued to this app — not just that they're valid — before anything else runs, so a token from a different Facebook app can't be replayed here.
-- **GitHub authorization codes** are exchanged for an access token entirely server-side; the client secret never reaches the frontend. A client-supplied token is only accepted after GitHub's check-token API confirms it belongs to this app.
-- **Archived and deactivated accounts** are blocked from every sign-in path, including OAuth, not just email and password.
-- **No secrets ship with defaults.** `JWT_SECRET`, `API_KEY`, and the Cloudinary credentials must come from the environment; the service won't start with a placeholder in their place.
-- **Reset and activation tokens** are random UUIDs, single use, and expire after 24 hours.
-- **Role-based access** protects `/admin/**`, and every user-facing controller requires authentication.
-- **Stateless sessions** with no server-side session state, so the service scales horizontally.
-
-**Known gap:** `SignupRequest.role` is honoured as sent by the client, so `POST /auth/signup` currently lets anyone self-assign any role, including `ADMIN`. Fix before going live by ignoring the field and always assigning `Role.CLIENT` server-side (see Roadmap).
-
-## Project structure
-
+```mermaid
+flowchart LR
+    app["Flutter app<br/>or any client"] -->|"email, password<br/>or social token"| auth
+    wallet["wallet service"] -->|"X-API-Key on /internal"| auth
+    others["property, booking<br/>and other services"] -.->|"check the token with<br/>the shared secret"| auth
+    auth["auth-service<br/>Spring Boot"] --> mongo[("MongoDB")]
+    auth --> redis[("Redis")]
+    auth --> mail["Gmail SMTP"]
+    auth --> cloud["Cloudinary"]
+    auth --> places["Google Places<br/>optional"]
+    auth --> social["Google, Facebook<br/>and GitHub"]
 ```
+
+A few choices shape the rest of the code:
+
+- **One place for identity.** Other services never store passwords. They check the token signature, read `userId` and `roles`, and can ask this service about a user or a session.
+- **Email is the login.** The token subject is the email address. The display username is a separate field that can be changed.
+- **Two trust boundaries.** People use tokens. Services use `X-API-Key`. The two never mix.
+- **Sessions on the server.** Each sign in creates a session. That is what makes "sign out everywhere" and "end this device" real, and what lets a stolen refresh token be detected.
+- **Roles are set on the server.** The signup form has no role field, and a role sent by a client is ignored.
+
+The full tour is in **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
+
+## Sign in and sessions
+
+<img src="docs/assets/session-flow.svg" alt="A sign in creates a session and returns an access token and a refresh token. Each refresh raises the session generation, so a refresh token works once." width="100%"/>
+
+A sign in returns two tokens. The **access token** is sent on every request. The **refresh token** is sent only to `POST /auth/refresh`, and it works once: each refresh returns a new pair and raises the session generation, so an old refresh token no longer matches. If an old one is used again, the service treats it as theft, revokes the session and records a critical event.
+
+```bash
+# Sign in
+curl -s -X POST http://localhost:8080/auth/signin \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"your password"}'
+# {"token":"...","refreshToken":"...","role":"CLIENT","expiresIn":2592000}
+
+# Call a protected route
+curl -s http://localhost:8080/profile/me -H "Authorization: Bearer $TOKEN"
+
+# Trade the refresh token for a new pair
+curl -s -X POST http://localhost:8080/auth/refresh \
+  -H 'Content-Type: application/json' -d "{\"refreshToken\":\"$REFRESH\"}"
+```
+
+By default an access token lasts about 30 days, which is long. Set `SECURITY_ACCESS_TOKEN_MINUTES` to a value between 15 and 60 once your clients use the refresh token, so a revoked session stops working everywhere within that time. The reasons and the details are in **[docs/AUTHENTICATION.md](docs/AUTHENTICATION.md)**.
+
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
+
+## Who can reach what
+
+<img src="docs/assets/access.svg" alt="A matrix of route groups against callers: no token, signed in, staff, admin and service key." width="100%"/>
+
+The matrix is read from `SecurityConfig` and `ApiKeyFilter` by [`tool/readme_assets.py`](tool/readme_assets.py). The roles are `CLIENT`, `HOME_OWNER`, `ADMIN`, `OPERATIONS`, `FINANCE` and `SUPPORT`. Staff routes accept `ADMIN`, `OPERATIONS`, `FINANCE` and `SUPPORT`, and admin routes accept `ADMIN` only. Individual endpoints can add their own checks on top, such as asking for the password again before a device is trusted.
+
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
+
+## Home Owner applications
+
+<img src="docs/assets/applications.svg" alt="An application moves from draft to submitted, in review and verified, and an admin then promotes the user. Reviewers can ask for changes or reject, applicants can fix and resubmit, reapply or withdraw." width="100%"/>
+
+A client who owns or manages property applies to become a home owner. They fill in a form and upload documents, staff review it, and an admin makes the final decision by promoting the account. Every step is emailed, every change is written to the application's timeline, and the files are kept on a disk you control, never in the database or in a third party service. The rules, the documents each owner type needs and the storage setup are in **[docs/HOME_OWNER_APPLICATIONS.md](docs/HOME_OWNER_APPLICATIONS.md)** and **[docs/STORAGE.md](docs/STORAGE.md)**.
+
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
+
+## Account security
+
+<img src="docs/assets/stats-risk.svg" alt="The weight of each suspicious sign-in signal against the alert threshold of 50." width="100%"/>
+
+Beyond the password, the service keeps a record of devices and sessions and scores each sign in. A score at or above the threshold sends an email with a "this was not me" link. Opening the link changes nothing by itself: the app shows the report first, and only a button press ends the session and removes trust from the device.
+
+- **Progressive throttling.** Repeated failures lock the account, and the lock grows, up to four hours. An address that fails too often or tries too many accounts is locked too. Locks expire on their own.
+- **Step up.** Sensitive changes, such as trusting a device, ask for the password again. A fresh social sign in counts.
+- **Audit trail.** Sign ins, failures, role changes, revocations and alerts are written to an event log that no endpoint can edit or delete.
+- **Neutral signup.** One setting makes signup answer the same for a new and an existing email.
+- **Administrators from configuration.** Up to three admins can be created at startup, and invitation links cover the rest. Nothing has a default password.
+
+All of it, with the settings, is in **[docs/ADMIN_AND_ACCOUNT_SECURITY.md](docs/ADMIN_AND_ACCOUNT_SECURITY.md)**.
+
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
+
+## API at a glance
+
+<img src="docs/assets/stats-endpoints.svg" alt="Number of endpoints per area." width="100%"/>
+
+Every error has the same JSON shape with `timestamp`, `status` and `message`, and validation errors add an `errors` map by field. The complete list of endpoints, with the body and the answer for each group, is in **[docs/API.md](docs/API.md)**. A Postman collection is in [`postman/`](postman), and the [browser console](test-client/README.md) exercises most of the API from a single page.
+
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
+
+## Talking to other services
+
+Other Premisave services use this one in two ways, and [docs/INTEGRATION.md](docs/INTEGRATION.md) has the details:
+
+1. **Check the token yourself.** Use the same `JWT_SECRET` and the same key derivation, then read `userId`, `email`, `roles` and `sid` from the claims.
+2. **Ask this service.** Send `X-API-Key` to `GET /internal/users/validate-email/{email}`, `GET /internal/users/{email}/details` or `GET /internal/sessions/{sid}`.
+
+A service that only checks the signature cannot know that a session was revoked until the access token expires. That is why short access tokens matter.
+
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
+
+## Configuration
+
+`application.yml` reads 109 environment variables, and only six of them are required. Everything else has a default, so a missing value never stops the service from starting. [`.env.example`](.env.example) lists them with a short comment each, and **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** explains them by group: core, mail and pictures, sessions, alerts, throttling, administrators, social sign in, storage, applications and places.
+
+Values are read at startup, so restart the service after changing `.env`. Real environment variables work too. Never commit `.env`.
+
+## Project layout
+
+```text
 premisave_auth_service/
-├── src/main/java/com/premisave/auth/
-│   ├── config/          # Security, Redis, Mongo auditing, mail, Cloudinary, async, rate limiting, OAuth RestClient, admin seeding
-│   ├── controller/      # Auth, profile, profile views, social, location, admin, internal, home
-│   ├── dto/             # Request and response DTOs, including OAuthRequest/OAuthUserInfo
-│   ├── entity/          # User (with googleId/facebookId/githubId), Token, Like, Follower, Review, ProfileView, UserLocation
-│   ├── enums/           # Role, TokenType, Language
-│   ├── exception/       # Global exception handler
-│   ├── repository/      # Spring Data MongoDB repositories
-│   ├── security/        # JWT service and filter, API key filter, UserDetailsService
-│   ├── service/         # Business logic, email, profile picture storage
-│   │   └── oauth/       # OAuthProviderClient + one implementation per provider (Google, Facebook, GitHub)
-│   ├── util/            # Rate limiter interceptor
-│   └── PremisaveAuthServiceApplication.java
-├── src/main/resources/
-│   ├── application.yml
-│   ├── templates/       # activation-email.html, reset-password-email.html
-│   └── META-INF/additional-spring-configuration-metadata.json
-├── .env.example         # Committable environment template — copy to .env and fill in
-└── pom.xml
+|-- src/main/java/com/premisave/auth/
+|   |-- controller/     17 controllers, one per area of the API
+|   |-- service/        business rules
+|   |   |-- security/   sessions, devices, throttling, risk, alerts, audit
+|   |   |-- application/ Home Owner applications and their review
+|   |   |-- oauth/      one client per social provider
+|   |   |-- storage/    document storage on a disk or a mounted share
+|   |   `-- places/     the Google Places proxy
+|   |-- security/       the filters, the token service, user details
+|   |-- config/         security rules, Redis, Mongo, mail, Cloudinary, startup runners
+|   |-- entity/         MongoDB documents
+|   |-- repository/     Spring Data repositories
+|   |-- dto/            request and response types
+|   |-- enums/          roles, statuses, document types and more
+|   |-- exception/      one error shape for the whole API
+|   `-- util/           the rate limiter interceptor
+|-- src/main/resources/
+|   |-- application.yml
+|   `-- templates/email HTML emails
+|-- docs/               guides, and the pictures in docs/assets
+|-- tool/               readme_assets.py redraws the pictures
+|-- postman/            collection and environment
+|-- test-client/        auth-console.html, a browser console for the API
+|-- oauth-test/         oauth-test.html, a tester for the social sign in flows
+|-- .github/workflows/ redraws the pictures when the source changes
+`-- .env.example        every setting, with its default
 ```
 
-## Troubleshooting
+## Everyday commands
 
-<details>
-<summary><b>Sign-in returns 400 "User is disabled"</b></summary>
+```bash
+sh ./mvnw spring-boot:run          # run with the settings from .env
+sh ./mvnw -q -DskipTests package   # build target/premisave_auth_service-0.0.1-SNAPSHOT.jar
+java -jar target/premisave_auth_service-0.0.1-SNAPSHOT.jar
+python3 tool/readme_assets.py      # redraw the pictures after a big change
+```
 
-The account is either not verified or deactivated. Check the activation email, use `POST /auth/resend-activation`, or have an admin call `PUT /admin/users/verify/{id}`.
-</details>
+`.env` is read from the folder you start the service in. More on building, the tests and how to add an endpoint is in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-<details>
-<summary><b>Activation or reset emails never arrive</b></summary>
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
 
-For Gmail, `GMAIL_PASSWORD` must be an App Password, not your normal password, and the account needs 2-Step Verification enabled. Email is sent asynchronously, so failures appear in the logs rather than in the API response. Also check that `FRONTEND_URL` is correct, since the links are built from it.
-</details>
+## Documentation
 
-<details>
-<summary><b>401 "Token has been revoked. Please login again."</b></summary>
+| Guide | What is in it |
+| --- | --- |
+| [docs/SETUP.md](docs/SETUP.md) | Install, configure, run and check, step by step, with the problems people usually hit. |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The layers, the filters, the data model, background jobs and the choices behind them. |
+| [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) | Tokens, sessions, refresh rotation, devices, throttling and logout. |
+| [docs/SOCIAL_SIGN_IN.md](docs/SOCIAL_SIGN_IN.md) | Setting up Google, Facebook and GitHub, and the two ways a client can sign in. |
+| [docs/API.md](docs/API.md) | Every endpoint, grouped, with who may call it. |
+| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every setting, by group, with its default. |
+| [docs/ADMIN_AND_ACCOUNT_SECURITY.md](docs/ADMIN_AND_ACCOUNT_SECURITY.md) | Administrators, alerts, scoring, retention and the limits of it all. |
+| [docs/HOME_OWNER_APPLICATIONS.md](docs/HOME_OWNER_APPLICATIONS.md) | The application workflow, documents, review and emails. |
+| [docs/STORAGE.md](docs/STORAGE.md) | Keeping documents on a local disk or on a network share mounted by the operating system. |
+| [docs/INTEGRATION.md](docs/INTEGRATION.md) | The token contract and the internal API, for other services. |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | A checklist for going live. |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Building, testing, adding an endpoint, and how the pictures are made. |
+| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Symptoms and fixes. |
 
-That token was logged out and is on the Redis blacklist. Sign in again to get a new one.
-</details>
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
 
-<details>
-<summary><b>401 "Missing or invalid API key" from /internal/**</b></summary>
+## Known gaps
 
-The caller's `X-API-Key` must equal this service's `API_KEY`. In the wallet service the same value is configured as `INTERNAL_API_KEY`.
-</details>
+These are real, and worth knowing before you go live. [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) says what to do about each.
 
-<details>
-<summary><b>Other services reject tokens issued here</b></summary>
+- **Access tokens are long by default.** About 30 days until `SECURITY_ACCESS_TOKEN_MINUTES` is set.
+- **The rate limiter is one shared bucket.** It lives in memory in each instance, it is not per client and it is not backed by Redis, so it protects the service from floods and does little against one noisy caller. The throttling of sign in failures is separate, per account and per address, and it does use Redis.
+- **CORS allows every origin, with credentials.** That is convenient in development and must be limited to your real front end addresses in production.
+- **Sign up checks no password strength.** It only needs a value that is not blank. Changing and resetting a password need 8 characters. Enforce a minimum in your client, or add `@Size(min = 8)` to `SignupRequest`.
+- **Unexpected errors show their message.** A 500 answer includes a `debugMessage` with the exception text, and a plain `RuntimeException` answers 400. Remove the field before production.
+- **`/health` always says UP.** It does not check MongoDB, Redis or mail.
+- **Logging is verbose.** `com.premisave.auth` and Spring Data MongoDB log at `DEBUG` by default.
+- **No second factor.** Suspicious sign ins are scored and alerted, not challenged.
+- **Two defaults to replace.** `application.yml` falls back to a personal address for `GMAIL_USERNAME` and `SUPPORT_EMAIL`. Set both in production.
+- **Leftovers.** `/swagger-ui/**` and `/v3/api-docs/**` are allowed in the route rules, but no Swagger library is in the build, and `/test/**` has no controller. The `spring-boot-starter-amqp` and Bucket4j Lettuce dependencies are not used. The `bin/` folder is committed IDE output and can be deleted.
+- **One test.** The only test starts the application, so it needs the required settings in the shell and a running MongoDB. The behaviour described in these docs was checked against the source, not against a test suite.
 
-They must use the same `JWT_SECRET` and derive the key the same way (Base64-decode, then truncate or zero-pad to 32 bytes). A difference in either produces signature failures.
-</details>
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
 
-<details>
-<summary><b>The service won't start: "Could not resolve placeholder ..."</b></summary>
+## Built with
 
-`JWT_SECRET`, `API_KEY`, and the three `CLOUDINARY_*` variables have no default and are required — the service refuses to start without them. Copy `.env.example` to `.env` and fill in real values; the three OAuth providers are the only settings that are genuinely optional.
-</details>
+<img src="docs/assets/stack.svg" alt="The main libraries the auth-service is built with and what each is used for." width="100%"/>
 
-<details>
-<summary><b>400 "&lt;Provider&gt; sign-in is not configured on this server"</b></summary>
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
 
-That provider's environment variables are unset (blank by default), so the service started fine but that one sign-in method is disabled. Set `GOOGLE_CLIENT_ID`, or both `FACEBOOK_APP_ID`/`FACEBOOK_APP_SECRET`, or both `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET`, and restart.
-</details>
+## Code at a glance
 
-<details>
-<summary><b>400 "This email is already linked to a different &lt;Provider&gt; account"</b></summary>
+These charts are counted from the real source by [`tool/readme_assets.py`](tool/readme_assets.py), blank lines and comments excluded. A GitHub Action redraws them after changes to the code, or run the script yourself.
 
-An account with that email already exists and is linked to a different provider account than the one signing in — for example, they signed up with Google, and a different GitHub account happens to share the same email. This is a genuine conflict; there's no automatic resolution.
-</details>
+<img src="docs/assets/stats-code.svg" alt="Lines of Java per area of the service." width="100%"/>
 
-<details>
-<summary><b>GitHub sign-in fails with "did not return a verified email"</b></summary>
-
-Request the `user:email` scope when starting the GitHub OAuth flow, and make sure the GitHub account has at least one verified email address. A public profile email that isn't verified is not accepted.
-</details>
-
-<details>
-<summary><b>429 Too Many Requests on signin or signup</b></summary>
-
-The rate-limited endpoints share one token bucket sized by `RATE_LIMIT_REQUESTS_PER_MINUTE`. Wait a minute or raise the limit for local testing.
-</details>
-
-<details>
-<summary><b>New profile picture URL returns 404 for a few seconds</b></summary>
-
-The URL is saved and returned immediately while the actual Cloudinary upload runs in the background. If it keeps returning 404, check the logs for an async upload failure and your Cloudinary credentials.
-</details>
-
-<details>
-<summary><b>"Name for argument of type ... not specified" at runtime</b></summary>
-
-Some `@RequestParam`s rely on compiled parameter names. Maven builds with `-parameters` through the Spring Boot parent. In Eclipse or STS, enable "Store information about method parameters" in the Java Compiler settings, then run a Maven update.
-</details>
-
-## Roadmap ideas
-
-Real, currently-known gaps and follow-ups, not commitments:
-
-- [ ] `POST /auth/signup` trusts the client-supplied `role`, allowing self-registration as `ADMIN` — ignore the field and always assign `Role.CLIENT` server-side
-- [ ] Issue dedicated long-lived refresh tokens at signin (the response field exists but is not populated yet)
-- [ ] Per-client rate limiting backed by Redis instead of a single in-memory bucket shared by all callers
-- [ ] An unlink/manage-connections endpoint for social accounts — currently a linked Google, Facebook or GitHub account can't be removed via the API
-- [ ] Lock CORS down to configured origins instead of allowing every origin
-- [ ] Email the temporary password on admin password reset instead of a fixed default
-- [ ] Align password rules across signup, reset, change, and admin flows
-- [ ] Geo-indexed nearby-user search on top of the location history
-- [ ] OpenAPI documentation with springdoc
-- [ ] Automated tests for the signup, OAuth, logout, and internal API paths
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
 
 ## Contributing
 
-This is a proprietary service for the Premisave platform. If you have been granted access to contribute:
+1. Make a branch from `main`.
+2. Put code where it belongs: a controller checks input and calls a service, a service holds the rule, and only services and repositories talk to MongoDB.
+3. Keep errors in the one JSON shape by throwing `ApiException`.
+4. Do not log a token, a password or a full email address, and do not commit `.env`.
+5. Update the matching guide in `docs/` when behaviour changes, then run `python3 tool/readme_assets.py`.
+6. Make sure `sh ./mvnw -q -DskipTests package` builds.
 
-1. Fork the repository and create a branch: `git checkout -b feature/my-improvement`
-2. Make your change and keep the code style consistent.
-3. Commit with a clear message and open a pull request describing what and why.
+Open an [issue](https://github.com/peacemakerbill/premisave_auth_service/issues) first if the change is large, so we can agree on the shape of it.
 
-Found a bug or have a question? [Open an issue](https://github.com/peacemakerbill/premisave_auth_service/issues).
+## License and author
 
-## Author
+Released under the [MIT License](LICENSE). This is an independent project and is not affiliated with Google, Meta, GitHub, Cloudinary or any other provider it connects to. Follow each provider's own current documentation for credentials and production rules.
 
 <table>
   <tr>
@@ -711,33 +355,12 @@ Found a bug or have a question? [Open an issue](https://github.com/peacemakerbil
     <td>
       <b>Backend Developer &amp; API Support Engineer at Safaricom PLC</b><br/>
       Nairobi, Kenya<br/><br/>
-      Enterprise systems developer and API integration specialist, working across backend microservices (Java/Spring Boot), Flutter frontends, and DevOps, with deep hands-on experience in Safaricom's M-Pesa Daraja APIs.<br/><br/>
+      Enterprise systems developer and API integration specialist, working across backend microservices (Java and Spring Boot), Flutter frontends and DevOps.<br/><br/>
       <a href="https://github.com/peacemakerbill"><img src="https://img.shields.io/badge/GitHub-@peacemakerbill-181717?style=for-the-badge&logo=github" alt="GitHub @peacemakerbill" /></a>
-      <a href="https://github.com/peacemakerbill?tab=followers"><img src="https://img.shields.io/github/followers/peacemakerbill?style=for-the-badge&logo=github&label=Followers" alt="GitHub followers" /></a>
       <br/><br/>
-      More from me: <a href="https://github.com/peacemakerbill/premisave-wallet-service">premisave-wallet-service</a> ·
-      <a href="https://github.com/peacemakerbill/premisave-c2b-hakikisha-service-m-pesa">premisave-c2b-hakikisha-service-m-pesa</a> ·
-      <a href="https://github.com/peacemakerbill/premisave_flutter_frontend">premisave_flutter_frontend</a> ·
+      Related: <a href="https://github.com/peacemakerbill/premisave_flutter_frontend">premisave_flutter_frontend</a> ·
+      <a href="https://github.com/peacemakerbill/premisave-wallet-service">premisave-wallet-service</a> ·
       <a href="https://github.com/peacemakerbill?tab=repositories">all repositories</a>
     </td>
   </tr>
 </table>
-
-### Star history
-
-<a href="https://star-history.com/#peacemakerbill/premisave_auth_service&Date">
-  <img src="https://api.star-history.com/svg?repos=peacemakerbill/premisave_auth_service&type=Date" alt="Star history chart for premisave_auth_service" width="600" />
-</a>
-
----
-
-<details>
-<summary>Search keywords</summary>
-
-Spring Boot authentication microservice · Spring Security 7 JWT · stateless JWT authentication Java · JWT logout Redis blacklist · Spring Boot 4 auth service · MongoDB user management Spring Boot · Google Sign-In backend verification Java · Facebook Login Graph API Java · GitHub OAuth App Java · OAuth account linking Spring Boot · OAuth token verification Spring Boot · email verification Spring Boot · password reset flow Java · Cloudinary Spring Boot upload · Bucket4j rate limiting · microservice identity provider · internal API key service-to-service auth · role-based access control Spring Security · social features API followers likes reviews · profile views API · Flutter backend authentication · property management platform Kenya · Premisave
-
-</details>
-
-<p align="center">
-  <sub>Made in Nairobi, Kenya · <a href="https://github.com/peacemakerbill">@peacemakerbill</a></sub>
-</p>

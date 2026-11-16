@@ -53,7 +53,7 @@ backend:
 # ── OAuth2 Credentials ──
 # Every provider below is OPTIONAL and independent: leave its variables
 # unset (or delete them from .env) and the service still starts — that
-# one provider is simply unavailable via POST /auth/oauth until it is
+# one provider is simply unavailable via POST /auth/google, /auth/facebook or /auth/github until it is
 # configured. A blank default here is required for that: it guarantees
 # these placeholders always resolve, so a missing credential can never
 # by itself fail application startup.

@@ -1,5 +1,7 @@
 # Administrator provisioning and account security
 
+How administrators come to exist, and how the service watches sign ins and tells the owner about anything unusual. For the token and session rules see [AUTHENTICATION.md](AUTHENTICATION.md), and for every setting named here see [CONFIGURATION.md](CONFIGURATION.md).
+
 ## 1. Configuring administrators
 
 Two comma-separated lists, set in `.env` (or the real environment) and read at startup:
@@ -11,7 +13,7 @@ Two comma-separated lists, set in `.env` (or the real environment) and read at s
 
 Both lists are optional. Entries are trimmed, lower-cased, validated and de-duplicated, and invalid entries are logged and skipped. An empty or missing variable never stops startup. After editing either list, restart the service.
 
-There is no default admin account and no default password anywhere in the code (the `ADMINn_PASSWORD` settings have no default and are empty unless you set them). `NoHardcodedAdminCredentialsTest` fails the build if one reappears. The old `AdminUserInitializer` must be deleted.
+There is no default admin account and no default password anywhere in the code (the `ADMINn_PASSWORD` settings have no default and are empty unless you set them). The old initializer, which created an account with a fixed password, is gone. `AdminProvisioningRunner` replaces it, and no test guards against one coming back, so look for hardcoded credentials in review.
 
 ### Administrators created from ADMIN1, ADMIN2 and ADMIN3
 
@@ -69,7 +71,7 @@ Spring's `/actuator/env`, if you expose it, masks values whose key ends in `pass
 
 Local development over plain http needs `SECURITY_DEVICE_COOKIE_SECURE=false`, otherwise the browser will not store the device cookie.
 
-## 3. Geolocation, proxies, MFA
+## 3. Geolocation, proxies and MFA
 
 * IP location is off by default (`SECURITY_IP_GEOLOCATION_ENABLED=false`). Turning it on sends visitor IPs to the provider in `SECURITY_IP_GEOLOCATION_URL` (default `https://ipwho.is/{ip}`; any JSON provider with `country`, `region`, `city` fields works). The result is approximate, can be wrong for VPNs, mobile carriers and corporate networks, and is labelled as approximate in emails. A lookup failure never blocks a sign-in.
 * `X-Forwarded-For` is trusted only from addresses in `SECURITY_TRUSTED_PROXIES` (IPs or CIDR). Leave it empty when the service is reached directly. Behind a load balancer set it, or every user will appear to come from the balancer.
@@ -78,11 +80,11 @@ Local development over plain http needs `SECURITY_DEVICE_COOKIE_SECURE=false`, o
 
 ## 4. Data kept
 
-Collections: `security_events` (immutable audit trail, no endpoint edits or deletes it), `known_devices`, `user_sessions`, `security_action_tokens`, `sign_in_history`. Tokens, device cookies and refresh tokens are stored only as SHA-256 hashes. Indexes are created at startup, including TTL indexes. `SecurityRetentionJob` removes audit events older than `SECURITY_AUDIT_RETENTION_DAYS` and stale devices after `SECURITY_DEVICE_RETENTION_DAYS`. It needs `SchedulingConfig` with `@EnableScheduling`.
+Collections: `security_events` (immutable audit trail, no endpoint edits or deletes it), `known_devices`, `user_sessions`, `security_action_tokens`, `sign_in_history`. Email action tokens and device tokens are stored only as SHA-256 hashes. Refresh tokens are not stored at all: the session keeps a generation counter, and the token's `gen` claim must match it. Indexes are created at startup, including TTL indexes. `SecurityRetentionJob` removes audit events older than `SECURITY_AUDIT_RETENTION_DAYS` and stale devices after `SECURITY_DEVICE_RETENTION_DAYS`. It needs `SchedulingConfig` with `@EnableScheduling`.
 
-## 5. Frontend work still needed
+## 5. Frontend pages these flows need
 
-No frontend exists in this repository. These routes must be built: `/admin-invitation?token=`, `/security/report?token=` (inspect, then confirm) and `/account/security` (sessions and devices).
+The service sends links, and the front end has to have a page behind each one. The [Flutter app](https://github.com/peacemakerbill/premisave_flutter_frontend) already has them. A different front end must build: `/admin-invitation?token=`, `/security-report?token=` (inspect, then confirm) and `/account/security` (sessions and devices). The paths come from `FRONTEND_URL` and `SECURITY_PAGE_PATH`.
 
 ## 6. Short access tokens
 
@@ -102,7 +104,6 @@ Before turning it on, make sure every client stores `refreshToken` and calls `PO
 * Tokens issued before this upgrade have no session id. They keep working until `SECURITY_LEGACY_REFRESH_ENABLED=false`, and cannot be revoked individually.
 * Access tokens last as long as `JWT_EXPIRATION` (about 30 days) until you set `SECURITY_ACCESS_TOKEN_MINUTES` (see section 6). Sibling services only check the signature, so until that is set a revoked session stays valid for them unless they call `GET /internal/sessions/{sid}?userId=` (protected by `X-API-Key`).
 * Signup answers "Email already exists" until you set `SECURITY_HIDE_EXISTING_ACCOUNTS=true` (see section 7).
-* CORS is open for development and must be restricted for production.
-* The tests are unit tests and MockMvc controller tests with mocked MongoDB and Redis. There are no `@SpringBootTest` tests against real databases (that would need Testcontainers).
-* This code was written without access to Maven Central in the authoring environment, so it has not been compiled or executed. Run `mvn clean compile` and `mvn test` and fix anything reported.
+* CORS is open to every origin, with credentials allowed, and must be restricted for production. See [DEPLOYMENT.md](DEPLOYMENT.md#before-you-go-live).
+* There is one automated test, which only checks that the application starts. The rules in this document have no tests yet. See [DEVELOPMENT.md](DEVELOPMENT.md#tests) for where to start.
 * A configured administrator password lives in `.env` until you remove it. Treat that file like any other secret.

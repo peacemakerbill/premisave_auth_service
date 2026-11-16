@@ -87,9 +87,9 @@ public class SecurityActionService {
         return frontendUrl.endsWith("/") ? frontendUrl.substring(0, frontendUrl.length() - 1) : frontendUrl;
     }
 
-    /** Link target for the "this was not me" button; the frontend route reads ?token= and calls inspect/confirm. */
+    /** Link target for the "this was not me" button; the frontend route (/security-report in the Flutter app) reads ?token= and calls inspect then confirm. */
     public String reportUrl(String rawToken) {
-        return frontendBase() + "/security/report?token=" + rawToken;
+        return frontendBase() + "/security-report?token=" + rawToken;
     }
 
     public String invitationUrl(String rawToken) {
