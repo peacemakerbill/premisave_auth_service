@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;
@@ -30,5 +31,17 @@ public class ProfileViewRepositoryImpl implements ProfileViewRepositoryCustom {
                 aggregation, ProfileView.class, Map.class);
 
         return results.getMappedResults().size();
+    }
+
+    @Override
+    public void deleteAllInvolving(String userId) {
+        if (!ObjectId.isValid(userId)) {
+            return;
+        }
+        ObjectId id = new ObjectId(userId);
+        Query query = new Query(new Criteria().orOperator(
+                Criteria.where("viewer").is(id),
+                Criteria.where("target").is(id)));
+        mongoTemplate.remove(query, ProfileView.class);
     }
 }

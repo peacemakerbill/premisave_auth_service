@@ -6,6 +6,7 @@ import com.premisave.auth.entity.User;
 import com.premisave.auth.enums.Role;
 import com.premisave.auth.enums.SecurityEventType;
 import com.premisave.auth.enums.SecuritySeverity;
+import com.premisave.auth.repository.ProfileViewRepository;
 import com.premisave.auth.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -36,11 +37,13 @@ public class UserManagementService {
     private final SecurityNotificationService notifications;
     private final PasswordChangeSecurityHandler passwordChanges;
     private final PasswordResetService passwordReset;
+    private final ProfileViewRepository profileViews;
 
     public UserManagementService(UserRepository userRepository, ModelMapper modelMapper, PasswordEncoder passwordEncoder,
                                  SessionService sessionService, SecurityAuditService audit,
                                  SecurityNotificationService notifications,
-                                 PasswordChangeSecurityHandler passwordChanges, PasswordResetService passwordReset) {
+                                 PasswordChangeSecurityHandler passwordChanges, PasswordResetService passwordReset,
+                                 ProfileViewRepository profileViews) {
         this.userRepository = userRepository;
         this.modelMapper = modelMapper;
         this.passwordEncoder = passwordEncoder;
@@ -49,6 +52,7 @@ public class UserManagementService {
         this.notifications = notifications;
         this.passwordChanges = passwordChanges;
         this.passwordReset = passwordReset;
+        this.profileViews = profileViews;
         
         configureModelMapper();
     }
@@ -188,6 +192,7 @@ public class UserManagementService {
         log.info("Deleting user with ID: {}", id);
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         userRepository.delete(user);
+        profileViews.deleteAllInvolving(id);
         log.info("User deleted successfully");
     }
 

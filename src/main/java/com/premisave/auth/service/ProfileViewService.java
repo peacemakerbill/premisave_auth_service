@@ -67,7 +67,10 @@ public class ProfileViewService {
     public List<ProfileViewResponse> getWhoViewedMyProfile() {
         User user = getCurrentUser();
         List<ProfileView> views = profileViewRepository.findTop20ByTargetIdOrderByViewedAtDesc(new ObjectId(user.getId()));
-        return views.stream().map(this::convertToResponse).collect(Collectors.toList());
+        return views.stream()
+                .filter(view -> hasBothUsers(view, "who-viewed-me"))
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -80,6 +83,7 @@ public class ProfileViewService {
         List<ProfileView> views = profileViewRepository.findRecentViewsByViewerId(userId, maxHistorySize);
 
         return views.stream()
+                .filter(view -> hasBothUsers(view, "who-i-viewed"))
                 .map(view -> {
                     User target = view.getTarget();
                     return new WhoIViewedResponse(
@@ -124,6 +128,19 @@ public class ProfileViewService {
                 totalViews,
                 "Profile statistics for " + targetUser.getDisplayUsername()
         );
+    }
+
+    /**
+     * A view row keeps references to two users. When one of them has been deleted the reference resolves to null,
+     * so such rows are skipped instead of failing the whole list.
+     */
+    private boolean hasBothUsers(ProfileView view, String listName) {
+        if (view.getViewer() != null && view.getTarget() != null) {
+            return true;
+        }
+        log.warn("Skipping profile view {} in {}: the {} account no longer exists",
+                view.getId(), listName, view.getViewer() == null ? "viewer" : "target");
+        return false;
     }
 
     private User getCurrentUser() {
