@@ -96,22 +96,30 @@ public class EmailTemplateRenderer {
         return out.toString();
     }
 
+    private static final String FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
+    /** The key and value table in security emails: a soft rounded card, one row per detail. */
     private static String detailsHtml(List<Row> rows) {
-        if (rows == null || rows.isEmpty()) {
+        if (rows == null) {
+            return "";
+        }
+        List<Row> shown = rows.stream().filter(row -> row.value() != null && !row.value().isBlank()).toList();
+        if (shown.isEmpty()) {
             return "";
         }
         StringBuilder out = new StringBuilder(
-                "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
-                        + "style=\"border:1px solid #e5e7eb;border-radius:8px;margin:20px 0;\">");
-        for (Row row : rows) {
-            if (row.value() == null || row.value().isBlank()) {
-                continue;
-            }
-            out.append("<tr><td style=\"padding:10px 14px;font-size:13px;color:#6b7280;width:38%;vertical-align:top;")
-                    .append("border-bottom:1px solid #f3f4f6;\">")
+                "<table role=\"presentation\" class=\"soft\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
+                        + "style=\"margin:22px 0;background-color:#F6F4FD;border:1px solid #E6E2F7;border-radius:14px;\">");
+        for (int i = 0; i < shown.size(); i++) {
+            Row row = shown.get(i);
+            String border = i == shown.size() - 1 ? "none" : "1px solid #E6E2F7";
+            out.append("<tr><td class=\"rk\" style=\"padding:13px 18px;width:36%;vertical-align:top;font-family:").append(FONT)
+                    .append(";font-size:11.5px;letter-spacing:0.6px;text-transform:uppercase;color:#7A77A3;border-bottom:")
+                    .append(border).append(";\">")
                     .append(HtmlUtils.htmlEscape(row.label(), "UTF-8"))
-                    .append("</td><td style=\"padding:10px 14px;font-size:14px;color:#111827;")
-                    .append("border-bottom:1px solid #f3f4f6;word-break:break-word;\">")
+                    .append("</td><td class=\"rv\" style=\"padding:13px 18px;vertical-align:top;font-family:").append(FONT)
+                    .append(";font-size:14px;line-height:1.5;font-weight:600;color:#15123A;border-bottom:")
+                    .append(border).append(";word-break:break-word;\">")
                     .append(HtmlUtils.htmlEscape(row.value(), "UTF-8"))
                     .append("</td></tr>");
         }

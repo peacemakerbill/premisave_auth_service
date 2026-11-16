@@ -20,7 +20,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -164,12 +166,15 @@ public class ApplicationEmailService {
             return "";
         }
         String safe = HtmlUtils.htmlEscape(message.trim()).replace("\r\n", "<br>").replace("\n", "<br>");
-        return "<div class=\"message\" style=\"margin:20px 0;padding:16px 18px;background:#f9fafb;border-radius:8px;"
-                + "border-left:4px solid #2a8f5e;font-size:15px;line-height:1.6;color:#374151;\">"
-                + "<strong>Message from the reviewer</strong><br>" + safe + "</div>";
+        return "<table role=\"presentation\" class=\"soft\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" "
+                + "style=\"margin:6px 0 22px;background-color:#F6F4FD;border:1px solid #E6E2F7;border-radius:14px;\"><tr>"
+                + "<td width=\"5\" style=\"width:5px;background-color:#F2B544;border-radius:14px 0 0 14px;font-size:0;line-height:0;\">&nbsp;</td>"
+                + "<td class=\"tx\" style=\"padding:16px 18px;font-size:15px;line-height:1.65;color:#3D3A63;\">"
+                + "<div class=\"mu\" style=\"margin:0 0 6px;font-size:11.5px;letter-spacing:0.6px;text-transform:uppercase;"
+                + "font-weight:700;color:#7A77A3;\">Message from the reviewer</div>" + safe + "</td></tr></table>";
     }
 
-    /** A four step tracker. Hidden for withdrawn and rejected applications. */
+    /** A four step progress bar. Hidden for withdrawn and rejected applications. */
     private String stepsHtml(ApplicationStatus status) {
         int reached = switch (status) {
             case SUBMITTED -> 1;
@@ -181,36 +186,46 @@ public class ApplicationEmailService {
         if (reached == 0) {
             return "";
         }
-        StringBuilder sb = new StringBuilder("<table class=\"steps\" role=\"presentation\"><tr>");
+        boolean complete = reached == STEP_LABELS.length;
+        StringBuilder sb = new StringBuilder(
+                "<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"margin:22px 0 4px;\"><tr>");
         for (int i = 0; i < STEP_LABELS.length; i++) {
             boolean done = i < reached;
-            String color = done ? "#2a8f5e" : "#d1d5db";
-            sb.append("<td align=\"center\" style=\"padding:0 4px;font-size:12px;color:")
-                    .append(done ? "#111827" : "#9ca3af").append(";\">")
-                    .append("<div style=\"width:28px;height:28px;line-height:28px;border-radius:50%;background:")
-                    .append(color).append(";color:#fff;font-weight:bold;margin:0 auto 6px;\">")
-                    .append(i + 1).append("</div>")
-                    .append(STEP_LABELS[i]).append("</td>");
+            boolean current = done && i == reached - 1 && !complete;
+            String color = !done ? "#E0DCF5" : current ? "#F2B544" : "#4A3FDB";
+            sb.append("<td width=\"25%\" valign=\"top\" style=\"width:25%;padding:0 3px;\">")
+                    .append("<div style=\"height:7px;border-radius:4px;background-color:").append(color)
+                    .append(";font-size:0;line-height:0;\">&nbsp;</div>")
+                    .append("<div class=\"").append(done ? "ink" : "mu").append("\" style=\"padding-top:9px;font-size:12px;line-height:1.3;")
+                    .append(current ? "font-weight:800;" : "font-weight:600;")
+                    .append("color:").append(done ? "#15123A" : "#7A77A3").append(";\">")
+                    .append(STEP_LABELS[i]).append("</div></td>");
         }
         sb.append("</tr></table>");
         return sb.toString();
     }
 
     private String detailsRows(HomeOwnerApplication app, ApplicationStatus shownStatus) {
-        StringBuilder sb = new StringBuilder();
-        row(sb, "Application number", app.getApplicationNumber());
-        row(sb, "Status", shownStatus.getLabel());
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[]{"Application number", app.getApplicationNumber()});
+        rows.add(new String[]{"Status", shownStatus.getLabel()});
         if (app.getSubmittedAt() != null) {
-            row(sb, "Submitted", app.getSubmittedAt().format(WHEN));
+            rows.add(new String[]{"Submitted", app.getSubmittedAt().format(WHEN)});
         }
-        row(sb, "Last update", LocalDateTime.now().format(WHEN));
-        return sb.toString();
-    }
+        rows.add(new String[]{"Last update", LocalDateTime.now().format(WHEN)});
 
-    private void row(StringBuilder sb, String key, String value) {
-        sb.append("<tr><td class=\"k\" style=\"color:#6b7280;\">").append(HtmlUtils.htmlEscape(key))
-                .append("</td><td><strong>").append(HtmlUtils.htmlEscape(value == null ? "" : value))
-                .append("</strong></td></tr>");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < rows.size(); i++) {
+            String border = i == rows.size() - 1 ? "none" : "1px solid #E6E2F7";
+            sb.append("<tr><td class=\"k rk\" style=\"padding:13px 18px;width:42%;vertical-align:top;font-size:11.5px;")
+                    .append("letter-spacing:0.6px;text-transform:uppercase;color:#7A77A3;border-bottom:").append(border).append(";\">")
+                    .append(HtmlUtils.htmlEscape(rows.get(i)[0]))
+                    .append("</td><td class=\"rv\" style=\"padding:13px 18px;vertical-align:top;font-size:14px;font-weight:700;")
+                    .append("color:#15123A;border-bottom:").append(border).append(";\">")
+                    .append(HtmlUtils.htmlEscape(rows.get(i)[1] == null ? "" : rows.get(i)[1]))
+                    .append("</td></tr>");
+        }
+        return sb.toString();
     }
 
     private String firstName(String fullName) {

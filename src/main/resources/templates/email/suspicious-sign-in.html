@@ -1,22 +1,26 @@
-<h1 style="margin:0 0 12px;font-size:22px;color:#b91c1c;">Unusual sign-in to your account</h1>
-<p style="margin:0 0 12px;">Hi {{name}},</p>
-<p style="margin:0 0 12px;">A sign-in to your {{appName}} account <strong>{{email}}</strong> looked unusual to our security checks.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;"><tr>
+                <td class="" width="58" height="58" align="center" valign="middle" style="width:58px;height:58px;background-color:#FDE8EC;border-radius:18px;"><span class="" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:28px;line-height:58px;font-weight:700;color:#D92D4A;">!</span></td>
+              </tr></table>
+              <h1 class="h1 ink" style="margin:0 0 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:29px;line-height:1.18;font-weight:800;letter-spacing:-0.9px;color:#C21F3D;">Unusual sign-in to your account</h1>
+              <p class="tx" style="margin:0 0 16px;font-size:15.5px;line-height:1.65;color:#3D3A63;">Hi {{name}},</p>
+              <p class="tx" style="margin:0 0 16px;font-size:15.5px;line-height:1.65;color:#3D3A63;">A sign-in to your {{appName}} account <strong class="ink" style="color:#15123A;">{{email}}</strong> looked unusual to our security checks.</p>
 {{{detailsHtml}}}
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background-color:#fef2f2;border:1px solid #fca5a5;border-radius:8px;">
-  <tr><td style="padding:14px 16px;font-size:14px;color:#991b1b;">
-    <strong>If this was you,</strong> no action is needed. Travel, a new phone or a VPN can trigger this check.<br>
-    <strong>If you did not sign in,</strong> secure your account immediately by revoking this session and changing your password.
-  </td></tr>
-</table>
+              <table role="presentation" class="red" width="100%" cellpadding="0" cellspacing="0" style="margin:6px 0 22px;background-color:#FDECEF;border:1px solid #F6B8C3;border-radius:14px;">
+                <tr>
+                  <td width="5" style="width:5px;background-color:#D92D4A;border-radius:14px 0 0 14px;font-size:0;line-height:0;">&nbsp;</td>
+                  <td class="red-t" style="padding:15px 18px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#8E1B30;"><strong>If this was you,</strong> no action is needed. Travel, a new phone or a VPN can trigger this check.<br><strong>If you did not sign in,</strong> secure your account right away by revoking this session and changing your password.</td>
+                </tr>
+              </table>
 {{#reportUrl}}
-<table role="presentation" class="btn" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
-  <tr><td style="background-color:#dc2626;border-radius:8px;">
-    <a href="{{reportUrl}}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-weight:600;text-decoration:none;font-size:15px;">This was not me, secure my account</a>
-  </td></tr>
-</table>
-<p style="margin:0 0 16px;font-size:12px;color:#6b7280;">This button works once and expires in {{reportHours}} hours. Nothing changes until you confirm on the next page, and your password is never changed automatically.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 22px;" align="left">
+                <tr><td class="btn-td" align="center" bgcolor="#D92D4A" style="background-color:#D92D4A;border-radius:14px;box-shadow:0 6px 16px rgba(74,63,219,0.30);">
+                  <a class="btn-a" href="{{reportUrl}}" style="display:inline-block;padding:16px 34px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.2;font-weight:700;letter-spacing:0.1px;color:#FFFFFF;text-decoration:none;">This was not me, secure my account</a>
+                </td></tr>
+              </table>
+              <div style="clear:both;"></div>
+              <p class="mu" style="margin:0 0 16px;font-size:12.5px;line-height:1.6;color:#7A77A3;">This button works once and expires in {{reportHours}} hours. Nothing changes until you confirm on the next page, and your password is never changed automatically.</p>
 {{/reportUrl}}
 {{#securityUrl}}
-<p style="margin:0;">You can also <a href="{{securityUrl}}" style="color:#0f766e;font-weight:600;">review your active sessions</a>.</p>
+              <p class="tx" style="margin:0 0 16px;font-size:15.5px;line-height:1.65;color:#3D3A63;">You can also <a class="lnk" href="{{securityUrl}}" style="color:#4A3FDB;font-weight:700;text-decoration:underline;">review your active sessions</a>.</p>
 {{/securityUrl}}
-<p style="margin:16px 0 0;font-size:12px;color:#6b7280;">Location is approximate and based on the IP address. Device details are reported by the browser or app and can be wrong.</p>
+              <p class="mu" style="margin:0 0 16px;font-size:12.5px;line-height:1.6;color:#7A77A3;margin:0;">Location is approximate and based on the IP address. Device details are reported by the browser or app and can be wrong.</p>
