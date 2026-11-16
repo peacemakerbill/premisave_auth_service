@@ -15,7 +15,19 @@
     {
       "name": "oauth.google.client-id",
       "type": "java.lang.String",
-      "description": "Google OAuth2 client ID(s) from Google Cloud Console (APIs & Services, Credentials). Comma-separate several IDs (e.g. web, Android, iOS) to accept ID tokens issued to any of them."
+      "description": "Google OAuth2 client ID(s) from Google Cloud Console (APIs & Services, Credentials). Comma-separate several IDs (e.g. web, Android, iOS) to accept ID tokens issued to any of them. (env GOOGLE_CLIENT_ID)"
+    },
+    {
+      "name": "oauth.google.client-secret",
+      "type": "java.lang.String",
+      "description": "Secret of the Google Web application client, used only to exchange an authorization code for an ID token when a client that cannot run Google's own sign-in (Linux and Windows desktop) sends a code with its redirectUri. SENSITIVE: supply it only through .env or the environment and never commit it. Leave empty to turn code sign-in off; token sign-in is unaffected. (env GOOGLE_CLIENT_SECRET)",
+      "defaultValue": ""
+    },
+    {
+      "name": "oauth.google.code-client-id",
+      "type": "java.lang.String",
+      "description": "The Google Web application client an authorization code was issued to, used with oauth.google.client-secret. It must list the redirect address under Authorized redirect URIs. Empty uses the first ID in oauth.google.client-id. IDs of tokens it issues are accepted even when not listed there. (env GOOGLE_CODE_CLIENT_ID)",
+      "defaultValue": ""
     },
     {
       "name": "oauth.facebook.app-id",
@@ -25,7 +37,7 @@
     {
       "name": "oauth.facebook.app-secret",
       "type": "java.lang.String",
-      "description": "Facebook app secret, used to verify access tokens with /debug_token and to sign Graph API calls with appsecret_proof."
+      "description": "Facebook app secret, used to verify access tokens with /debug_token, to sign Graph API calls with appsecret_proof and to exchange an authorization code for an access token when a desktop client sends a code with its redirectUri. (env FACEBOOK_APP_SECRET)"
     },
     {
       "name": "oauth.github.client-id",
@@ -36,6 +48,18 @@
       "name": "oauth.github.client-secret",
       "type": "java.lang.String",
       "description": "GitHub OAuth App client secret, used to exchange authorization codes and check access tokens."
+    },
+    {
+      "name": "oauth.github.redirect-uri",
+      "type": "java.lang.String",
+      "description": "Optional. Sent with the GitHub code exchange when set, and must match the redirect_uri used on the authorize request. Set through the OAUTH_GITHUB_REDIRECT_URI environment variable.",
+      "defaultValue": ""
+    },
+    {
+      "name": "oauth.allowed-redirect-uris",
+      "type": "java.lang.String",
+      "description": "Comma-separated redirect addresses a client may send as redirectUri with POST /auth/google or /auth/facebook when it hands over an authorization code instead of a token. Exact match; any other address is refused before the provider is contacted. Each must also be registered on the provider's console. Use the real addresses in production. (env OAUTH_ALLOWED_REDIRECT_URIS)",
+      "defaultValue": "http://localhost:3000/auth.html"
     },
     {
       "name": "cloudinary.cloud-name",

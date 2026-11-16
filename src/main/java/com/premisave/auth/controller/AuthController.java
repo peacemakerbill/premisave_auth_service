@@ -64,11 +64,13 @@ public class AuthController {
      *
      * POST /auth/google
      * Body: { "token": "<Google ID token>" }
+     *    or { "token": "<authorization code>", "redirectUri": "<redirect the code was issued for>" }
      */
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> googleSignin(@Valid @RequestBody SocialLoginRequest request,
                                                      HttpServletRequest http, HttpServletResponse response) {
-        return respond(oAuthService.handleOAuth("google", request.getToken(), clientContext.resolve(http)), response);
+        return respond(oAuthService.handleOAuth("google", request.getToken(), request.getRedirectUri(),
+                clientContext.resolve(http)), response);
     }
 
     /**
@@ -76,11 +78,13 @@ public class AuthController {
      *
      * POST /auth/facebook
      * Body: { "token": "<Facebook user access token>" }
+     *    or { "token": "<authorization code>", "redirectUri": "<redirect the code was issued for>" }
      */
     @PostMapping("/facebook")
     public ResponseEntity<AuthResponse> facebookSignin(@Valid @RequestBody SocialLoginRequest request,
                                                        HttpServletRequest http, HttpServletResponse response) {
-        return respond(oAuthService.handleOAuth("facebook", request.getToken(), clientContext.resolve(http)), response);
+        return respond(oAuthService.handleOAuth("facebook", request.getToken(), request.getRedirectUri(),
+                clientContext.resolve(http)), response);
     }
 
     /**

@@ -64,12 +64,19 @@ backend:
 oauth:
   google:
     client-id: ${GOOGLE_CLIENT_ID:}
+    # Only for sign-in by authorization code (Linux and Windows desktop). Leave unset otherwise.
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    # The Web application client the code was issued to. Defaults to the first client ID above.
+    code-client-id: ${GOOGLE_CODE_CLIENT_ID:}
   facebook:
     app-id: ${FACEBOOK_APP_ID:}
     app-secret: ${FACEBOOK_APP_SECRET:}
   github:
     client-id: ${GITHUB_CLIENT_ID:}
     client-secret: ${GITHUB_CLIENT_SECRET:}
+  # Redirect addresses a client may use when it hands over an authorization code (comma-separated).
+  # Each must also be registered on the provider's console.
+  allowed-redirect-uris: ${OAUTH_ALLOWED_REDIRECT_URIS:http://localhost:3000/auth.html}
 
 # ── External Services ──
 # No defaults: these are real account credentials and must come from

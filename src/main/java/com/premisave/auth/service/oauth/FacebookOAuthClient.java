@@ -4,7 +4,10 @@ import com.premisave.auth.dto.OAuthUserInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -27,6 +30,10 @@ import static com.premisave.auth.service.oauth.OAuthUtils.isBlank;
  * Facebook app could be replayed here to sign in as its owner. The profile
  * is then read with an appsecret_proof.
  *
+ * Apps that cannot run the Facebook SDK (Linux desktop) send an authorization code
+ * and the redirect it was issued for instead. The code is exchanged here with the app
+ * secret, and the access token that comes back goes through the same checks.
+ *
  * If the app id or secret is unset, Facebook sign-in is refused with a clear
  * message and the service still starts.
  */
@@ -41,11 +48,14 @@ public class FacebookOAuthClient implements OAuthProviderClient {
     private final RestClient http;
     private final String appId;
     private final String appSecret;
+    private final OAuthRedirectPolicy redirects;
 
     public FacebookOAuthClient(RestClient oauthRestClient,
+                               OAuthRedirectPolicy redirects,
                                @Value("${oauth.facebook.app-id}") String appId,
                                @Value("${oauth.facebook.app-secret}") String appSecret) {
         this.http = oauthRestClient;
+        this.redirects = redirects;
         this.appId = appId.trim();
         this.appSecret = appSecret.trim();
     }
@@ -57,6 +67,48 @@ public class FacebookOAuthClient implements OAuthProviderClient {
     @Override
     public String provider() {
         return "facebook";
+    }
+
+    @Override
+    public OAuthUserInfo fetchUser(String credential, String redirectUri) {
+        if (isBlank(redirectUri)) {
+            return fetchUser(credential);
+        }
+        if (!configured()) {
+            throw new RuntimeException("Facebook sign-in is not configured on this server");
+        }
+        if (isBlank(credential)) {
+            throw new RuntimeException("Facebook sign-in requires the authorization code in 'token'");
+        }
+        return fetchUser(exchangeCode(credential.trim(), redirects.require(redirectUri)));
+    }
+
+    /** Exchanges an authorization code for a user access token. The app secret never leaves this server. */
+    private String exchangeCode(String code, String redirectUri) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("client_id", appId);
+        form.add("client_secret", appSecret);
+        form.add("redirect_uri", redirectUri);
+        form.add("code", code);
+
+        Map<String, Object> body;
+        try {
+            body = http.post()
+                    .uri(GRAPH + "/oauth/access_token")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(form)
+                    .retrieve()
+                    .body(MAP);
+        } catch (RestClientException e) {
+            log.warn("Facebook code exchange failed: {}", e.getMessage());
+            throw new RuntimeException("Facebook sign-in failed: could not exchange the authorization code");
+        }
+        String token = body == null ? null : asString(body.get("access_token"));
+        if (isBlank(token)) {
+            throw new RuntimeException("Facebook sign-in failed: no access token returned");
+        }
+        return token;
     }
 
     @Override

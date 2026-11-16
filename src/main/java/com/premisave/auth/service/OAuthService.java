@@ -81,12 +81,20 @@ public class OAuthService {
      * @param ctx      the caller's address, User-Agent and device token
      */
     public AuthSessionService.Established handleOAuth(String provider, String token, ClientContext ctx) {
+        return handleOAuth(provider, token, null, ctx);
+    }
+
+    /**
+     * @param redirectUri when given, {@code token} is an authorization code issued for this redirect
+     *                    (Google and Facebook on desktop); otherwise it is the credential itself
+     */
+    public AuthSessionService.Established handleOAuth(String provider, String token, String redirectUri, ClientContext ctx) {
         OAuthProviderClient client = clients.get(provider);
         if (client == null) {
             throw new IllegalArgumentException("Unsupported OAuth provider: " + provider);
         }
 
-        OAuthUserInfo info = client.fetchUser(token);
+        OAuthUserInfo info = client.fetchUser(token, redirectUri);
         if (isBlank(info.getProviderId())) {
             throw new RuntimeException("The " + provider + " account id could not be determined");
         }
