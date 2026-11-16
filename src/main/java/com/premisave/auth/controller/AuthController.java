@@ -123,12 +123,17 @@ public class AuthController {
         return message("Account verified successfully. You can now login.");
     }
 
-    /** Resend activation email. The answer is the same whether or not the address has an account. */
+    /**
+     * Resend activation email. The answer is the same whether or not the address has an account and
+     * whether or not it is already verified; the owner is told what applies by email. Limited per
+     * address and per client, answering 429 when asked too often.
+     */
     @PostMapping("/resend-activation")
-    public ResponseEntity<Map<String, String>> resendActivation(@RequestParam String email) {
+    public ResponseEntity<Map<String, String>> resendActivation(@RequestParam String email, HttpServletRequest http) {
         try {
-            authService.resendActivation(email);
-            return message("If an unverified account exists for that address, a new activation email is on its way.");
+            authService.resendActivation(email, clientContext.resolve(http));
+            return message("If there is an account for that address, we have emailed it what to do next. "
+                    + "Check your inbox and your spam folder.");
         } catch (RuntimeException e) {
             // Handled by the global exception handler, which answers with JSON
             throw e;

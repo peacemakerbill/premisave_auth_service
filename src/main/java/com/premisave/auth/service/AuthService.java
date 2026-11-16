@@ -15,6 +15,7 @@ import com.premisave.auth.exception.ApiException;
 import com.premisave.auth.repository.TokenRepository;
 import com.premisave.auth.repository.UserRepository;
 import com.premisave.auth.security.JwtService;
+import com.premisave.auth.service.security.ActivationResendGuard;
 import com.premisave.auth.service.security.AdminAccessService;
 import com.premisave.auth.service.security.AdminEmailPolicy;
 import com.premisave.auth.service.security.AuthSessionService;
@@ -71,6 +72,7 @@ public class AuthService {
     private final SecurityAuditService audit;
     private final SecurityNotificationService notifications;
     private final SecurityProperties securityProperties;
+    private final ActivationResendGuard resendGuard;
 
     public AuthService(UserRepository userRepository,
                        TokenRepository tokenRepository,
@@ -88,7 +90,8 @@ public class AuthService {
                        PasswordChangeSecurityHandler passwordChanges,
                        SecurityAuditService audit,
                        SecurityNotificationService notifications,
-                       SecurityProperties securityProperties) {
+                       SecurityProperties securityProperties,
+                       ActivationResendGuard resendGuard) {
         this.userRepository = userRepository;
         this.tokenRepository = tokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -106,6 +109,7 @@ public class AuthService {
         this.audit = audit;
         this.notifications = notifications;
         this.securityProperties = securityProperties;
+        this.resendGuard = resendGuard;
     }
 
     public Established signup(SignupRequest request, ClientContext ctx) {
@@ -456,22 +460,57 @@ public class AuthService {
         adminAccess.grantIfEligible(user, "EMAIL_VERIFICATION");
     }
 
-    /** Silent when the address is unknown, already verified or deactivated, so it cannot be used to probe for accounts. */
-    public void resendActivation(String email) {
-        if (email == null || email.trim().isEmpty() || !email.contains("@")) {
+    /**
+     * The answer on screen is the same whatever the account's state, so this cannot be used to find out
+     * which addresses are registered. What happens next depends on the account and is told to its owner
+     * by email:
+     *   - unknown address or deactivated account: nothing is sent
+     *   - not verified: a new activation link
+     *   - already verified: a notice saying so and pointing to sign in, at most once an hour
+     * The limits run first and count every address alike, existing or not.
+     */
+    public void resendActivation(String email, ClientContext ctx) {
+        if (email == null || email.trim().isEmpty() || !email.contains("@") || email.trim().length() > 254) {
             throw new RuntimeException("Please provide a valid email address");
         }
+        resendGuard.assertAllowed(email, ctx == null ? null : ctx.ip());
 
         Optional<User> found = userRepository.findByEmail(email.trim().toLowerCase());
         if (found.isEmpty()) {
             found = userRepository.findByEmail(email.trim());
         }
-        if (found.isEmpty() || found.get().isVerified() || !found.get().isActive()) {
+        if (found.isEmpty() || !found.get().isActive()) {
             return;
         }
         User user = found.get();
+        if (user.isVerified()) {
+            noticeAlreadyVerified(user, ctx);
+            return;
+        }
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         emailService.sendVerificationEmail(user.getEmail(), activationToken);
+        audit.event(SecurityEventType.ACTIVATION_RESENT).user(user.getId()).client(ctx).write();
+    }
+
+    private void noticeAlreadyVerified(User user, ClientContext ctx) {
+        try {
+            if (!resendGuard.allowVerifiedNotice(user.getId())) {
+                return;
+            }
+            notifications.sendNotice(user.getId(), user.getEmail(), user.getFirstName(),
+                    "Your Premisave account is already verified",
+                    "Your account is already verified",
+                    "Someone asked for a new activation email for " + user.getEmail() + ", but this account is already "
+                            + "verified and ready to use. Open Premisave and sign in. If you have forgotten your password, "
+                            + "use Forgot password on the sign-in page. If it was not you, you can ignore this email: "
+                            + "nothing about your account has changed.",
+                    java.util.List.of(new com.premisave.auth.service.security.EmailTemplateRenderer.Row("IP address", ctx == null ? "" : ctx.ip())),
+                    "", "", "");
+            audit.event(SecurityEventType.ACTIVATION_RESEND_VERIFIED_ACCOUNT).user(user.getId()).client(ctx).write();
+        } catch (RuntimeException e) {
+            // Nothing the caller can act on, and the answer on screen must not differ.
+            log.warn("Already-verified notice skipped: {}", e.getClass().getSimpleName());
+        }
     }
 
     /** Always completes normally: an unknown address gets no email and no error. */

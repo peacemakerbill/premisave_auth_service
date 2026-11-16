@@ -351,7 +351,7 @@ Base URL (local): `http://localhost:8080`
 | `POST` | `/auth/logout` | Blacklist the bearer token. |
 | `POST` | `/auth/refresh` | Exchange a still-valid token for a fresh one. |
 | `GET` | `/auth/verify/{token}` | Verify an account from the emailed link. |
-| `POST` | `/auth/resend-activation?email=` | Resend the activation email. |
+| `POST` | `/auth/resend-activation?email=` | Resend the activation email. The answer is the same for every address; a verified account is told by email that it is already verified. Limited to one request a minute and five an hour per address, and twenty an hour per client (429 beyond that). |
 | `POST` | `/auth/forgot-password` | Email a password-reset link. Rate limited. |
 | `POST` | `/auth/reset-password` | Set a new password with a reset token. Rate limited. |
 | `POST` | `/auth/change-password` | Change password while signed in. |
