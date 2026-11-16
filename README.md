@@ -281,19 +281,19 @@ python3 tool/readme_assets.py      # redraw the pictures after a big change
 
 | Guide | What is in it |
 | --- | --- |
-| [docs/SETUP.md](docs/SETUP.md) | Install, configure, run and check, step by step, with the problems people usually hit. |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The layers, the filters, the data model, background jobs and the choices behind them. |
-| [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) | Tokens, sessions, refresh rotation, devices, throttling and logout. |
-| [docs/SOCIAL_SIGN_IN.md](docs/SOCIAL_SIGN_IN.md) | Setting up Google, Facebook and GitHub, and the two ways a client can sign in. |
-| [docs/API.md](docs/API.md) | Every endpoint, grouped, with who may call it. |
-| [docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every setting, by group, with its default. |
-| [docs/ADMIN_AND_ACCOUNT_SECURITY.md](docs/ADMIN_AND_ACCOUNT_SECURITY.md) | Administrators, alerts, scoring, retention and the limits of it all. |
-| [docs/HOME_OWNER_APPLICATIONS.md](docs/HOME_OWNER_APPLICATIONS.md) | The application workflow, documents, review and emails. |
-| [docs/STORAGE.md](docs/STORAGE.md) | Keeping documents on a local disk or on a network share mounted by the operating system. |
-| [docs/INTEGRATION.md](docs/INTEGRATION.md) | The token contract and the internal API, for other services. |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | A checklist for going live. |
-| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Building, testing, adding an endpoint, and how the pictures are made. |
-| [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Symptoms and fixes. |
+| <img src="docs/assets/icons/setup.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/SETUP.md](docs/SETUP.md) | Install, configure, run and check, step by step, with the problems people usually hit. |
+| <img src="docs/assets/icons/architecture.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | The layers, the filters, the data model, background jobs and the choices behind them. |
+| <img src="docs/assets/icons/authentication.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/AUTHENTICATION.md](docs/AUTHENTICATION.md) | Tokens, sessions, refresh rotation, devices, throttling and logout. |
+| <img src="docs/assets/icons/social-sign-in.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/SOCIAL_SIGN_IN.md](docs/SOCIAL_SIGN_IN.md) | Setting up Google, Facebook and GitHub, and the two ways a client can sign in. |
+| <img src="docs/assets/icons/api.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/API.md](docs/API.md) | Every endpoint, grouped, with who may call it. |
+| <img src="docs/assets/icons/configuration.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/CONFIGURATION.md](docs/CONFIGURATION.md) | Every setting, by group, with its default. |
+| <img src="docs/assets/icons/security.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/ADMIN_AND_ACCOUNT_SECURITY.md](docs/ADMIN_AND_ACCOUNT_SECURITY.md) | Administrators, alerts, scoring, retention and the limits of it all. |
+| <img src="docs/assets/icons/home-owner.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/HOME_OWNER_APPLICATIONS.md](docs/HOME_OWNER_APPLICATIONS.md) | The application workflow, documents, review and emails. |
+| <img src="docs/assets/icons/storage.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/STORAGE.md](docs/STORAGE.md) | Keeping documents on a local disk or on a network share mounted by the operating system. |
+| <img src="docs/assets/icons/integration.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/INTEGRATION.md](docs/INTEGRATION.md) | The token contract and the internal API, for other services. |
+| <img src="docs/assets/icons/deployment.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | A checklist for going live. |
+| <img src="docs/assets/icons/development.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Building, testing, adding an endpoint, and how the pictures are made. |
+| <img src="docs/assets/icons/troubleshooting.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Symptoms and fixes. |
 
 <img src="docs/assets/divider.svg" alt="" width="100%"/>
 

@@ -1,3 +1,15 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-home-owner.svg" alt="docs/HOME_OWNER_APPLICATIONS.md. From a draft to a verified Home Owner, step by step." width="100%"/>
+
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Documents PDF_JPG_PNG_WEBP](https://img.shields.io/badge/Documents-PDF_JPG_PNG_WEBP-14493B?style=flat-square&logo=adobeacrobatreader&logoColor=white)](STORAGE.md)
+[![Review staff](https://img.shields.io/badge/Review-staff-14493B?style=flat-square&logo=checkmarx&logoColor=white)](#review)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/HOME_OWNER_APPLICATIONS.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/HOME_OWNER_APPLICATIONS.md)
+
+</div>
+
 # Home Owner applications
 
 A new account is a `CLIENT`. A person who owns or manages property applies to become a `HOME_OWNER`. The auth-service holds the whole workflow: the form, the documents, the review, the emails, and the final promotion that changes the role.
@@ -15,6 +27,10 @@ A new account is a `CLIENT`. A person who owns or manages property applies to be
 - [Emails](#emails)
 - [Limits and settings](#limits-and-settings)
 - [Calling it from a client](#calling-it-from-a-client)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
+
+<img src="assets/requirements.svg" alt="Which documents each owner type must upload: identity and proof of ownership for everyone, plus a company registration or a power of attorney where it applies." width="100%"/>
 
 ## Who does what
 

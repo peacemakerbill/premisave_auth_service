@@ -1,6 +1,22 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-security.svg" alt="docs/ADMIN_AND_ACCOUNT_SECURITY.md. Administrators, sign in alerts, and the limits of both." width="100%"/>
+
+[![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white)](AUTHENTICATION.md)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Gmail SMTP](https://img.shields.io/badge/Gmail-SMTP-EA4335?style=flat-square&logo=gmail&logoColor=white)](CONFIGURATION.md#mail)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/ADMIN_AND_ACCOUNT_SECURITY.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/ADMIN_AND_ACCOUNT_SECURITY.md)
+
+</div>
+
 # Administrator provisioning and account security
 
 How administrators come to exist, and how the service watches sign ins and tells the owner about anything unusual. For the token and session rules see [AUTHENTICATION.md](AUTHENTICATION.md), and for every setting named here see [CONFIGURATION.md](CONFIGURATION.md).
+
+<img src="assets/admin-paths.svg" alt="Three configuration routes to an administrator: an invitation list, an automatic list applied at verification, and up to three accounts created from the environment file." width="100%"/>
+
+<img src="assets/stats-risk.svg" alt="The weight of each suspicious sign-in signal against the alert threshold." width="100%"/>
 
 ## 1. Configuring administrators
 

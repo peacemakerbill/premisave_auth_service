@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="t d"><title id="t">social sign in</title><desc id="d">Icon for social sign in</desc><defs></defs><style>
+text { font-family: 'PS Sans','IBM Plex Sans','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; fill: #0F2A22; }
+.cond { font-family: 'PS Cond','IBM Plex Sans Condensed','Arial Narrow','Helvetica Neue',Arial,sans-serif; font-weight: 700; }
+.mono { font-family: 'PS Mono','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+.soft { fill: #4C655B; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style><rect x="0" y="0" width="64" height="64" rx="12" fill="#E8EDE9"/><g transform="translate(10 10) scale(0.69)"><path d="M25 13a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" fill="none" stroke="#C98A0B" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 50a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" fill="none" stroke="#0F2A22" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 50a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" fill="none" stroke="#0F2A22" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round"/><path d="M29 19L15 44M35 19L49 44M19 50H45" fill="none" stroke="#0F2A22" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round"/></g></svg>

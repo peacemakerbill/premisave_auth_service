@@ -1,3 +1,16 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-development.svg" alt="docs/DEVELOPMENT.md. House rules, tests, and how to add things safely." width="100%"/>
+
+[![Java 21](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
+[![Maven Wrapper](https://img.shields.io/badge/Maven-Wrapper-C71A36?style=flat-square&logo=apachemaven&logoColor=white)](#everyday-commands)
+[![Git](https://img.shields.io/badge/Git-F05032?style=flat-square&logo=git&logoColor=white)](https://git-scm.com)
+[![Tests contextLoads](https://img.shields.io/badge/Tests-contextLoads-B7791F?style=flat-square&logo=junit5&logoColor=white)](#tests)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/DEVELOPMENT.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/DEVELOPMENT.md)
+
+</div>
+
 # Development
 
 For anyone changing the code. Read [ARCHITECTURE.md](ARCHITECTURE.md) first for the layers, and [SETUP.md](SETUP.md) to get it running.
@@ -15,6 +28,12 @@ For anyone changing the code. Read [ARCHITECTURE.md](ARCHITECTURE.md) first for 
 - [Trying changes by hand](#trying-changes-by-hand)
 - [The README pictures](#the-readme-pictures)
 - [Before you open a pull request](#before-you-open-a-pull-request)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
+
+<img src="assets/dev-steps.svg" alt="Eight steps for adding an endpoint, in order: service, request types, controller, route rule, rate limit, audit event, documentation and pictures." width="100%"/>
+
+<img src="assets/stack.svg" alt="The technology stack." width="100%"/>
 
 ## Everyday commands
 

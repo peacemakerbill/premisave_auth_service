@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="t d"><title id="t">api</title><desc id="d">Icon for api</desc><defs></defs><style>
+text { font-family: 'PS Sans','IBM Plex Sans','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; fill: #0F2A22; }
+.cond { font-family: 'PS Cond','IBM Plex Sans Condensed','Arial Narrow','Helvetica Neue',Arial,sans-serif; font-weight: 700; }
+.mono { font-family: 'PS Mono','JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+.soft { fill: #4C655B; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style><rect x="0" y="0" width="64" height="64" rx="12" fill="#E8EDE9"/><g transform="translate(10 10) scale(0.69)"><path d="M6 22H48M40 13l9 9-9 9" fill="none" stroke="#C98A0B" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round"/><path d="M58 44H16M24 35l-9 9 9 9" fill="none" stroke="#0F2A22" stroke-width="3.0" stroke-linecap="round" stroke-linejoin="round"/></g></svg>

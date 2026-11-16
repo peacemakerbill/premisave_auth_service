@@ -1,3 +1,15 @@
+<!-- band -->
+<div align="center">
+
+<img src="../docs/assets/head-console.svg" alt="test-client/README.md. Try every endpoint from one HTML page." width="100%"/>
+
+[![HTML single_page](https://img.shields.io/badge/HTML-single_page-E34F26?style=flat-square&logo=html5&logoColor=white)](auth-console.html)
+[![JavaScript no_build](https://img.shields.io/badge/JavaScript-no_build-F7DF1E?style=flat-square&logo=javascript&logoColor=black)](auth-console.html)
+[![JWT HS256](https://img.shields.io/badge/JWT-HS256-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)](../docs/AUTHENTICATION.md)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=test-client/README.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/test-client/README.md)
+
+</div>
+
 # Auth console
 
 A single HTML page for trying the auth-service by hand. There is nothing to install and no build step. It talks to a running service with `fetch`, and keeps what you type, such as the address and tokens, in your browser only.

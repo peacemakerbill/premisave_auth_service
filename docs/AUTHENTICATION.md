@@ -1,3 +1,16 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-authentication.svg" alt="docs/AUTHENTICATION.md. Two tokens, with one server side session behind them." width="100%"/>
+
+[![JWT HS256](https://img.shields.io/badge/JWT-HS256-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)](INTEGRATION.md)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io)
+[![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white)](ARCHITECTURE.md)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/AUTHENTICATION.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/AUTHENTICATION.md)
+
+</div>
+
 # Authentication
 
 How people prove who they are, what they get back, and how the service keeps that safe. This is the guide to read before you write a client, or a service that trusts these tokens.
@@ -17,6 +30,8 @@ How people prove who they are, what they get back, and how the service keeps tha
 - [Step-up checks](#step-up-checks)
 - [What a client should do](#what-a-client-should-do)
 - [Error answers](#error-answers)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
 
 ## The short version
 

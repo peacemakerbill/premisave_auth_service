@@ -1,3 +1,15 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-integration.svg" alt="docs/INTEGRATION.md. What another service needs to trust these tokens." width="100%"/>
+
+[![JWT HS256](https://img.shields.io/badge/JWT-HS256-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)](#checking-a-users-token)
+[![API key internal](https://img.shields.io/badge/API_key-internal-000000?style=flat-square&logo=keycdn&logoColor=white)](#the-internal-api)
+[![Flutter app](https://img.shields.io/badge/Flutter-app-02569B?style=flat-square&logo=flutter&logoColor=white)](https://github.com/peacemakerbill/premisave_flutter_frontend)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/INTEGRATION.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/INTEGRATION.md)
+
+</div>
+
 # Integrating other services
 
 The auth-service is the one place where Premisave people sign in. Every other service, the wallet and the rest, trusts what this service issues. This page is the contract: what a token holds, how another service checks it, and the three endpoints services call.
@@ -10,6 +22,10 @@ The auth-service is the one place where Premisave people sign in. Every other se
 - [Calling this service](#calling-this-service)
 - [Secrets that must match](#secrets-that-must-match)
 - [Checklist for a new service](#checklist-for-a-new-service)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
+
+<img src="assets/integration.svg" alt="People send a signed access token that other services verify with the shared secret. Services call the internal endpoints with an API key. The developer service is separate." width="100%"/>
 
 ## The two trust boundaries
 

@@ -1,3 +1,15 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-social-sign-in.svg" alt="docs/SOCIAL_SIGN_IN.md. Google, Facebook and GitHub, verified on the server." width="100%"/>
+
+[![Google](https://img.shields.io/badge/Google-4285F4?style=flat-square&logo=google&logoColor=white)](#google)
+[![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=flat-square&logo=facebook&logoColor=white)](#facebook)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)](#github)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/SOCIAL_SIGN_IN.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/SOCIAL_SIGN_IN.md)
+
+</div>
+
 # Sign in with Google, Facebook and GitHub
 
 The service verifies a credential from the provider on the server, creates or finds the account, and then does exactly what a password sign in does: a session, two tokens, device recognition, scoring and alerts. Every provider is optional and independent. With nothing configured the service starts normally and each provider answers with "not configured on this server".
@@ -13,6 +25,10 @@ The service verifies a credential from the provider on the server, creates or fi
 - [Redirect addresses](#redirect-addresses)
 - [Testing](#testing)
 - [Security notes](#security-notes)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
+
+<img src="assets/social-flows.svg" alt="Two ways to sign in with a provider. A token flow for web, Android and iOS, and an authorization code flow for desktop and GitHub. Both end in a session. Below them, the three rules that decide which account is used." width="100%"/>
 
 ## The endpoints
 

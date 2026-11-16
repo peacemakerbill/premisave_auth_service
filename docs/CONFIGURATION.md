@@ -1,3 +1,15 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-configuration.svg" alt="docs/CONFIGURATION.md. Every setting, with its default and what it does." width="100%"/>
+
+[![.env file](https://img.shields.io/badge/.env-file-ECD53F?style=flat-square&logo=dotenv&logoColor=black)](SETUP.md#2-configure)
+[![Spring Boot 4.1](https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Read at_startup](https://img.shields.io/badge/Read-at_startup-14493B?style=flat-square&logo=springboot&logoColor=white)](#how-settings-are-loaded)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/CONFIGURATION.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/CONFIGURATION.md)
+
+</div>
+
 # Configuration
 
 Every setting of the auth-service, with its default and what it does. All of them come from environment variables, which `application.yml` reads. For local work you put them in a `.env` file, and `.env.example` is a commented template.
@@ -22,6 +34,10 @@ Every setting of the auth-service, with its default and what it does. All of the
 - [Document storage](#document-storage)
 - [Places](#places)
 - [Things that are not settings](#things-that-are-not-settings)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
+
+<img src="assets/config-map.svg" alt="Every setting grouped by what it controls, with the count in each group." width="100%"/>
 
 ## How settings are loaded
 

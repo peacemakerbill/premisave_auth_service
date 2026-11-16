@@ -1,3 +1,16 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-architecture.svg" alt="docs/ARCHITECTURE.md. How a request travels, and why the service is built this way." width="100%"/>
+
+[![Spring Boot 4.1](https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?style=flat-square&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=flat-square&logo=springsecurity&logoColor=white)](AUTHENTICATION.md)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/ARCHITECTURE.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/ARCHITECTURE.md)
+
+</div>
+
 # Architecture
 
 How the auth-service is put together, and why. Read this before you change something that crosses layers. For the settings see [CONFIGURATION.md](CONFIGURATION.md), and for the token and session rules see [AUTHENTICATION.md](AUTHENTICATION.md).
@@ -13,6 +26,8 @@ How the auth-service is put together, and why. Read this before you change somet
 - [Errors](#errors)
 - [Email](#email)
 - [Design choices](#design-choices)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
 
 ## The shape of it
 

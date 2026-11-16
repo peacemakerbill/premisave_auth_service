@@ -1,3 +1,15 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-troubleshooting.svg" alt="docs/TROUBLESHOOTING.md. Find the symptom, read the cause, apply the fix." width="100%"/>
+
+[![Issues open](https://img.shields.io/badge/Issues-open-14493B?style=flat-square&logo=github&logoColor=white)](https://github.com/peacemakerbill/premisave_auth_service/issues)
+[![Gmail SMTP](https://img.shields.io/badge/Gmail-SMTP-EA4335?style=flat-square&logo=gmail&logoColor=white)](#email-does-not-arrive)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/TROUBLESHOOTING.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/TROUBLESHOOTING.md)
+
+</div>
+
 # Troubleshooting
 
 Find the symptom, read the likely cause, apply the fix. The service logs a plain reason for most failures, so look at the log first. For setup steps see [SETUP.md](SETUP.md).
@@ -14,6 +26,10 @@ Find the symptom, read the likely cause, apply the fix. The service logs a plain
 - [Other services cannot connect](#other-services-cannot-connect)
 - [Places and maps](#places-and-maps)
 - [Still stuck](#still-stuck)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
+
+<img src="assets/triage.svg" alt="Eight groups of symptoms, each with an example message and its usual causes." width="100%"/>
 
 ## The service will not start
 

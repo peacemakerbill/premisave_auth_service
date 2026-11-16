@@ -1,3 +1,15 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-storage.svg" alt="docs/STORAGE.md. Identity documents stay on a disk you control." width="100%"/>
+
+[![Local folder](https://img.shields.io/badge/Local-folder-14493B?style=flat-square&logo=files&logoColor=white)](#local-folder)
+[![NAS SMB_or_NFS](https://img.shields.io/badge/NAS-SMB_or_NFS-0086E5?style=flat-square&logo=synology&logoColor=white)](#network-share)
+[![Public link never](https://img.shields.io/badge/Public_link-never-B42318?style=flat-square&logo=lock&logoColor=white)](STORAGE.md)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/STORAGE.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/STORAGE.md)
+
+</div>
+
 # Document storage
 
 Home Owner applications carry identity and ownership documents. They are some of the most sensitive files the platform holds, so they never go into MongoDB, never to a third party, and never behind a public link. They live on a disk you control and are served only through the application endpoints, to the applicant who owns them and to staff.
@@ -13,6 +25,10 @@ Home Owner applications carry identity and ownership documents. They are some of
 - [When storage is not working](#when-storage-is-not-working)
 - [Backups and growth](#backups-and-growth)
 - [Safety rules built in](#safety-rules-built-in)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
+
+<img src="assets/storage.svg" alt="An upload is checked, then written to a local folder or a network share that the operating system has mounted, and is only ever served through the API." width="100%"/>
 
 ## How it works
 

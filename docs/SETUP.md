@@ -1,3 +1,17 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-setup.svg" alt="docs/SETUP.md. From nothing to a signed in account in about fifteen minutes." width="100%"/>
+
+[![Java 21](https://img.shields.io/badge/Java-21-ED8B00?style=flat-square&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=flat-square&logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white)](https://redis.io)
+[![Gmail SMTP](https://img.shields.io/badge/Gmail-SMTP-EA4335?style=flat-square&logo=gmail&logoColor=white)](#email)
+[![Maven Wrapper](https://img.shields.io/badge/Maven-Wrapper-C71A36?style=flat-square&logo=apachemaven&logoColor=white)](DEVELOPMENT.md)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/SETUP.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/SETUP.md)
+
+</div>
+
 # Setup
 
 This guide takes you from nothing to a running auth-service you can sign in to. It should take about fifteen minutes. If something goes wrong, [TROUBLESHOOTING.md](TROUBLESHOOTING.md) lists the usual causes.
@@ -16,6 +30,8 @@ This guide takes you from nothing to a running auth-service you can sign in to. 
 - [7. Create an account](#7-create-an-account)
 - [Optional extras](#optional-extras)
 - [Next steps](#next-steps)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
 
 ## What you need
 

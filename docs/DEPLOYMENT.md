@@ -1,3 +1,15 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-deployment.svg" alt="docs/DEPLOYMENT.md. A checklist for going live, and the limits to plan around." width="100%"/>
+
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](#containers)
+[![Nginx proxy](https://img.shields.io/badge/Nginx-proxy-009639?style=flat-square&logo=nginx&logoColor=white)](#behind-a-reverse-proxy)
+[![HTTPS required](https://img.shields.io/badge/HTTPS-required-14493B?style=flat-square&logo=letsencrypt&logoColor=white)](#before-you-go-live)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/DEPLOYMENT.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/DEPLOYMENT.md)
+
+</div>
+
 # Deployment
 
 How to put the auth-service on a server, and what to close first. Running it locally needs none of this. Running it for real people does.
@@ -14,6 +26,10 @@ How to put the auth-service on a server, and what to close first. Running it loc
 - [Backups](#backups)
 - [Upgrading](#upgrading)
 - [Known limits to plan around](#known-limits-to-plan-around)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
+
+<img src="assets/deployment.svg" alt="People and other services reach the auth-service through a reverse proxy over HTTPS. One or more instances share MongoDB, Redis, a document share and the outside services." width="100%"/>
 
 ## Before you go live
 

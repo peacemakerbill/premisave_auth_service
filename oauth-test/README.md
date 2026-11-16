@@ -1,3 +1,16 @@
+<!-- band -->
+<div align="center">
+
+<img src="../docs/assets/head-oauth-test.svg" alt="oauth-test/README.md. Test Google, Facebook and GitHub sign in against your own service." width="100%"/>
+
+[![Google](https://img.shields.io/badge/Google-4285F4?style=flat-square&logo=google&logoColor=white)](../docs/SOCIAL_SIGN_IN.md#google)
+[![Facebook](https://img.shields.io/badge/Facebook-1877F2?style=flat-square&logo=facebook&logoColor=white)](../docs/SOCIAL_SIGN_IN.md#facebook)
+[![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)](../docs/SOCIAL_SIGN_IN.md#github)
+[![HTML single_page](https://img.shields.io/badge/HTML-single_page-E34F26?style=flat-square&logo=html5&logoColor=white)](oauth-test.html)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=oauth-test/README.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/oauth-test/README.md)
+
+</div>
+
 # OAuth test console
 
 A single HTML page for trying Google, Facebook and GitHub sign in against your own auth-service. It can also show you the raw provider token, so you can paste it into Postman and call the endpoint yourself.

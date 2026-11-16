@@ -910,6 +910,579 @@ def setup():
                           ('cond7', 'sans4', 'sans6', 'mono4', 'mono6')))
 
 
+# ---------------------------------------------------------------------------------------- icons and header bands
+
+def circ(cx, cy, r):
+    return f'M{cx - r} {cy}a{r} {r} 0 1 0 {2 * r} 0a{r} {r} 0 1 0 {-2 * r} 0'
+
+
+# Each icon is a few strokes on a 64 unit grid. The second value marks the stroke drawn in amber.
+ICONS = {
+    'docs': [('M8 12H28Q32 12 32 16V54Q32 50 28 50H8Z', 0), ('M56 12H36Q32 12 32 16V54Q32 50 36 50H56Z', 0), ('M32 16V54', 1)],
+    'setup': [('M6 54H22V42H36V30H50V18H58', 0), ('M50 18V5', 1), ('M50 5l11 4.5-11 4.5', 1)],
+    'architecture': [('M32 8L58 20L32 32L6 20Z', 1), ('M6 31L32 43L58 31', 0), ('M6 42L32 54L58 42', 0)],
+    'authentication': [(circ(18, 32, 11), 1), ('M29 32H59', 0), ('M51 32v10M43 32v8', 0), (circ(18, 32, 3), 0)],
+    'social-sign-in': [(circ(32, 13, 7), 1), (circ(12, 50, 7), 0), (circ(52, 50, 7), 0), ('M29 19L15 44M35 19L49 44M19 50H45', 0)],
+    'api': [('M6 22H48M40 13l9 9-9 9', 1), ('M58 44H16M24 35l-9 9 9 9', 0)],
+    'configuration': [('M6 16H18M30 16H58', 0), (circ(24, 16, 6), 0), ('M6 32H34M46 32H58', 0), (circ(40, 32, 6), 1), ('M6 48H14M26 48H58', 0), (circ(20, 48, 6), 0)],
+    'security': [('M32 5L55 13V31C55 45 45 54 32 59C19 54 9 45 9 31V13Z', 0), ('M21 32l8 8 15-16', 1)],
+    'home-owner': [('M6 31L32 8L58 31', 1), ('M13 26V57H51V26', 0), ('M26 57V41H38V57', 0)],
+    'storage': [('M12 15a20 8 0 1 0 40 0a20 8 0 1 0 -40 0', 0), ('M12 15V49a20 8 0 0 0 40 0V15', 0), ('M12 32a20 8 0 0 0 40 0', 1)],
+    'integration': [('M5 20H25V44H5Z', 0), ('M39 20H59V44H39Z', 0), ('M25 28H39M33 23l6 5-6 5', 1), ('M39 38H25M31 33l-6 5 6 5', 1)],
+    'deployment': [('M8 40H56V57H8Z', 0), ('M32 35V6M19 19L32 6L45 19', 1), ('M16 48.5h8', 0)],
+    'development': [('M20 17L6 32L20 47', 0), ('M44 17L58 32L44 47', 0), ('M37 11L27 53', 1)],
+    'troubleshooting': [(circ(26, 26, 17), 0), ('M39 39L58 58', 1), ('M26 17V28M26 34v1', 0)],
+    'console': [('M5 11H59V53H5Z', 0), ('M5 21H59', 0), ('M13 33l8 6-8 6', 1), ('M27 45H41', 1)],
+    'oauth-test': [('M24 7H40', 0), ('M28 7V26L11 51Q8 57 15 57H49Q56 57 53 51L36 26V7', 0), ('M19 43H45', 1)],
+}
+
+# What each band says. (icon, file shown at the right, one line, chips)
+HEADS = {
+    'docs': ('docs/README.md', 'Thirteen guides, one for each job you will have with this service.',
+             ['Set it up', 'Build on it', 'Run it', 'Fix it']),
+    'setup': ('docs/SETUP.md', 'From nothing to a signed in account in about fifteen minutes.',
+              ['Java 21', 'MongoDB', 'Redis', 'Gmail App Password']),
+    'architecture': ('docs/ARCHITECTURE.md', 'How a request travels, and why the service is built this way.',
+                     ['Filters', 'Controllers', 'Services', 'MongoDB', 'Redis']),
+    'authentication': ('docs/AUTHENTICATION.md', 'Two tokens, with one server side session behind them.',
+                       ['Access token', 'Refresh rotation', 'Devices', 'Throttling']),
+    'social-sign-in': ('docs/SOCIAL_SIGN_IN.md', 'Google, Facebook and GitHub, verified on the server.',
+                       ['ID token', 'Authorization code', 'Account linking']),
+    'api': ('docs/API.md', 'Every endpoint, who may call it, and what it answers.',
+            ['{endpoints} endpoints', 'JSON', 'Bearer JWT', 'X-API-Key']),
+    'configuration': ('docs/CONFIGURATION.md', 'Every setting, with its default and what it does.',
+                      ['{settings} settings', '.env or environment', 'read at startup']),
+    'security': ('docs/ADMIN_AND_ACCOUNT_SECURITY.md', 'Administrators, sign in alerts, and the limits of both.',
+                 ['Invitations', 'Risk score', 'Audit trail', 'Retention']),
+    'home-owner': ('docs/HOME_OWNER_APPLICATIONS.md', 'From a draft to a verified Home Owner, step by step.',
+                   ['Form', 'Documents', 'Review', 'Promotion']),
+    'storage': ('docs/STORAGE.md', 'Identity documents stay on a disk you control.',
+                ['Local folder', 'NAS share', 'Never a public link']),
+    'integration': ('docs/INTEGRATION.md', 'What another service needs to trust these tokens.',
+                    ['JWT key', 'X-API-Key', 'Session check']),
+    'deployment': ('docs/DEPLOYMENT.md', 'A checklist for going live, and the limits to plan around.',
+                   ['HTTPS', 'Short tokens', 'Reverse proxy', 'Backups']),
+    'development': ('docs/DEVELOPMENT.md', 'House rules, tests, and how to add things safely.',
+                    ['Maven wrapper', 'Add an endpoint', 'Tests']),
+    'troubleshooting': ('docs/TROUBLESHOOTING.md', 'Find the symptom, read the cause, apply the fix.',
+                        ['Startup', 'Mail', 'Sign in', 'Tokens', 'Uploads']),
+    'console': ('test-client/README.md', 'Try every endpoint from one HTML page.',
+                ['No install', 'Tokens stay in the browser']),
+    'oauth-test': ('oauth-test/README.md', 'Test Google, Facebook and GitHub sign in against your own service.',
+                   ['No install', 'Shows the raw provider token']),
+}
+
+
+def icon_group(name, x, y, s, colour, accent, width=1.7, animate=True, delay0=0.3):
+    out = []
+    for i, (d, acc) in enumerate(ICONS[name]):
+        cls = ' class="dr"' if animate else ''
+        pl = ' pathLength="1"' if animate else ''
+        dl = f' style="animation-delay:{delay0 + i * 0.22:.2f}s"' if animate else ''
+        out.append(f'<path{cls}{pl} d="{d}" fill="none" stroke="{accent if acc else colour}" stroke-width="{width}" '
+                   f'stroke-linecap="round" stroke-linejoin="round"{dl}/>')
+    return f'<g transform="translate({x} {y}) scale({s})">{"".join(out)}</g>'
+
+
+def dochead(slug):
+    path, line, chips = HEADS[slug]
+    rows, total = endpoint_counts()
+    chips = [c.format(endpoints=total, settings=settings_count()) for c in chips]
+    w, h = 1200, 190
+    size = 32
+    while len(line) * size * 0.43 > 930:
+        size -= 1
+    grid = ''.join(f'M{x} 0V{h}' for x in range(40, w, 40)) + ''.join(f'M0 {y}H{w}' for y in range(40, h, 40))
+    corners = ''.join(f'<path d="{d}" stroke="{SHEET_SOFT}" stroke-width="1.2" fill="none" opacity=".7"/>' for d in (
+        'M14 28V14H28', f'M{w - 28} 14H{w - 14}V28', f'M14 {h - 28}V{h - 14}H28', f'M{w - 28} {h - 14}H{w - 14}V{h - 28}'))
+    ring = (f'<rect x="52" y="30" width="130" height="130" fill="none" stroke="{SHEET_SOFT}" stroke-width="1" opacity=".55" stroke-dasharray="6 4" class="march"/>'
+            f'<circle cx="52" cy="30" r="3.2" fill="{AMBER}"/>')
+    ico = icon_group(slug, 66, 44, 1.6, SHEET_LINE, AMBER, 1.9)
+    cx, parts = 236, []
+    for i, c in enumerate(chips):
+        cw = len(c) * 8.4 + 26
+        parts.append(f'<g class="fade" style="animation-delay:{1.1 + i * .15:.2f}s"><rect x="{cx}" y="118" width="{cw:.0f}" height="28" rx="14" fill="none" stroke="{SHEET_SOFT}" stroke-width="1.1"/>'
+                     f'<text x="{cx + cw / 2:.0f}" y="136.5" text-anchor="middle" font-size="13" class="mono" style="fill:{SHEET_LINE}">{esc(c)}</text></g>')
+        cx += cw + 10
+    css = f"""
+.dr {{ stroke-dasharray: 1; animation: draw 1.3s cubic-bezier(.5,0,.2,1) both; }}
+@keyframes draw {{ from {{ stroke-dashoffset: 1; }} to {{ stroke-dashoffset: 0; }} }}
+.fade {{ animation: fadein .9s both; }} @keyframes fadein {{ from {{ opacity: 0; }} }}
+.march {{ animation: march 4s linear infinite; }} @keyframes march {{ to {{ stroke-dashoffset: -20; }} }}
+.in1 {{ animation: slide .9s .2s cubic-bezier(.2,.7,.2,1) both; }}
+@keyframes slide {{ from {{ opacity: 0; transform: translateY(10px); }} }}
+.mk {{ animation: mk 9s ease-in-out infinite alternate; }} @keyframes mk {{ from {{ transform: translateX(0px); }} to {{ transform: translateX(920px); }} }}
+text {{ fill: {SHEET_LINE}; }}
+"""
+    body = (f'<rect width="{w}" height="{h}" fill="{SHEET}"/><path d="{grid}" stroke="#fff" stroke-width="1" opacity=".045" fill="none"/>'
+            f'{corners}{ring}{ico}'
+            f'<g class="in1"><text class="cond" x="236" y="92" font-size="{size}" letter-spacing="-.4">{esc(line)}</text></g>'
+            f'{"".join(parts)}'
+            f'<text x="{w - 34}" y="46" text-anchor="end" font-size="13" class="mono" style="fill:{SHEET_SOFT}">{esc(path)}</text>'
+            f'<line x1="236" y1="168" x2="{w - 34}" y2="168" stroke="{SHEET_SOFT}" stroke-width="1" opacity=".6"/>'
+            f'<rect class="mk" x="236" y="162" width="10" height="12" fill="{AMBER}"/>')
+    save(f'head-{slug}.svg', svg(w, h, body, css, '', f'{path}', f'Header band for {path} with a drawn icon and the topics it covers.',
+                                 ('cond7', 'sans4', 'sans6', 'mono4', 'mono6')))
+
+
+def icon_file(slug):
+    """A small static icon for tables: ink strokes on a pale tile, one amber stroke."""
+    body = (f'<rect x="0" y="0" width="64" height="64" rx="12" fill="{PAPER2}"/>'
+            + icon_group(slug, 10, 10, 0.69, INK, '#C98A0B', 3.0, False))
+    os.makedirs(os.path.join(OUT, 'icons'), exist_ok=True)
+    content = svg(64, 64, body, '', '', slug.replace('-', ' '), f'Icon for {slug.replace("-", " ")}', ())
+    with open(os.path.join(OUT, 'icons', f'{slug}.svg'), 'w', encoding='utf-8') as f:
+        f.write(content)
+
+
+def docs_heads():
+    for slug in HEADS:
+        dochead(slug)
+        icon_file(slug)
+# ---------------------------------------------------------------------------------------- shared drawing helpers for the guides
+
+FULL = ('cond7', 'sans4', 'sans6', 'mono4', 'mono6')
+BASE_MOTION = (".rise { animation: rise .7s cubic-bezier(.2,.8,.2,1) both; } @keyframes rise { from { opacity:0; transform: translateY(14px); } }\n"
+               ".march { animation: march 1.4s linear infinite; } @keyframes march { to { stroke-dashoffset: -6; } }\n"
+               ".pk, .pl { opacity: 0; }\n")
+
+
+def box(x, y, w, h, title, lines=(), i=0, solid=False, tsize=20, mono=None, dashed=False):
+    """A drawing box. `mono` is an optional line of code under the title. Entrance is staggered by `i`."""
+    fg, sub = (PAPER, SHEET_LINE) if solid else (INK, INK2)
+    dash = ' stroke-dasharray="7 5"' if dashed else ''
+    out = [f'<g class="rise" style="animation-delay:{i * 0.09:.2f}s">',
+           f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{INK if solid else PAPER}" stroke="{INK}" stroke-width="{1.4 if dashed else 2}"{dash}/>']
+    if not solid and not dashed:
+        out.append(f'<rect x="{x + 4}" y="{y + 4}" width="{w - 8}" height="{h - 8}" fill="none" stroke="{INK}" stroke-width=".8"/>')
+    ty = y + 14 + tsize
+    out.append(f'<text class="cond" x="{x + 16}" y="{ty}" font-size="{tsize}" style="fill:{fg}">{esc(title)}</text>')
+    cy = ty + 6
+    if mono:
+        cy += 16
+        out.append(f'<text class="mono" x="{x + 16}" y="{cy}" font-size="11.5" style="fill:{AMBER if solid else DATA}">{esc(mono)}</text>')
+    for ln in lines:
+        cy += 18
+        out.append(f'<text x="{x + 16}" y="{cy}" font-size="12.5" style="fill:{sub}">{esc(ln)}</text>')
+    out.append('</g>')
+    return ''.join(out)
+
+
+def arrow(x1, y1, x2, y2, dash=False, col=INK, head=8, width=1.5):
+    ang = math.atan2(y2 - y1, x2 - x1)
+    bx, by = x2 - head * math.cos(ang), y2 - head * math.sin(ang)
+    px, py = -math.sin(ang) * head * 0.55, math.cos(ang) * head * 0.55
+    d = ' stroke-dasharray="5 4"' if dash else ''
+    return (f'<path d="M{x1:.1f} {y1:.1f}L{bx:.1f} {by:.1f}" stroke="{col}" stroke-width="{width}" fill="none"{d}/>'
+            f'<path d="M{x2:.1f} {y2:.1f}L{bx + px:.1f} {by + py:.1f}L{bx - px:.1f} {by - py:.1f}Z" fill="{col}"/>')
+
+
+def poly(pts, dash=False, col=INK, head=8, width=1.5):
+    """A path through several points, with an arrowhead on the last leg."""
+    d = ' stroke-dasharray="5 4"' if dash else ''
+    body = ''.join(f'L{x:.1f} {y:.1f}' for x, y in pts[1:-1])
+    x0, y0 = pts[0]
+    (xa, ya), (xb, yb) = pts[-2], pts[-1]
+    ang = math.atan2(yb - ya, xb - xa)
+    bx, by = xb - head * math.cos(ang), yb - head * math.sin(ang)
+    px, py = -math.sin(ang) * head * 0.55, math.cos(ang) * head * 0.55
+    return (f'<path d="M{x0:.1f} {y0:.1f}{body}L{bx:.1f} {by:.1f}" stroke="{col}" stroke-width="{width}" fill="none"{d}/>'
+            f'<path d="M{xb:.1f} {yb:.1f}L{bx + px:.1f} {by + py:.1f}L{bx - px:.1f} {by - py:.1f}Z" fill="{col}"/>')
+
+
+def packet(name, cycle, pts, t0, dur, fill=AMBER, size=10):
+    """A small marker that travels along `pts` (a list of (x, y)) starting at second t0 and taking `dur` seconds."""
+    seg = [math.dist(pts[k], pts[k + 1]) for k in range(len(pts) - 1)]
+    total = sum(seg) or 1
+    at = lambda p, op: f'opacity:{op};transform:translate({p[0]:.1f}px,{p[1]:.1f}px)'
+    frames = [(0, at(pts[0], 0)), (t0, at(pts[0], 0)), (t0 + 0.12, at(pts[0], 1))]
+    run = 0
+    for k, p in enumerate(pts[1:], 1):
+        run += seg[k - 1]
+        frames.append((t0 + 0.12 + dur * run / total, at(p, 1)))
+    end = t0 + 0.12 + dur
+    frames += [(end + 0.25, at(pts[-1], 0)), (cycle, at(pts[-1], 0))]
+    frames = [(min(t, cycle), s) for t, s in frames]
+    css = kf(name, cycle, frames) + f'.{name} {{ animation: {name} {cycle}s linear infinite; }}\n'
+    half = size / 2
+    el = (f'<rect class="pk {name}" x="{-half}" y="{-half}" width="{size}" height="{size}" fill="{fill}" stroke="{INK}" stroke-width="1.2"/>')
+    return el, css
+
+
+def glow(name, cycle, x, y, w, h, windows, fade=0.25):
+    css = lit_kf(name, cycle, 'opacity:0', 'opacity:1', windows, fade) + f'.{name} {{ animation: {name} {cycle}s infinite; }}\n'
+    return f'<rect class="pl {name}" x="{x - 3}" y="{y - 3}" width="{w + 6}" height="{h + 6}" fill="none" stroke="{AMBER}" stroke-width="5"/>', css
+
+
+def finish(name, w, h, parts, css, title, desc):
+    save(name, svg(w, h, ''.join(parts), BASE_MOTION + css, '', title, desc, FULL))
+
+
+# ---------------------------------------------------------------------------------------- social sign in
+
+def social_flows():
+    w, h, cycle = 1200, 640, 15.0
+    bw, bh = 196, 112
+    xs = [32 + i * 234 for i in range(5)]
+    laneA = [('Your app', (), 'runs the provider sign in', ('on the device or in the page',)),
+             ('Provider', (), 'signs the person in', ('and returns an ID token',)),
+             ('Post the token', 'POST /auth/google', 'body: { token }', ('no secret on the device',)),
+             ('Auth service', (), 'asks the provider: valid,', ('for this app, verified',)),
+             ('Session', (), 'finds or creates the user', ('issues both tokens',))]
+    laneB = [('Browser', (), 'the app opens the', ('provider sign in page',)),
+             ('Redirect', (), 'the provider returns a', ('code to a listed address',)),
+             ('Post the code', 'POST /auth/github', 'token is the code,', ('plus the redirectUri',)),
+             ('Auth service', (), 'swaps the code for a', ('token using the secret',)),
+             ('Session', (), 'finds or creates the user', ('issues both tokens',))]
+    parts, css = [sheet(w, h, 'Two ways to sign in with a provider', 'both end in the same session')], ''
+    rows = [(124, laneA, 'With the provider sign in', 'web, Android and iOS', 0.8),
+            (322, laneB, 'With an authorization code', 'desktop, and GitHub everywhere', 5.6)]
+    for r, (y, lane, head, sub, t0) in enumerate(rows):
+        parts.append(f'<text class="cond" x="32" y="{y - 16}" font-size="19">{head}</text>'
+                     f'<text class="soft" x="{32 + len(head) * 9.6 + 14:.0f}" y="{y - 16}" font-size="13">{sub}</text>')
+        ym = y + bh / 2
+        for i, (t, mono, l1, l2) in enumerate(lane):
+            parts.append(box(xs[i], y, bw, bh, t, (l1,) + l2, i + r, solid=(i == 4), tsize=19, mono=mono or None))
+            if i < 4:
+                parts.append(arrow(xs[i] + bw + 2, ym, xs[i + 1] - 2, ym))
+        dur = 4.2
+        pk, c = packet(f'pa{r}', cycle, [(xs[0] + bw / 2, y + bh + 14), (xs[4] + bw / 2, y + bh + 14)], t0, dur)
+        parts.append(pk)
+        css += c
+        for i in range(5):
+            tt = t0 + 0.12 + dur * i / 4
+            g, c = glow(f'gl{r}{i}', cycle, xs[i], y, bw, bh, [(tt - 0.3, tt + 0.7)])
+            parts.append(g)
+            css += c
+    parts.append(f'<text class="cond" x="32" y="{488 - 16}" font-size="19">Which account is it</text>'
+                 f'<text class="soft" x="196" y="{488 - 16}" font-size="13">the service tries these in order</text>')
+    cases = [('1  Provider id already linked', 'signs in. A missing name or picture is filled in.'),
+             ('2  Same email found', 'links it. An unverified one loses its password.'),
+             ('3  Nobody yet', 'creates a verified CLIENT account.')]
+    for k, (t, d) in enumerate(cases):
+        x = 32 + k * 388
+        parts.append(box(x, 488, 372, 96, t, (d,), 6 + k, tsize=19))
+        if k < 2:
+            parts.append(f'<path d="M{x + 376} 536h10" stroke="{INK2}" stroke-width="1.5" stroke-dasharray="3 3"/>')
+        tt = 11.4 + k * 1.2
+        g, c = glow(f'gc{k}', cycle, x, 488, 372, 96, [(tt, tt + 1.1)])
+        parts.append(g)
+        css += c
+    finish('social-flows.svg', w, h, parts, css, 'Two ways to sign in with a provider',
+           'A token flow for web, Android and iOS, and an authorization code flow for desktop and GitHub, both ending in a session, then the three rules that decide which account is used.')
+
+
+# ---------------------------------------------------------------------------------------- configuration map
+
+GROUPS = [
+    ('Required', 'JWT_SECRET', ['JWT_SECRET', 'API_KEY', 'GMAIL_PASSWORD', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET']),
+    ('Addresses', 'FRONTEND_URL', ['FRONTEND_URL', 'BACKEND_URL', 'SECURITY_PAGE_PATH', 'HOME_OWNER_FRONTEND_PATH']),
+    ('Data stores', 'MONGODB_URI', ['MONGODB_URI', 'REDIS_HOST', 'REDIS_PORT']),
+    ('Mail', 'GMAIL_USERNAME', ['MAIL_HOST', 'MAIL_PORT', 'GMAIL_USERNAME', 'SUPPORT_EMAIL']),
+    ('Tokens', 'SECURITY_ACCESS_TOKEN_MINUTES', ['JWT_EXPIRATION', 'SECURITY_ACCESS_TOKEN_MINUTES', 'SECURITY_LEGACY_REFRESH_ENABLED', 'SECURITY_SESSION_TTL_DAYS',
+                                                  'SECURITY_REAUTH_WINDOW_MINUTES', 'SECURITY_HIDE_EXISTING_ACCOUNTS']),
+    ('Social sign in', 'GOOGLE_CLIENT_ID', ['OAUTH_ALLOWED_REDIRECT_URIS']),
+    ('Administrators', 'INITIAL_ADMIN_EMAILS', ['INITIAL_ADMIN_EMAILS', 'AUTO_ADMIN_EMAILS', 'SECURITY_INVITATION_TTL_HOURS']),
+    ('Sessions and devices', 'SECURITY_DEVICE_COOKIE_SECURE', ['SECURITY_DEVICE_TRUST_ENABLED', 'SECURITY_SESSION_REVOCATION_ENABLED', 'SECURITY_DEVICE_COOKIE_NAME',
+                                                               'SECURITY_DEVICE_COOKIE_SECURE', 'SECURITY_DEVICE_COOKIE_SAME_SITE', 'SECURITY_DEVICE_COOKIE_MAX_AGE_DAYS',
+                                                               'SECURITY_MAX_DEVICES_PER_USER']),
+    ('Alerts', 'SECURITY_NEW_DEVICE_ALERTS', ['SECURITY_LOGIN_EMAIL_NOTIFICATIONS', 'SECURITY_NEW_DEVICE_ALERTS', 'SECURITY_SUSPICIOUS_LOGIN_ALERTS',
+                                              'SECURITY_DEVICE_ALERT_COOLDOWN_HOURS', 'SECURITY_ALERT_FIRST_DEVICE', 'SECURITY_DISPLAY_ZONE', 'SECURITY_ACTION_TOKEN_TTL_MINUTES']),
+    ('Throttling', 'SECURITY_LOGIN_MAX_FAILURES', ['SECURITY_LOGIN_MAX_FAILURES', 'SECURITY_LOGIN_FAILURE_WINDOW_MINUTES', 'SECURITY_LOGIN_LOCKOUT_MINUTES',
+                                                   'SECURITY_LOGIN_MAX_LOCKOUT_MINUTES', 'SECURITY_IP_MAX_FAILURES', 'SECURITY_IP_MAX_DISTINCT_ACCOUNTS',
+                                                   'SECURITY_IP_WINDOW_MINUTES', 'RATE_LIMIT_REQUESTS_PER_MINUTE']),
+    ('Risk scoring', 'SECURITY_RISK_ALERT_THRESHOLD', ['SECURITY_RISK_ALERT_THRESHOLD', 'SECURITY_LOCATION_CHANGE_WINDOW_HOURS', 'SECURITY_FREQUENCY_THRESHOLD',
+                                                       'SECURITY_FREQUENCY_WINDOW_MINUTES', 'SECURITY_DISTINCT_IP_THRESHOLD', 'SECURITY_DISTINCT_IP_WINDOW_MINUTES']),
+    ('Network and location', 'SECURITY_TRUSTED_PROXIES', ['SECURITY_TRUSTED_PROXIES', 'SECURITY_IP_GEOLOCATION_ENABLED', 'SECURITY_IP_GEOLOCATION_URL',
+                                                          'SECURITY_IP_GEOLOCATION_TIMEOUT_MS']),
+    ('Retention', 'SECURITY_AUDIT_RETENTION_DAYS', ['SECURITY_AUDIT_RETENTION_DAYS', 'SECURITY_DEVICE_RETENTION_DAYS', 'SECURITY_RETENTION_CRON']),
+    ('Home Owner', 'HOME_OWNER_MAX_REAPPLICATIONS', ['HOME_OWNER_MAX_FILE_SIZE_MB', 'HOME_OWNER_MAX_DOCUMENTS', 'HOME_OWNER_REVIEW_SLA_DAYS', 'HOME_OWNER_MAX_REAPPLICATIONS']),
+    ('Document storage', 'STORAGE_NETWORK_REQUIRE_MOUNT', []),
+    ('Places', 'GOOGLE_MAPS_API_KEY', ['GOOGLE_MAPS_API_KEY', 'PLACES_TIMEOUT_MS', 'PLACES_REQUESTS_PER_USER_PER_MINUTE']),
+]
+
+
+def config_counts():
+    yml = read('src/main/resources/application.yml')
+    names = set(re.findall(r'\$\{([A-Z0-9_]+)', yml))
+    counts, used = [], set()
+    for title, ex, members in GROUPS:
+        got = {n for n in names if n in members}
+        if title == 'Document storage':
+            got = {n for n in names if n.startswith('STORAGE_')}
+        elif title == 'Administrators':
+            got |= {n for n in names if re.match(r'ADMINS?\d?_', n)}
+        elif title == 'Social sign in':
+            got |= {n for n in names if n.startswith(('GOOGLE_CLIENT', 'GOOGLE_CODE', 'FACEBOOK_', 'GITHUB_'))}
+        used |= got
+        counts.append((title, ex, len(got)))
+    rest = names - used
+    if rest:
+        print('config groups: not placed:', sorted(rest))
+        counts.append(('Other', sorted(rest)[0], len(rest)))
+    return counts, len(names)
+
+
+def config_map():
+    counts, total = config_counts()
+    cols = 4
+    rows = math.ceil(len(counts) / cols)
+    w, h = 1200, 100 + rows * 112 + 44
+    parts = [sheet(w, h, 'Where every setting lives', f'{total} settings in {len(counts)} groups, all read from the environment')]
+    css, cycle = '', len(counts) * 0.55 + 2.5
+    for k, (title, ex, n) in enumerate(counts):
+        c, r = k % cols, k // cols
+        x, y = 32 + c * 290, 92 + r * 112
+        solid = title == 'Required'
+        fg, sub = (PAPER, SHEET_LINE) if solid else (INK, INK2)
+        parts.append(f'<g class="rise" style="animation-delay:{k * .05:.2f}s">'
+                     f'<rect x="{x}" y="{y}" width="268" height="96" fill="{INK if solid else PAPER}" stroke="{INK}" stroke-width="2"/>'
+                     + ('' if solid else f'<rect x="{x + 4}" y="{y + 4}" width="260" height="88" fill="none" stroke="{INK}" stroke-width=".8"/>') +
+                     f'<text class="cond" x="{x + 16}" y="{y + 54}" font-size="44" style="fill:{AMBER if solid else DATA}">{n}</text>'
+                     f'<text class="cond" x="{x + 82}" y="{y + 38}" font-size="19" style="fill:{fg}">{esc(title)}</text>'
+                     f'<text x="{x + 82}" y="{y + 56}" font-size="12.5" style="fill:{sub}">{"setting" if n == 1 else "settings"}{" with no default" if solid else ""}</text>'
+                     f'<text class="mono" x="{x + 16}" y="{y + 82}" font-size="10.5" style="fill:{sub}">{esc(ex)}</text></g>')
+        tt = 0.6 + k * 0.55
+        g, cs = glow(f'cg{k}', cycle, x, y, 268, 96, [(tt, tt + 0.9)])
+        parts.append(g)
+        css += cs
+    parts.append(f'<text class="soft" x="32" y="{h - 20}" font-size="13">Each variable, its default and what it does is in the tables of this guide. Settings are read once, at startup.</text>')
+    finish('config-map.svg', w, h, parts, css, 'Settings by group',
+           f'{total} settings grouped by what they control, with the six that have no default highlighted.')
+
+
+# ---------------------------------------------------------------------------------------- storage
+
+def storage():
+    w, h, cycle = 1200, 560, 12.0
+    parts = [sheet(w, h, 'Where an uploaded document goes', 'never into the database, never to a third party')]
+    css = ''
+    parts.append(box(32, 100, 220, 140, 'Upload', ('PDF, JPG, PNG or WEBP', 'from the applicant'), 0, mono='POST .../documents'))
+    parts.append(box(300, 100, 270, 140, 'Checks', ('content, not the file name', 'size and a duplicate SHA-256', 'free space, and the mount'), 1))
+    parts.append(box(660, 92, 250, 108, 'Local folder', ('one server, one disk',), 2, mono='STORAGE_LOCAL_PATH'))
+    parts.append(box(660, 232, 250, 126, 'Network share', ('mounted by the operating', 'system, SMB or NFS'), 3, mono='/mnt/premisave-nas'))
+    parts.append(box(960, 232, 210, 126, 'NAS', ('Synology or any server', 'the login stays in', 'the mount, not here'), 4, solid=True))
+    parts.append(arrow(254, 170, 298, 170))
+    parts.append(poly([(572, 170), (616, 170), (616, 146), (658, 146)]))
+    parts.append(poly([(616, 170), (616, 295), (658, 295)]))
+    parts.append(arrow(912, 295, 958, 295, True))
+    parts.append(f'<g class="rise" style="animation-delay:.5s"><path d="M616 218l11 -11 11 11 -11 11z" fill="{AMBER}" stroke="{INK}" stroke-width="1.4"/>'
+                 f'<text class="mono" x="642" y="222" font-size="10.5" style="fill:{INK2}">mounted?</text></g>')
+    p1, c1 = packet('st1', cycle, [(254, 170), (616, 170), (616, 146), (656, 146)], 0.8, 3.4)
+    p2, c2 = packet('st2', cycle, [(254, 170), (616, 170), (616, 295), (656, 295)], 5.6, 3.8)
+    parts += [p1, p2]
+    css += c1 + c2
+    for i, (x, y, bw, bh, win) in enumerate([(300, 100, 270, 140, [(1.6, 2.6), (6.4, 7.4)]), (660, 92, 250, 108, [(4.2, 5.2)]),
+                                             (660, 232, 250, 126, [(8.4, 9.4)]), (960, 232, 210, 126, [(9.8, 10.8)])]):
+        g, c = glow(f'sg{i}', cycle, x, y, bw, bh, win)
+        parts.append(g)
+        css += c
+    parts.append(box(32, 392, 520, 128, 'Names on disk', ('one folder for each application, one file for each document',), 5,
+                     mono='HOA-2026-000123 Ada Lovelace/'))
+    parts.append(f'<text class="mono" x="48" y="{392 + 100}" font-size="11.5" style="fill:{DATA}">  TITLE_DEED_20260115-093012.pdf</text>')
+    parts.append(box(600, 392, 570, 128, 'Served only through the API', ('owner or staff may download, anyone else gets 404',
+                                                                         'the file is streamed, there is no public address'), 6,
+                     mono='GET .../documents/{id}/download'))
+    finish('storage.svg', w, h, parts, css, 'Document storage',
+           'An upload is checked, then written to a local folder or to a network share that the operating system has mounted, and is only ever served through the API.')
+
+
+# ---------------------------------------------------------------------------------------- integration
+
+def integration():
+    w, h, cycle = 1200, 660, 12.0
+    parts = [sheet(w, h, 'How other services trust this one', 'a signature for people, a key for services')]
+    css = ''
+    parts.append(box(32, 160, 220, 100, 'Flutter app', ('sends the access token',), 0))
+    parts.append(box(32, 290, 220, 100, 'Browsers', ('and any other client',), 1))
+    parts.append(box(470, 250, 260, 170, 'Auth service', ('signs in, issues tokens,', 'keeps the sessions', 'answers /internal/**'), 2, solid=True, tsize=24))
+    ys = (150, 280, 410)
+    for i, (n, y) in enumerate((('Wallet', ys[0]), ('Listing', ys[1]), ('Property', ys[2]))):
+        parts.append(box(940, y, 230, 96, n + ' service', ('verifies the token itself',), 3 + i, tsize=19))
+    parts.append(arrow(254, 215, 468, 300))
+    parts.append(arrow(468, 372, 254, 372, True))
+    parts.append(f'<text class="mono" x="262" y="236" font-size="10.5" style="fill:{INK2}">POST /auth/signin</text>')
+    parts.append(f'<text class="mono" x="262" y="392" font-size="10.5" style="fill:{INK2}">access + refresh token</text>')
+    parts.append(poly([(142, 158), (142, 124), (1055, 124), (1055, 148)], col=DATA, width=1.8))
+    parts.append(f'<text class="cond" x="400" y="98" font-size="16" style="fill:{DATA}">Authorization: Bearer access token</text>')
+    parts.append(f'<text class="soft" x="400" y="115" font-size="12.5">checked with the shared JWT_SECRET, no call to the auth service</text>')
+    mids = [y + 48 for y in ys]
+    parts.append(f'<path d="M940 {mids[0]}H840M940 {mids[1]}H840M940 {mids[2]}H840M840 {mids[0]}V{mids[2]}" stroke="{INK}" stroke-width="1.5" fill="none"/>')
+    parts.append(arrow(840, 335, 732, 335))
+    parts.append(f'<text class="cond" x="750" y="312" font-size="16">X-API-Key</text>')
+    parts.append(f'<text class="mono" x="750" y="362" font-size="10.5" style="fill:{INK2}">/internal/users</text>')
+    parts.append(f'<text class="mono" x="750" y="376" font-size="10.5" style="fill:{INK2}">/internal/sessions</text>')
+    parts.append(box(470, 546, 700, 96, 'Developer service', ('keeps its own accounts and its own DEVELOPER_JWT_SECRET, so it does not accept these tokens.',
+                                                               'It shares only the INTERNAL_API_KEY with the wallet.'), 6, dashed=True, tsize=19))
+    parts.append(box(32, 546, 400, 96, 'Two secrets to keep equal', ('JWT_SECRET: every service that checks tokens', 'API_KEY: the callers of /internal/**'), 7, tsize=19))
+    p1, c1 = packet('ig1', cycle, [(142, 124), (1055, 124), (1055, 146)], 0.8, 4.2, DATA)
+    p2, c2 = packet('ig2', cycle, [(938, 198), (840, 198), (840, 335), (736, 335)], 6.0, 3.6)
+    parts += [p1, p2]
+    css += c1 + c2
+    g, c = glow('ig_a', cycle, 470, 250, 260, 170, [(9.6, 11)])
+    parts.append(g)
+    css += c
+    for i, y in enumerate(ys):
+        g, c = glow(f'ig_s{i}', cycle, 940, y, 230, 96, [(4.4 + i * .2, 5.2 + i * .2)])
+        parts.append(g)
+        css += c
+    finish('integration.svg', w, h, parts, css, 'Integration',
+           'People send a signed access token that other services verify with the shared secret. Services call the internal endpoints with an API key. The developer service is separate.')
+
+
+# ---------------------------------------------------------------------------------------- deployment
+
+def deployment():
+    w, h, cycle = 1200, 600, 13.0
+    parts = [sheet(w, h, 'A production layout', 'what the checklist protects')]
+    css = ''
+    parts.append(box(32, 250, 170, 110, 'People', ('browsers and apps',), 0, tsize=19))
+    parts.append(box(32, 100, 170, 90, 'Other services', ('wallet, listing',), 1, tsize=19, dashed=True))
+    parts.append(box(250, 230, 210, 170, 'Reverse proxy', ('terminates HTTPS', 'sets X-Forwarded-For', 'allows /internal only', 'from your network'), 2, tsize=21, solid=True))
+    parts.append(box(520, 110, 210, 130, 'auth-service 1', ('same JWT_SECRET', 'and API_KEY'), 3, tsize=19, mono='SECURITY_TRUSTED_PROXIES'))
+    parts.append(box(520, 370, 210, 130, 'auth-service 2', ('optional, any number', 'of instances'), 4, tsize=19))
+    parts.append(box(800, 100, 170, 84, 'MongoDB', ('private network',), 5, tsize=19))
+    parts.append(box(800, 214, 170, 84, 'Redis', ('private network',), 6, tsize=19))
+    parts.append(box(800, 328, 170, 112, 'Documents', ('a share mounted at', 'the same path'), 7, tsize=19))
+    for i, (n, d) in enumerate((('Gmail', 'SMTP'), ('Cloudinary', 'pictures'), ('Google', 'sign in, places'))):
+        parts.append(box(1020, 100 + i * 96, 150, 78, n, (d,), 8 + i, tsize=18))
+    parts.append(arrow(204, 305, 248, 305))
+    parts.append(poly([(117, 192), (117, 214), (330, 214), (330, 228)], True))
+    parts.append(f'<text class="mono" x="130" y="207" font-size="10.5" style="fill:{INK2}">/internal, X-API-Key</text>')
+    parts.append(poly([(462, 270), (490, 270), (490, 175), (518, 175)]))
+    parts.append(poly([(462, 340), (490, 340), (490, 435), (518, 435)]))
+    parts.append(arrow(732, 142, 798, 142))
+    parts.append(arrow(732, 190, 798, 256, True))
+    parts.append(arrow(732, 435, 798, 395))
+    parts.append(arrow(972, 142, 1018, 142, True))
+    parts.append(f'<text class="soft" x="250" y="428" font-size="12.5">Port 8080 is never exposed.</text>')
+    parts.append(f'<text class="soft" x="250" y="446" font-size="12.5">Only the proxy is.</text>')
+    parts.append(f'<g class="rise" style="animation-delay:.9s"><rect x="32" y="528" width="1138" height="44" fill="none" stroke="{INK}" stroke-width="1.2" stroke-dasharray="7 5"/>'
+                 f'<text x="48" y="555" font-size="13.5" font-weight="600">Before it goes live:</text>'
+                 f'<text x="196" y="555" font-size="13.5" class="soft">fresh secrets, short access tokens, HTTPS, CORS limited, logging at INFO, no debugMessage, backups of data and documents.</text></g>')
+    p1, c1 = packet('dp1', cycle, [(118, 292), (246, 292), (490, 292), (490, 160), (700, 160), (790, 150)], 0.6, 5.2)
+    p2, c2 = packet('dp2', cycle, [(118, 160), (118, 214), (330, 214), (330, 240), (490, 240), (490, 420), (700, 420), (790, 385)], 6.6, 5.2, DATA)
+    parts += [p1, p2]
+    css += c1 + c2
+    for i, (x, y, bw, bh, win) in enumerate([(250, 230, 210, 170, [(1.0, 2.0), (7.0, 8.0)]), (520, 110, 210, 130, [(3.2, 4.2)]),
+                                             (800, 100, 170, 84, [(5.2, 6.0)]), (520, 370, 210, 130, [(9.6, 10.6)]), (800, 328, 170, 112, [(11.6, 12.4)])]):
+        g, c = glow(f'dg{i}', cycle, x, y, bw, bh, win)
+        parts.append(g)
+        css += c
+    finish('deployment.svg', w, h, parts, css, 'Production layout',
+           'People and other services reach the auth-service through a reverse proxy over HTTPS. One or more instances share MongoDB, Redis, a document share and the outside services.')
+
+
+# ---------------------------------------------------------------------------------------- development steps
+
+def dev_steps():
+    w, h = 1200, 330
+    steps = [('Service', ('the rule, and', 'ApiException')), ('DTOs', ('Jakarta', 'Validation')), ('Controller', ('validate, call,', 'return a DTO')),
+             ('Route rule', ('SecurityConfig:', 'who may call')), ('Rate limit', ('WebConfig, if it', 'sends mail')), ('Audit', ('a SecurityEvent', 'for changes')),
+             ('Docs', ('API.md and the', 'Postman file')), ('Pictures', ('python3 tool/', 'readme_assets.py'))]
+    parts = [sheet(w, h, 'Adding an endpoint, in order', 'each layer stays in its lane')]
+    bw, gap = 124, 20
+    hold, cycle = 1.4, 8 * 1.4 + 1.2
+    css = band_kf('bd', cycle, 8, hold, bw + gap, 'X') + '.bd { animation: bd %.1fs infinite; opacity: 0; }\n' % cycle
+    for i, (t, ls) in enumerate(steps):
+        x = 34 + i * (bw + gap)
+        parts.append(box(x, 108, bw, 132, t, ls, i, tsize=18, solid=(i in (0, 2))))
+        parts.append(num(x + 18, 108, i + 1, 12, AMBER, INK))
+    parts.append(f'<rect class="bd" x="31" y="105" width="{bw + 6}" height="138" fill="none" stroke="{AMBER}" stroke-width="5"/>')
+    parts.append(f'<text class="soft" x="32" y="278" font-size="13.5">Controllers validate and call. Services decide. Only services touch repositories, Redis, mail, storage and providers.</text>')
+    parts.append(f'<text class="soft" x="32" y="300" font-size="13.5">Anything a person can cause throws an ApiException with a message that is safe to show.</text>')
+    finish('dev-steps.svg', w, h, parts, css, 'Adding an endpoint',
+           'Eight steps in order: service, request types, controller, route rule, rate limit, audit event, documentation and pictures.')
+
+
+# ---------------------------------------------------------------------------------------- troubleshooting
+
+def triage():
+    cards = [('It will not start', "placeholder 'JWT_SECRET'", ('a missing setting, a wrong', 'folder, a port in use')),
+             ('Email does not arrive', '535 not accepted', ('App Password, sender', 'address, FRONTEND_URL')),
+             ('Sign in fails', '401 Invalid email or password.', ('verification, deactivation,', 'throttle, device cookie')),
+             ('Tokens and sessions', 'Your session has ended.', ('refresh used twice, key', 'mismatch, role not applied')),
+             ('Social sign in', 'redirect address not allowed', ('allow list, audience,', 'unverified provider email')),
+             ('Browsers and CORS', 'blocked by CORS policy', ('headers, file:// origin,', 'cookie not stored')),
+             ('Home Owner uploads', '503 on upload', ('storage, file type,', 'size, incomplete form')),
+             ('Other services', '401 from /internal/**', ('X-API-Key, localhost in', 'a container')),]
+    w, h = 1200, 440
+    parts = [sheet(w, h, 'Start with the symptom', 'each card is a section of TROUBLESHOOTING.md')]
+    css, cycle = '', len(cards) * 0.9 + 2
+    for k, (t, ex, ls) in enumerate(cards):
+        c, r = k % 4, k // 4
+        x, y = 32 + c * 290, 96 + r * 170
+        parts.append(box(x, y, 268, 150, t, ls, k, tsize=20, mono=ex))
+        g, cs = glow(f'tg{k}', cycle, x, y, 268, 150, [(0.5 + k * 0.9, 1.4 + k * 0.9)])
+        parts.append(g)
+        css += cs
+    finish('triage.svg', w, h, parts, css, 'Troubleshooting map',
+           'Eight groups of symptoms, each with an example message and its usual causes.')
+
+
+# ---------------------------------------------------------------------------------------- application requirements
+
+def requirements():
+    w, h = 1200, 470
+    cols = [('Individual', 520), ('Company', 720), ('Property manager', 920)]
+    rows = [('Identity', ('ID card front and back, or a passport', 'photo page, or a driving licence'), (1, 1, 1)),
+            ('Proof of ownership', ('a title deed, sale agreement, head', 'lease or allotment letter'), (1, 1, 1)),
+            ('Company registration', ('certificate of incorporation',), (0, 1, 0)),
+            ('Authority to manage', ('power of attorney or a signed', 'management agreement'), (0, 0, 1))]
+    parts = [sheet(w, h, 'Which documents each owner must upload', 'a requirement is met by any one of its combinations')]
+    css, cycle = '', 3 * 1.6 + 1.2
+    css += band_kf('rq', cycle, 3, 1.6, 200, 'X') + '.rq { animation: rq %.1fs infinite; opacity: 0; }\n' % cycle
+    for name, cx in cols:
+        parts.append(f'<text class="cond" x="{cx}" y="104" text-anchor="middle" font-size="19">{name}</text>')
+    parts.append(f'<line x1="32" y1="116" x2="{w - 32}" y2="116" stroke="{INK}" stroke-width="1.2"/>')
+    for r, (label, ls, need) in enumerate(rows):
+        y = 134 + r * 62
+        parts.append(f'<g class="rise" style="animation-delay:{r * .1:.2f}s"><text class="cond" x="32" y="{y + 20}" font-size="18">{label}</text>'
+                     + ''.join(f'<text x="32" y="{y + 38 + j * 15}" font-size="12" class="soft">{esc(l)}</text>' for j, l in enumerate(ls)))
+        for (name, cx), n in zip(cols, need):
+            if n:
+                parts.append(f'<circle cx="{cx}" cy="{y + 24}" r="14" fill="{DATA}"/><path d="M{cx - 6} {y + 24}l4.5 4.5 8 -9" stroke="{PAPER}" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>')
+            else:
+                parts.append(f'<path d="M{cx - 8} {y + 24}h16" stroke="{RULE}" stroke-width="2.4" stroke-linecap="round"/>')
+        parts.append(f'<line x1="32" y1="{y + 56}" x2="{w - 32}" y2="{y + 56}" stroke="{RULE}" stroke-width="1"/></g>')
+    parts.append(f'<rect class="rq" x="425" y="86" width="190" height="318" fill="none" stroke="{AMBER}" stroke-width="5"/>')
+    parts.append(f'<text class="soft" x="32" y="{h - 34}" font-size="13">Optional for everyone, and they speed up review: a tax ID document, a selfie holding the ID, proof of address and a tax compliance certificate.</text>')
+    parts.append(f'<text class="soft" x="32" y="{h - 14}" font-size="13">The tax ID number on the form is required. Files are PDF, JPG, PNG or WEBP, up to 8 MB each, 25 per application.</text>')
+    finish('requirements.svg', w, h, parts, css, 'Required documents by owner type',
+           'Identity and proof of ownership are required for every owner. A company also needs a certificate of incorporation, and a property manager a power of attorney.')
+
+
+# ---------------------------------------------------------------------------------------- administrator provisioning
+
+def admin_paths():
+    w, h, cycle = 1200, 560, 15.0
+    lanes = [('INITIAL_ADMIN_EMAILS', ('checked at startup',), 'Does a verified account exist?',
+              ('yes: it is promoted to ADMIN', 'no: one is created unverified and an', 'invitation email is sent'), 'Promoted, or invited', ('the owner picks their own password',)),
+             ('AUTO_ADMIN_EMAILS', ('checked at sign up, sign in,', 'and social sign in'), 'Verified, active and not archived?',
+              ('yes: the account becomes ADMIN', 'no: nothing happens'), 'ADMIN at verification', ('no password is ever shared',)),
+             ('ADMIN1 to ADMIN3', ('created at startup', 'from the .env file'), 'Is there an account with that email?',
+              ('no: created, verified and active', 'yes: left alone, unless promoting', 'is on and it is verified'), 'Created, never overwritten', ('its password is hashed, then cleared',))]
+    parts = [sheet(w, h, 'Three ways an administrator comes to exist', 'every grant is audited and the owner is emailed')]
+    css = ''
+    for r, (src, sl, rule, rl, res, resl) in enumerate(lanes):
+        y = 96 + r * 138
+        parts.append(box(32, y, 270, 118, src, sl, r * 3, tsize=18, solid=True, mono=None))
+        parts.append(box(356, y, 440, 118, rule, rl, r * 3 + 1, tsize=18))
+        parts.append(box(850, y, 320, 118, res, resl, r * 3 + 2, tsize=18))
+        parts.append(arrow(304, y + 59, 354, y + 59))
+        parts.append(arrow(798, y + 59, 848, y + 59))
+        pk, c = packet(f'ad{r}', cycle, [(60, y + 100), (1140, y + 100)], 0.6 + r * 4.4, 3.6)
+        parts.append(pk)
+        css += c
+        for i, (x, bw) in enumerate(((32, 270), (356, 440), (850, 320))):
+            tt = 0.6 + r * 4.4 + 0.12 + 3.6 * (x + bw / 2 - 60) / 1080
+            g, cs = glow(f'ag{r}{i}', cycle, x, y, bw, 118, [(tt - 0.4, tt + 0.7)])
+            parts.append(g)
+            css += cs
+    parts.append(f'<text class="soft" x="32" y="{h - 40}" font-size="13">Removing an address from a list never demotes anyone. Roles change through PUT /admin/users/change-role/{{id}}, and the last administrator cannot be demoted.</text>')
+    parts.append(f'<text class="soft" x="32" y="{h - 20}" font-size="13">An unverified, deactivated or archived account never receives ADMIN, whatever the lists say.</text>')
+    finish('admin-paths.svg', w, h, parts, css, 'Administrator provisioning',
+           'Three configuration routes to an administrator: an invitation list, an automatic list that applies when the email is verified, and up to three accounts created from the environment file.')
 def bars(name, title, note, items, total, label_w, unit_note, gap=0.12):
     """Horizontal bars on a shared axis, sorted, labelled at the end of each bar."""
     mx = max(v for _, v, _x in items)
@@ -959,3 +1532,13 @@ if __name__ == '__main__':
     risk()
     stack()
     setup()
+    docs_heads()
+    social_flows()
+    config_map()
+    storage()
+    integration()
+    deployment()
+    dev_steps()
+    triage()
+    requirements()
+    admin_paths()

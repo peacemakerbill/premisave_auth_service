@@ -1,3 +1,16 @@
+<!-- band -->
+<div align="center">
+
+<img src="assets/head-api.svg" alt="docs/API.md. Every endpoint, who may call it, and what it answers." width="100%"/>
+
+[![JWT HS256](https://img.shields.io/badge/JWT-HS256-000000?style=flat-square&logo=jsonwebtokens&logoColor=white)](AUTHENTICATION.md)
+[![API key internal](https://img.shields.io/badge/API_key-internal-000000?style=flat-square&logo=keycdn&logoColor=white)](INTEGRATION.md)
+[![Postman collection](https://img.shields.io/badge/Postman-collection-FF6C37?style=flat-square&logo=postman&logoColor=white)](../postman)
+[![Format JSON](https://img.shields.io/badge/Format-JSON-14493B?style=flat-square&logo=json&logoColor=white)](API.md)
+[![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/API.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/API.md)
+
+</div>
+
 # API reference
 
 Every endpoint of the auth-service, grouped by what it is for. There are 118 of them in 17 controllers. The Postman collection in [`postman/`](../postman) has a ready request for each, and [`test-client/auth-console.html`](../test-client/README.md) lets you try the common ones in a browser.
@@ -17,6 +30,12 @@ Every endpoint of the auth-service, grouped by what it is for. There are 118 of 
 - [Administration](#administration)
 - [Service to service](#service-to-service)
 - [Public](#public)
+
+<img src="assets/divider.svg" alt="" width="100%"/>
+
+<img src="assets/stats-endpoints.svg" alt="Number of endpoints per area." width="100%"/>
+
+<img src="assets/access.svg" alt="A matrix of route groups against callers: no token, signed in, staff, admin and service key." width="100%"/>
 
 ## Conventions
 
