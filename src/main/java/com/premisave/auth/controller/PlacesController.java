@@ -49,10 +49,10 @@ public class PlacesController {
     /** Example: /places/suggest?q=donholm&country=KE&session=abc12345 */
     @GetMapping("/suggest")
     public ResponseEntity<List<PlaceSuggestionResponse>> suggest(
-            @RequestParam("q") String q,
-            @RequestParam(value = "country", required = false) String country,
-            @RequestParam(value = "session", required = false) String session) {
-        String input = q == null ? "" : q.trim();
+            @RequestParam String q,
+            @RequestParam(required = false) String country,
+            @RequestParam(required = false) String session) {
+        String input = q.trim();
         if (input.length() < 2 || input.length() > 120) {
             throw ApiException.badRequest("Type between 2 and 120 characters to search.");
         }
@@ -62,9 +62,9 @@ public class PlacesController {
     /** Coordinates and address parts for a suggestion. */
     @GetMapping("/details")
     public ResponseEntity<PlaceResponse> details(
-            @RequestParam("id") String id,
-            @RequestParam(value = "session", required = false) String session) {
-        if (id == null || !PLACE_ID.matcher(id).matches()) {
+            @RequestParam String id,
+            @RequestParam(required = false) String session) {
+        if (!PLACE_ID.matcher(id).matches()) {
             throw ApiException.badRequest("That place id is not valid.");
         }
         return ResponseEntity.ok(places.details(user(), id, session(session)));
@@ -72,7 +72,7 @@ public class PlacesController {
 
     /** The address at a point on the map. Answers 404 when nothing is known there. */
     @GetMapping("/reverse")
-    public ResponseEntity<PlaceResponse> reverse(@RequestParam("lat") double lat, @RequestParam("lng") double lng) {
+    public ResponseEntity<PlaceResponse> reverse(@RequestParam double lat, @RequestParam double lng) {
         if (Double.isNaN(lat) || Double.isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
             throw ApiException.badRequest("That position is not valid.");
         }
