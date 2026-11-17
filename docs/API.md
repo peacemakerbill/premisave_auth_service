@@ -262,7 +262,9 @@ All of this is `ADMIN` only.
 | `POST /admin/storage-settings/check` | Try storage values without saving. Body: `type`, `localPath`, `networkProtocol`, `networkHost`, `networkShare`, `networkMountPath`, `networkDirectory`, `networkRequireMount`, `minFreeMb`. |
 | `PUT /admin/storage-settings` | Save them (the dashboard value then wins over `.env`). `400` with the reason when the folder is refused. |
 | `DELETE /admin/storage-settings` | Go back to the `.env` values. |
-| `GET /admin/security/events` | The audit trail. Query: `userId`, `type`, `page` (default 0), `size` (default 50, most 100). |
+| `GET /admin/security/events` | The audit trail, newest first. Query: `userId` (the person it happened to), `actor` (who did it), `type`, `severity` (`INFO`, `WARNING`, `CRITICAL`), `outcome` (`SUCCESS`, `FAILURE`), `ip`, `from`, `to` (a date such as `2026-11-18` or a full instant; a `to` date includes that whole day), `page` (default 0), `size` (default 50, most 100). Each row carries the person and the actor with name and masked email, device, browser, system, approximate place, the request that caused it and the details. |
+| `GET /admin/security/events/{id}` | One event with everything recorded. `404` when it does not exist. |
+| `GET /admin/security/summary` | Counts for the last `hours` (default 24, 1 to 720): events by severity, failures, sign ins, failed sign ins, lockouts, administrator changes, distinct people and addresses, and the eight most common event types. |
 | `GET /admin/users` | Everyone. |
 | `GET /admin/users/{id}`, `/email/{email}` | One user. |
 | `GET /admin/users/active`, `/archived` | Lists. |

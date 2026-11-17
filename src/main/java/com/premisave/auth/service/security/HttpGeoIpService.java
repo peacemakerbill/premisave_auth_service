@@ -71,6 +71,20 @@ public class HttpGeoIpService implements GeoIpService {
         return location;
     }
 
+    @Override
+    public GeoLocation cached(String ip) {
+        if (ip == null) {
+            return GeoLocation.unavailable();
+        }
+        synchronized (cache) {
+            CachedLocation hit = cache.get(ip);
+            if (hit != null && System.currentTimeMillis() - hit.storedAt() < CACHE_TTL_MS) {
+                return hit.location();
+            }
+        }
+        return GeoLocation.unavailable();
+    }
+
     private GeoLocation fetch(String ip) {
         try {
             Map<String, Object> body = http.get()

@@ -40,10 +40,14 @@ public class ProfileService {
 
     private long maxFileSizeBytes;
 
-    public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder) {
+    private final com.premisave.auth.service.security.SecurityAuditService audit;
+
+    public ProfileService(UserRepository userRepository, Cloudinary cloudinary, PasswordEncoder passwordEncoder,
+                          com.premisave.auth.service.security.SecurityAuditService audit) {
         this.userRepository = userRepository;
         this.cloudinary = cloudinary;
         this.passwordEncoder = passwordEncoder;
+        this.audit = audit;
         this.maxFileSizeBytes = parseMaxFileSize();
     }
 
@@ -109,6 +113,9 @@ public class ProfileService {
         }
 
         userRepository.save(user);
+        audit.event(com.premisave.auth.enums.SecurityEventType.PROFILE_UPDATED).user(user.getId()).actor(user.getId())
+                .client(com.premisave.auth.service.security.RequestAttributes.currentClient())
+                .reason("Profile details were changed").write();
     }
 
     /**

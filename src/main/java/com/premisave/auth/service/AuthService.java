@@ -206,6 +206,9 @@ public class AuthService {
 
         String activationToken = generateToken(user, TokenType.ACTIVATION);
         emailService.sendVerificationEmail(user.getEmail(), activationToken);
+        audit.event(SecurityEventType.SIGN_UP).user(user.getId()).actor(user.getId())
+                .client(RequestAttributes.currentClient())
+                .reason("Account created").write();
         return user;
     }
 
@@ -455,6 +458,9 @@ public class AuthService {
 
         token.setUsed(true);
         tokenRepository.save(token);
+        audit.event(SecurityEventType.EMAIL_VERIFIED).user(user.getId()).actor(user.getId())
+                .client(RequestAttributes.currentClient())
+                .reason("Email address verified from the link").write();
 
         // Verification is the moment an address becomes trusted, so configured admin emails are applied here.
         adminAccess.grantIfEligible(user, "EMAIL_VERIFICATION");

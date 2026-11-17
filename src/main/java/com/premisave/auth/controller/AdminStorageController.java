@@ -74,7 +74,9 @@ public class AdminStorageController {
         audit.event(SecurityEventType.STORAGE_SETTINGS_CHANGED)
                 .actor(admin)
                 .reason(reason)
+                .target("SETTINGS", "storage", "Document storage")
                 .detail("type", storage.type())
+                .detail("source", settings.fromDashboard() ? "DASHBOARD" : "ENV")
                 .write();
     }
 

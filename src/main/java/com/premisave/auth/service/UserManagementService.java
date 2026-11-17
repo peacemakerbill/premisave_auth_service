@@ -125,6 +125,8 @@ public class UserManagementService {
         if (noPasswordGiven) {
             passwordReset.sendResetFor(user);
         }
+        auditUserAction(SecurityEventType.USER_CREATED, user, "Account created through user management",
+                SecuritySeverity.INFO, "role", user.getRole());
         if (user.getRole() == Role.ADMIN) {
             auditRoleChange(user, null, Role.ADMIN, "Account created with the ADMIN role through user management");
         }
@@ -144,6 +146,10 @@ public class UserManagementService {
         boolean passwordChanged = false;
         boolean emailChanged = false;
         boolean editingSelf = id.equals(actorId());
+        boolean wasVerified = user.isVerified();
+        String wasName = ((user.getFirstName() == null ? "" : user.getFirstName()) + "|" + (user.getLastName() == null ? "" : user.getLastName())
+                + "|" + user.getPhoneNumber() + "|" + user.getAddress1() + "|" + user.getAddress2() + "|" + user.getCountry()
+                + "|" + user.getLanguage() + "|" + user.getDisplayUsername());
 
         // An administrator can edit their own name and address, but not what could lock them out.
         if (editingSelf) {
@@ -224,6 +230,20 @@ public class UserManagementService {
         user = userRepository.save(user);
         log.info("User updated successfully with ID: {}", user.getId());
 
+        java.util.List<String> changed = new java.util.ArrayList<>();
+        String nowName = ((user.getFirstName() == null ? "" : user.getFirstName()) + "|" + (user.getLastName() == null ? "" : user.getLastName())
+                + "|" + user.getPhoneNumber() + "|" + user.getAddress1() + "|" + user.getAddress2() + "|" + user.getCountry()
+                + "|" + user.getLanguage() + "|" + user.getDisplayUsername());
+        if (!nowName.equals(wasName)) changed.add("details");
+        if (emailChanged) changed.add("email");
+        if (user.getRole() != previousRole) changed.add("role");
+        if (wasActive != user.isActive()) changed.add("active");
+        if (wasArchived != user.isArchived()) changed.add("archived");
+        if (wasVerified != user.isVerified()) changed.add("verified");
+        if (passwordChanged) changed.add("password");
+        auditUserAction(SecurityEventType.USER_UPDATED, user, "Updated through user management", SecuritySeverity.INFO,
+                "changed", changed.isEmpty() ? "nothing" : String.join(", ", changed));
+
         if (user.getRole() != previousRole) {
             auditRoleChange(user, previousRole, user.getRole(), "Updated through user management");
         }
@@ -247,6 +267,8 @@ public class UserManagementService {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         userRepository.delete(user);
         profileViews.deleteAllInvolving(id);
+        auditUserAction(SecurityEventType.USER_DELETED, user, "Account deleted through user management",
+                SecuritySeverity.WARNING, "role", user.getRole());
         log.info("User deleted successfully");
     }
 
@@ -261,6 +283,7 @@ public class UserManagementService {
         user.setArchived(true);
         userRepository.save(user);
         endAllSessions(user, "ACCOUNT_ARCHIVED");
+        auditUserAction(SecurityEventType.USER_ARCHIVED, user, "Account archived", SecuritySeverity.WARNING, "role", user.getRole());
         log.info("User archived successfully");
     }
 
@@ -274,6 +297,7 @@ public class UserManagementService {
         
         user.setArchived(false);
         userRepository.save(user);
+        auditUserAction(SecurityEventType.USER_UNARCHIVED, user, "Account restored from the archive", SecuritySeverity.INFO, "role", user.getRole());
         log.info("User unarchived successfully");
     }
 
@@ -287,6 +311,7 @@ public class UserManagementService {
         
         user.setActive(true);
         userRepository.save(user);
+        auditUserAction(SecurityEventType.USER_ACTIVATED, user, "Account activated", SecuritySeverity.INFO, "role", user.getRole());
         log.info("User activated successfully");
     }
 
@@ -301,6 +326,7 @@ public class UserManagementService {
         user.setActive(false);
         userRepository.save(user);
         endAllSessions(user, "ACCOUNT_DEACTIVATED");
+        auditUserAction(SecurityEventType.USER_DEACTIVATED, user, "Account deactivated", SecuritySeverity.WARNING, "role", user.getRole());
         log.info("User deactivated successfully");
     }
 
@@ -314,6 +340,7 @@ public class UserManagementService {
         
         user.setVerified(true);
         userRepository.save(user);
+        auditUserAction(SecurityEventType.USER_VERIFIED_BY_ADMIN, user, "Marked verified by an administrator", SecuritySeverity.INFO, "role", user.getRole());
         log.info("User verified successfully");
     }
 
@@ -335,6 +362,7 @@ public class UserManagementService {
 
         user.setVerified(false);
         userRepository.save(user);
+        auditUserAction(SecurityEventType.USER_UNVERIFIED_BY_ADMIN, user, "Marked not verified by an administrator", SecuritySeverity.WARNING, "role", user.getRole());
         
         log.info("User unverified successfully: {} ({})", id, user.getEmail());
     }
@@ -457,6 +485,27 @@ public class UserManagementService {
             return actor.getId();
         }
         return "SYSTEM";
+    }
+
+    /** One line in the audit trail for something an administrator did to an account. The label names the account without a secret. */
+    private void auditUserAction(SecurityEventType type, User target, String reason, SecuritySeverity severity,
+                                 String key, Object value) {
+        audit.event(type)
+                .severity(severity)
+                .user(target.getId())
+                .actor(actorId())
+                .client(RequestAttributes.currentClient())
+                .target("USER", target.getId(), userLabel(target))
+                .reason(reason)
+                .detail(key, value)
+                .write();
+    }
+
+    private static String userLabel(User user) {
+        String name = ((user.getFirstName() == null ? "" : user.getFirstName()) + " "
+                + (user.getLastName() == null ? "" : user.getLastName())).trim();
+        String masked = com.premisave.auth.service.security.AdminEmailPolicy.mask(user.getEmail());
+        return name.isEmpty() ? masked : name + " (" + masked + ")";
     }
 
     private void endAllSessions(User user, String reason) {

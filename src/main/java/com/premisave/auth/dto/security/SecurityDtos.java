@@ -33,13 +33,30 @@ public final class SecurityDtos {
     }
 
     public record EventView(String type, String severity, Instant createdAt, String ipAddress,
-                            String reason, Map<String, String> details) {
+                            String reason, Map<String, String> details, String outcome, String deviceLabel,
+                            String browser, String os, String country, String region, String city) {
     }
 
     /** Admin view of an audit record. */
-    public record AdminEventView(String id, String type, String severity, String userId, String actor,
-                                 String subjectMasked, String ipAddress, String sessionId, String deviceId,
+    public record AdminEventView(String id, String type, String severity, String outcome,
+                                 String userId, String userName, String userEmail,
+                                 String actor, String actorName, String actorEmail, String actorRole,
+                                 String subjectMasked, String ipAddress, String country, String region, String city,
+                                 String userAgent, String deviceLabel, String deviceType, String os, String browser,
+                                 String sessionId, String deviceId,
+                                 String targetType, String targetId, String targetLabel,
+                                 String requestMethod, String requestPath,
                                  String reason, Map<String, String> details, Instant createdAt) {
+    }
+
+    /** How many events of one kind happened in the period. */
+    public record EventCount(String key, long count) {
+    }
+
+    /** The audit trail at a glance for one period. */
+    public record AdminSummary(Instant from, Instant to, long total, long info, long warning, long critical,
+                               long failures, long signIns, long failedSignIns, long lockouts, long adminChanges,
+                               long people, long addresses, List<EventCount> topTypes) {
     }
 
     public record PasswordConfirmation(@Size(max = 200) String currentPassword) {

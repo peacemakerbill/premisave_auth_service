@@ -70,6 +70,12 @@ public class SecurityIndexInitializer implements ApplicationRunner {
                     new Index().on("type", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC).named("type_time"));
             mongo.indexOps(SecurityEvent.class).createIndex(
                     new Index().on("createdAt", Sort.Direction.ASC).named("created"));
+            mongo.indexOps(SecurityEvent.class).createIndex(
+                    new Index().on("severity", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC).named("severity_time"));
+            mongo.indexOps(SecurityEvent.class).createIndex(
+                    new Index().on("actor", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC).named("actor_time"));
+            mongo.indexOps(SecurityEvent.class).createIndex(
+                    new Index().on("ipAddress", Sort.Direction.ASC).on("createdAt", Sort.Direction.DESC).named("ip_time"));
 
             mongo.indexOps(SecurityActionToken.class).createIndex(
                     new Index().on("tokenHash", Sort.Direction.ASC).unique().named("token_hash_unique"));

@@ -2,15 +2,21 @@ package com.premisave.auth.service.security;
 
 import com.premisave.auth.entity.SecurityEvent;
 import com.premisave.auth.enums.SecurityEventType;
+import com.premisave.auth.entity.User;
+import com.premisave.auth.enums.SecurityOutcome;
 import com.premisave.auth.enums.SecuritySeverity;
 import com.premisave.auth.repository.SecurityEventRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -25,12 +31,20 @@ public class SecurityAuditService {
     private static final Pattern SECRET_KEY = Pattern.compile("(?i).*(pass|token|secret|cookie|authorization|code).*");
     private static final int MAX_VALUE = 200;
 
+    /** Event types that describe something that went wrong. Everything else is recorded as a success unless the caller says otherwise. */
+    private static final Set<SecurityEventType> FAILURES = EnumSet.of(
+            SecurityEventType.SIGN_IN_FAILED, SecurityEventType.SIGN_IN_THROTTLED, SecurityEventType.ACCOUNT_LOCKED,
+            SecurityEventType.REFRESH_TOKEN_REUSE, SecurityEventType.CONTACT_MESSAGE_FAILED,
+            SecurityEventType.NOTIFICATION_FAILED);
+
     private final SecurityEventRepository repository;
     private final Clock clock;
+    private final GeoIpService geoIp;
 
-    public SecurityAuditService(SecurityEventRepository repository, Clock clock) {
+    public SecurityAuditService(SecurityEventRepository repository, Clock clock, GeoIpService geoIp) {
         this.repository = repository;
         this.clock = clock;
+        this.geoIp = geoIp;
     }
 
     public Builder event(SecurityEventType type) {
@@ -68,10 +82,42 @@ public class SecurityAuditService {
             return this;
         }
 
+        /**
+         * The client of the request: its address, and what can be read from its User-Agent (device, browser, system). The place of
+         * the address is added only when it is already known, so writing an event never waits for a location lookup.
+         */
         public Builder client(ClientContext ctx) {
             if (ctx != null) {
                 event.setIpAddress(ctx.ip());
+                String ua = UserAgentParser.sanitize(ctx.userAgent());
+                if (!ua.isEmpty()) {
+                    event.setUserAgent(ua);
+                    DeviceInfo info = UserAgentParser.parse(ua);
+                    event.setDeviceLabel(info.label());
+                    event.setDeviceType(info.deviceType());
+                    event.setOs(info.os());
+                    event.setBrowser(info.browser());
+                }
+                if (ctx.ip() != null) {
+                    GeoLocation geo = geoIp.cached(ctx.ip());
+                    event.setCountry(geo.country());
+                    event.setRegion(geo.region());
+                    event.setCity(geo.city());
+                }
             }
+            return this;
+        }
+
+        public Builder outcome(SecurityOutcome outcome) {
+            event.setOutcome(outcome);
+            return this;
+        }
+
+        /** What the event was done to, for example ("USER", id, "Jane Doe (jane@x.com)"). The label must not hold a secret. */
+        public Builder target(String type, String id, String label) {
+            event.setTargetType(type);
+            event.setTargetId(id);
+            event.setTargetLabel(truncate(label));
             return this;
         }
 
@@ -102,9 +148,30 @@ public class SecurityAuditService {
             try {
                 event.setDetails(details.isEmpty() ? null : details);
                 event.setCreatedAt(Instant.now(clock));
+                completeFromRequest();
+                if (event.getOutcome() == null) {
+                    event.setOutcome(FAILURES.contains(event.getType()) ? SecurityOutcome.FAILURE : SecurityOutcome.SUCCESS);
+                }
                 repository.save(event);
             } catch (RuntimeException e) {
                 log.error("Could not write security event {}: {}", event.getType(), e.getClass().getSimpleName());
+            }
+        }
+
+        /** Fills what the caller left out from the request being handled: client, session, method, path and the actor's role. */
+        private void completeFromRequest() {
+            if (event.getIpAddress() == null && event.getUserAgent() == null) {
+                client(RequestAttributes.currentClient());
+            }
+            if (event.getSessionId() == null) {
+                event.setSessionId(RequestAttributes.currentSessionId());
+            }
+            event.setRequestMethod(RequestAttributes.currentMethod());
+            event.setRequestPath(RequestAttributes.currentPath());
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof User signedIn && signedIn.getId() != null
+                    && signedIn.getId().equals(event.getActor()) && signedIn.getRole() != null) {
+                event.setActorRole(signedIn.getRole().name());
             }
         }
     }

@@ -39,6 +39,14 @@ import java.util.Map;
 @RequestMapping("/security")
 public class SecurityController {
 
+    /** Events that describe staff work on an account or the platform. They are for the administrators' audit trail, not for the person's own list. */
+    private static final java.util.Set<SecurityEventType> STAFF_ONLY = java.util.EnumSet.of(
+            SecurityEventType.USER_CREATED, SecurityEventType.USER_UPDATED, SecurityEventType.USER_DELETED,
+            SecurityEventType.USER_ARCHIVED, SecurityEventType.USER_UNARCHIVED, SecurityEventType.USER_ACTIVATED,
+            SecurityEventType.USER_DEACTIVATED, SecurityEventType.USER_VERIFIED_BY_ADMIN,
+            SecurityEventType.USER_UNVERIFIED_BY_ADMIN, SecurityEventType.APPLICATION_STATUS_CHANGED,
+            SecurityEventType.HOME_OWNER_PROMOTED, SecurityEventType.STORAGE_SETTINGS_CHANGED);
+
     private final CurrentUser currentUser;
     private final SessionService sessions;
     private final DeviceService devices;
@@ -195,8 +203,11 @@ public class SecurityController {
     public List<EventView> myEvents() {
         User user = currentUser.require();
         return events.findTop50ByUserIdOrderByCreatedAtDesc(user.getId()).stream()
+                .filter(e -> !STAFF_ONLY.contains(e.getType()))
                 .map(e -> new EventView(e.getType().name(), e.getSeverity() == null ? SecuritySeverity.INFO.name() : e.getSeverity().name(),
-                        e.getCreatedAt(), e.getIpAddress(), e.getReason(), e.getDetails()))
+                        e.getCreatedAt(), e.getIpAddress(), e.getReason(), e.getDetails(),
+                        e.getOutcome() == null ? null : e.getOutcome().name(), e.getDeviceLabel(), e.getBrowser(),
+                        e.getOs(), e.getCountry(), e.getRegion(), e.getCity()))
                 .toList();
     }
 

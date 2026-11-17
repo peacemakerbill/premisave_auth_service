@@ -94,25 +94,42 @@ Local development over plain http needs `SECURITY_DEVICE_COOKIE_SECURE=false`, o
 * MFA is not implemented. Suspicious sign-ins are scored, audited and alerted, and the owner can end sessions. Nothing is blocked automatically except the throttling lock. The scoring service is the place to plug a second factor into.
 * Email delivery uses the existing Gmail SMTP settings. No new external service is required.
 
-## 4. Data kept
+## 4. What the audit trail records
+
+Every event in `security_events` is written by `SecurityAuditService` and is never edited or deleted by an endpoint. Besides the event type, severity, time and reason, each event now keeps:
+
+* **Outcome:** `SUCCESS` or `FAILURE`. Failed and throttled sign ins, lockouts, refresh token reuse and failed notifications default to `FAILURE`.
+* **Who:** the person it happened to (`userId`), the actor (`actor`, which is `SYSTEM` or `ANONYMOUS` when no one was signed in) and the actor's role when the actor is the signed in person.
+* **Where from:** IP address, the raw User-Agent (capped at 200 characters), a readable device label, device type, browser and operating system. Country, region and city are added only when IP location is on and the address was already looked up, so writing an event never waits for the provider.
+* **What it touched:** `targetType`, `targetId` and `targetLabel`, for example `USER`, the account id and the name with a masked email, or `APPLICATION` and the application number.
+* **The request:** HTTP method and path. Long ids in the path are shown as `{id}` and the query string is never kept.
+* **Details:** small key and value pairs such as `from` and `to` on a status change, or `changed` on a user update. Keys that look like secrets are dropped and values are capped at 200 characters.
+
+Events recorded for staff actions: `USER_CREATED`, `USER_UPDATED` (with the list of fields that changed, never their values), `USER_DELETED`, `USER_ARCHIVED`, `USER_UNARCHIVED`, `USER_ACTIVATED`, `USER_DEACTIVATED`, `USER_VERIFIED_BY_ADMIN`, `USER_UNVERIFIED_BY_ADMIN`, `APPLICATION_STATUS_CHANGED`, `HOME_OWNER_PROMOTED` and `STORAGE_SETTINGS_CHANGED`. Events recorded for people: `SIGN_UP`, `EMAIL_VERIFIED`, `PASSWORD_RESET_REQUESTED` and `PROFILE_UPDATED`, next to the sign in, session, device and password events that were already there.
+
+People see only their own security events at `GET /security/events`. Staff actions on their account (the events above that start with `USER_`, application and storage events) are left out of that list, so an administrator's address is not shown to the person it was done to.
+
+New indexes for the filters (`severity_time`, `actor_time`, `ip_time`) are created at startup.
+
+## 5. Data kept
 
 Collections: `security_events` (immutable audit trail, no endpoint edits or deletes it), `known_devices`, `user_sessions`, `security_action_tokens`, `sign_in_history`. Email action tokens and device tokens are stored only as SHA-256 hashes. Refresh tokens are not stored at all: the session keeps a generation counter, and the token's `gen` claim must match it. Indexes are created at startup, including TTL indexes. `SecurityRetentionJob` removes audit events older than `SECURITY_AUDIT_RETENTION_DAYS` and stale devices after `SECURITY_DEVICE_RETENTION_DAYS`. It needs `SchedulingConfig` with `@EnableScheduling`.
 
-## 5. Frontend pages these flows need
+## 6. Frontend pages these flows need
 
 The service sends links, and the front end has to have a page behind each one. The [Flutter app](https://github.com/peacemakerbill/premisave_flutter_frontend) already has them. A different front end must build: `/admin-invitation?token=`, `/security-report?token=` (inspect, then confirm) and `/account/security` (sessions and devices). The paths come from `FRONTEND_URL` and `SECURITY_PAGE_PATH`.
 
-## 6. Short access tokens
+## 7. Short access tokens
 
 `SECURITY_ACCESS_TOKEN_MINUTES` (default 0, which keeps `JWT_EXPIRATION`) sets the lifetime of session-bound access tokens. With 15 to 60, a revoked session stops working in every service within that time, because the refresh token is rejected as soon as the session is revoked. Sign-in and refresh responses carry `expiresIn` (seconds) so clients can refresh ahead of time.
 
 Before turning it on, make sure every client stores `refreshToken` and calls `POST /auth/refresh` with `{"refreshToken": "<refreshToken>"}` when the access token is close to expiry or a request returns 401. Each refresh token works once and is replaced by the new one in the response. Older clients that send their access token to `/auth/refresh` still work only while that token is unexpired.
 
-## 7. Neutral signup
+## 8. Neutral signup
 
 `SECURITY_HIDE_EXISTING_ACCOUNTS=true` makes `POST /auth/signup` return `202` with the same message for a new and an already-registered email, and no tokens. A new address gets an account and a verification email. An existing address gets a "someone tried to register with your email" notice (at most once an hour) and nothing is changed. The user signs in after verifying, so the client must stop expecting tokens from signup. Password hashing is done in both cases so response time gives little away, but a determined attacker may still measure small differences. A taken username is still reported, because usernames are not secret.
 
-## 8. Limitations
+## 9. Limitations
 
 * Device recognition is a cookie plus a user-agent summary. It is not unique identification, and the user agent is spoofable.
 * Location is approximate and off by default.

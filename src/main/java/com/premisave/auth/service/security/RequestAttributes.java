@@ -34,6 +34,32 @@ public final class RequestAttributes {
         return value instanceof ClientContext ctx ? ctx : ClientContext.unknown();
     }
 
+    /** The HTTP method of the request being handled, or null outside a request (a background job, for example). */
+    public static String currentMethod() {
+        HttpServletRequest request = currentRequest();
+        return request == null ? null : request.getMethod();
+    }
+
+    /**
+     * The path of the request being handled, without the query string. Segments that look like an id or a token (24 or more
+     * letters, digits and dashes) are shown as {id}, so a secret in a path can never be written to the audit trail.
+     */
+    public static String currentPath() {
+        HttpServletRequest request = currentRequest();
+        if (request == null || request.getRequestURI() == null) {
+            return null;
+        }
+        StringBuilder out = new StringBuilder();
+        for (String part : request.getRequestURI().split("/")) {
+            if (part.isEmpty()) {
+                continue;
+            }
+            out.append('/').append(part.length() >= 24 && part.matches("[A-Za-z0-9_-]+") ? "{id}" : part);
+        }
+        String path = out.length() == 0 ? "/" : out.toString();
+        return path.length() > 200 ? path.substring(0, 200) : path;
+    }
+
     private static HttpServletRequest currentRequest() {
         if (RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes attrs) {
             return attrs.getRequest();

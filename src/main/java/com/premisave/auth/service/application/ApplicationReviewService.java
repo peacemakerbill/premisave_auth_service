@@ -78,6 +78,7 @@ public class ApplicationReviewService {
     private final ApplicationMapper mapper;
     private final ApplicationEmailService emails;
     private final CurrentUser currentUser;
+    private final com.premisave.auth.service.security.SecurityAuditService audit;
 
     public ApplicationReviewService(HomeOwnerApplicationRepository repository,
                                     UserRepository userRepository,
@@ -85,7 +86,8 @@ public class ApplicationReviewService {
                                     RedisTemplate<String, Object> redisTemplate,
                                     ApplicationMapper mapper,
                                     ApplicationEmailService emails,
-                                    CurrentUser currentUser) {
+                                    CurrentUser currentUser,
+                                    com.premisave.auth.service.security.SecurityAuditService audit) {
         this.repository = repository;
         this.userRepository = userRepository;
         this.mongoTemplate = mongoTemplate;
@@ -93,6 +95,7 @@ public class ApplicationReviewService {
         this.mapper = mapper;
         this.emails = emails;
         this.currentUser = currentUser;
+        this.audit = audit;
     }
 
     // ------------------------------------------------------------------
@@ -355,6 +358,13 @@ public class ApplicationReviewService {
 
         HomeOwnerApplication saved = repository.save(app);
         emails.sendStatusChanged(saved, from, message);
+        audit.event(com.premisave.auth.enums.SecurityEventType.APPLICATION_STATUS_CHANGED)
+                .user(saved.getApplicantId()).actor(me.getId())
+                .client(com.premisave.auth.service.security.RequestAttributes.currentClient())
+                .target("APPLICATION", saved.getId(), saved.getApplicationNumber())
+                .reason(message != null ? message : "Status changed to " + to.getLabel())
+                .detail("from", from.getLabel()).detail("to", to.getLabel())
+                .write();
         log.info("Application {} moved {} to {} by {}", saved.getApplicationNumber(), from, to, me.getId());
         return view(saved);
     }
@@ -502,6 +512,14 @@ public class ApplicationReviewService {
         }
 
         emails.sendPromoted(saved, message);
+        audit.event(com.premisave.auth.enums.SecurityEventType.HOME_OWNER_PROMOTED)
+                .severity(com.premisave.auth.enums.SecuritySeverity.WARNING)
+                .user(applicant.getId()).actor(admin.getId())
+                .client(com.premisave.auth.service.security.RequestAttributes.currentClient())
+                .target("APPLICATION", saved.getId(), saved.getApplicationNumber())
+                .reason(message != null ? message : "Application approved")
+                .detail("previousRole", previous.name()).detail("newRole", Role.HOME_OWNER.name())
+                .write();
         log.info("User {} promoted CLIENT to HOME_OWNER by {} (application {})",
                 applicant.getId(), admin.getId(), saved.getApplicationNumber());
 
