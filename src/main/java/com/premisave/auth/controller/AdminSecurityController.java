@@ -27,10 +27,12 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -63,11 +65,12 @@ public class AdminSecurityController {
     }
 
     /**
-     * The trail, newest first. Every filter is optional: userId (the account), actor (who did it), type, severity, outcome,
-     * ip, and from / to (an ISO date such as 2026-11-18 or an instant).
+     * The trail, newest first. Every filter is optional: q (free text, see {@link #search}), userId (the account), actor (who
+     * did it), type, severity, outcome, ip, and from / to (an ISO date such as 2026-11-18 or an instant).
      */
     @GetMapping("/events")
-    public List<AdminEventView> events(@RequestParam(required = false) String userId,
+    public List<AdminEventView> events(@RequestParam(required = false) String q,
+                                       @RequestParam(required = false) String userId,
                                        @RequestParam(required = false) String actor,
                                        @RequestParam(required = false) SecurityEventType type,
                                        @RequestParam(required = false) SecuritySeverity severity,
@@ -79,6 +82,10 @@ public class AdminSecurityController {
                                        @RequestParam(defaultValue = "50") int size) {
         int safeSize = Math.min(Math.max(size, 1), 100);
         Query query = new Query();
+        Criteria text = search(q);
+        if (text != null) {
+            query.addCriteria(text);
+        }
         if (userId != null && !userId.isBlank()) {
             query.addCriteria(Criteria.where("userId").is(userId));
         }
@@ -162,6 +169,90 @@ public class AdminSecurityController {
 
         return new AdminSummary(from, to, total, info, warning, critical, failures, signIns, failed, lockouts, changes,
                 people, addresses, top);
+    }
+
+    // ------------------------------------------------------------------ free text search
+
+    private static final int MAX_WORDS = 5;
+    private static final int MAX_WORD_LENGTH = 80;
+    private static final int MAX_MATCHING_ACCOUNTS = 100;
+
+    /** Text fields of an event that a word is looked for in. */
+    private static final List<String> EVENT_TEXT_FIELDS = List.of(
+            "type", "ipAddress", "country", "region", "city", "userAgent", "deviceLabel", "deviceType", "os", "browser",
+            "actor", "actorRole", "subjectMasked", "targetType", "targetId", "targetLabel", "requestMethod",
+            "requestPath", "reason", "details.from", "details.to", "details.changed", "details.previousRole",
+            "details.newRole", "details.source");
+
+    /** Fields that hold an id, matched exactly. */
+    private static final List<String> EVENT_ID_FIELDS = List.of("id", "userId", "actor", "sessionId", "deviceId");
+
+    /** Text fields of an account that a word is looked for in, to find events about or by that person. */
+    private static final List<String> ACCOUNT_TEXT_FIELDS = List.of(
+            "firstName", "middleName", "lastName", "username", "email", "phoneNumber", "address1", "country");
+
+    /**
+     * Free text search, so an administrator can type anything. The text is split into words (at most five) and every word
+     * must match something in the event: the event type, address, place, device, browser, system, the request, the reason,
+     * the target, an id, or the name, username, email or phone of the person it happened to or who did it. Words are matched
+     * anywhere in a field and ignore case. "failed", "succeeded", "critical", "warning" and "info" also match the result and
+     * the severity. Returns null when there is nothing to search for.
+     */
+    private Criteria search(String q) {
+        if (q == null || q.isBlank()) {
+            return null;
+        }
+        List<Criteria> perWord = new ArrayList<>();
+        for (String word : q.trim().split("\\s+")) {
+            if (word.isBlank()) {
+                continue;
+            }
+            perWord.add(wordCriteria(word.length() > MAX_WORD_LENGTH ? word.substring(0, MAX_WORD_LENGTH) : word));
+            if (perWord.size() == MAX_WORDS) {
+                break;
+            }
+        }
+        if (perWord.isEmpty()) {
+            return null;
+        }
+        return perWord.size() == 1 ? perWord.get(0) : new Criteria().andOperator(perWord.toArray(new Criteria[0]));
+    }
+
+    private Criteria wordCriteria(String word) {
+        Pattern pattern = Pattern.compile(Pattern.quote(word), Pattern.CASE_INSENSITIVE);
+        List<Criteria> any = new ArrayList<>();
+        for (String field : EVENT_TEXT_FIELDS) {
+            any.add(Criteria.where(field).regex(pattern));
+        }
+        for (String field : EVENT_ID_FIELDS) {
+            any.add(Criteria.where(field).is(word));
+        }
+        switch (word.toLowerCase(Locale.ROOT)) {
+            case "critical" -> any.add(Criteria.where("severity").is(SecuritySeverity.CRITICAL.name()));
+            case "warning", "warn" -> any.add(Criteria.where("severity").is(SecuritySeverity.WARNING.name()));
+            case "info", "information" -> any.add(Criteria.where("severity").is(SecuritySeverity.INFO.name()));
+            case "failed", "failure", "fail" -> any.add(Criteria.where("outcome").is(SecurityOutcome.FAILURE.name()));
+            case "succeeded", "success", "ok" -> any.add(Criteria.where("outcome").is(SecurityOutcome.SUCCESS.name()));
+            default -> { }
+        }
+        List<String> accounts = matchingAccounts(pattern);
+        if (!accounts.isEmpty()) {
+            any.add(Criteria.where("userId").in(accounts));
+            any.add(Criteria.where("actor").in(accounts));
+        }
+        return new Criteria().orOperator(any.toArray(new Criteria[0]));
+    }
+
+    /** The ids of accounts with a name, username, email, phone or address that contains the word. */
+    private List<String> matchingAccounts(Pattern pattern) {
+        List<Criteria> fields = new ArrayList<>();
+        for (String field : ACCOUNT_TEXT_FIELDS) {
+            fields.add(Criteria.where(field).regex(pattern));
+        }
+        Query accounts = new Query(new Criteria().orOperator(fields.toArray(new Criteria[0])));
+        accounts.fields().include("id");
+        accounts.limit(MAX_MATCHING_ACCOUNTS);
+        return mongo.find(accounts, User.class).stream().map(User::getId).toList();
     }
 
     // ------------------------------------------------------------------

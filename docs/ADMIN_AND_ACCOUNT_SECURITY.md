@@ -109,6 +109,8 @@ Events recorded for staff actions: `USER_CREATED`, `USER_UPDATED` (with the list
 
 People see only their own security events at `GET /security/events`. Staff actions on their account (the events above that start with `USER_`, application and storage events) are left out of that list, so an administrator's address is not shown to the person it was done to.
 
+**Search.** `GET /admin/security/events?q=` takes free text, so an administrator can type a name, username, email, phone number, IP address, place, device, browser, event type, request path, reason or id. Several words narrow the result, because every word (at most five) must match. Names, usernames, emails and phones are looked up in the accounts collection, then events about or by those accounts are returned, so a full email address works even though only a masked one is stored with the event. The search scans the audit collection, so `SECURITY_AUDIT_RETENTION_DAYS` keeps it quick, and the time filters narrow it further.
+
 New indexes for the filters (`severity_time`, `actor_time`, `ip_time`) are created at startup.
 
 ## 5. Data kept
