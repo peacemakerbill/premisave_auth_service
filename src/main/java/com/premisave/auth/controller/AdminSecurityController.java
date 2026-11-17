@@ -9,6 +9,7 @@ import com.premisave.auth.enums.SecurityEventType;
 import com.premisave.auth.enums.SecurityOutcome;
 import com.premisave.auth.enums.SecuritySeverity;
 import com.premisave.auth.exception.ApiException;
+import org.bson.Document;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -154,9 +155,9 @@ public class AdminSecurityController {
                 Aggregation.group("type").count().as("count"),
                 Aggregation.sort(Sort.Direction.DESC, "count"),
                 Aggregation.limit(8));
-        AggregationResults<Map> grouped = mongo.aggregate(byType, SecurityEvent.class, Map.class);
+        AggregationResults<Document> grouped = mongo.aggregate(byType, SecurityEvent.class, Document.class);
         List<EventCount> top = grouped.getMappedResults().stream()
-                .map(row -> new EventCount(String.valueOf(row.get("_id")), ((Number) row.get("count")).longValue()))
+                .map(row -> new EventCount(String.valueOf(row.get("_id")), row.get("count", Number.class).longValue()))
                 .toList();
 
         return new AdminSummary(from, to, total, info, warning, critical, failures, signIns, failed, lockouts, changes,
