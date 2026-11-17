@@ -4,7 +4,9 @@ import com.premisave.auth.config.StorageProperties;
 import com.premisave.auth.dto.StorageDtos;
 import com.premisave.auth.enums.SecurityEventType;
 import com.premisave.auth.service.security.SecurityAuditService;
+import com.premisave.auth.exception.ApiException;
 import com.premisave.auth.service.storage.FileStorageService;
+import com.premisave.auth.service.storage.FolderBrowser;
 import com.premisave.auth.service.storage.StorageSettingsService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.file.Path;
@@ -46,6 +49,27 @@ public class AdminStorageController {
     @GetMapping
     public StorageDtos.Response view() {
         return response();
+    }
+
+    /** The folders inside {@code path}, or the allowed folders themselves when no path is given. Only allowed folders are shown. */
+    @GetMapping("/browse")
+    public FolderBrowser.Listing browse(@RequestParam(required = false) String path) {
+        try {
+            return FolderBrowser.list(path, settings.allowedRoots());
+        } catch (IllegalArgumentException e) {
+            throw ApiException.badRequest(e.getMessage());
+        }
+    }
+
+    /** Makes a folder from the picker and returns it, ready to open. */
+    @PostMapping("/folders")
+    public FolderBrowser.Listing createFolder(@RequestBody StorageDtos.FolderRequest request) {
+        try {
+            return FolderBrowser.create(request == null ? null : request.parent(), request == null ? null : request.name(),
+                    settings.allowedRoots());
+        } catch (IllegalArgumentException e) {
+            throw ApiException.badRequest(e.getMessage());
+        }
     }
 
     /** Tries the values without saving: the folder is created, written to and, for a share, checked to be mounted. */

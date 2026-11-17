@@ -111,7 +111,7 @@ sudo mount -a
 
 ## Changing the location from the admin dashboard
 
-The `.env` values above are the starting point. An administrator can also choose the location from the apps (Flutter app: the Storage button on the Users page) or by calling `/admin/storage-settings`. The choice is saved in this service's own MongoDB (collection `storage_settings`).
+The `.env` values above are the starting point. An administrator can also choose the location from the apps (Flutter app: Settings, then Storage, for administrators) or by calling `/admin/storage-settings`. The choice is saved in this service's own MongoDB (collection `storage_settings`).
 
 - **The dashboard wins once saved.** From then on the saved values are used. **Reset to .env** deletes them and the `.env` values apply again.
 - **What can be set:** the type (`LOCAL` or `NETWORK`), the local folder, and for a share the protocol, host, share, mount path, folder inside it and the "refuse unless really mounted" check, plus the free space limit.
@@ -129,6 +129,8 @@ The `.env` values above are the starting point. An administrator can also choose
 | `POST` | `/admin/storage-settings/check` | Try values without saving: `{ type, localPath, networkProtocol, networkHost, networkShare, networkMountPath, networkDirectory, networkRequireMount, minFreeMb }`. Returns `{ ok, problem, location, freeMb }` |
 | `PUT` | `/admin/storage-settings` | Save them (same body). `400` with the reason when refused |
 | `DELETE` | `/admin/storage-settings` | Reset to the `.env` values |
+| `GET` | `/admin/storage-settings/browse?path=` | The folder picker: the folders inside `path`, or the allowed roots when `path` is left out. Returns `{ path, parent, top, exists, canCreate, writable, freeMb, truncated, folders: [{ name, path }] }` |
+| `POST` | `/admin/storage-settings/folders` | Make a folder: `{ parent, name }`. Returns the new folder in the same shape |
 
 ## Folder and file names
 

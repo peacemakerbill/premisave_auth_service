@@ -34,4 +34,8 @@ public final class StorageDtos {
 
     public record Response(List<String> allowedRoots, Documents documents) {
     }
+
+    /** A new folder for the folder picker: the folder to make it in, and its name. */
+    public record FolderRequest(String parent, String name) {
+    }
 }
