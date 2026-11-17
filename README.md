@@ -432,7 +432,7 @@ premisave_auth_service/
 |   |   |-- security/   sessions, devices, throttling, risk, alerts, audit
 |   |   |-- application/ Home Owner applications and their review
 |   |   |-- oauth/      one client per social provider
-|   |   |-- storage/    document storage on a disk or a mounted share
+|   |   |-- storage/    document storage on a disk or a mounted share, and the settings an administrator saves from the dashboard
 |   |   `-- places/     the Google Places proxy
 |   |-- security/       the filters, the token service, user details
 |   |-- config/         security rules, Redis, Mongo, mail, Cloudinary, startup runners

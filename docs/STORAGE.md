@@ -20,6 +20,7 @@ Home Owner applications carry identity and ownership documents. They are some of
 - [Choosing a location](#choosing-a-location)
 - [Local folder](#local-folder)
 - [Network share](#network-share)
+- [Changing the location from the admin dashboard](#changing-the-location-from-the-admin-dashboard)
 - [Folder and file names](#folder-and-file-names)
 - [What is checked](#what-is-checked)
 - [When storage is not working](#when-storage-is-not-working)
@@ -108,6 +109,27 @@ sudo mount -a
 
 `STORAGE_NETWORK_DIRECTORY` must be a relative folder name with no `..` and only letters, digits, spaces and `. _ ( ) -`.
 
+## Changing the location from the admin dashboard
+
+The `.env` values above are the starting point. An administrator can also choose the location from the apps (Flutter app: the Storage button on the Users page) or by calling `/admin/storage-settings`. The choice is saved in this service's own MongoDB (collection `storage_settings`).
+
+- **The dashboard wins once saved.** From then on the saved values are used. **Reset to .env** deletes them and the `.env` values apply again.
+- **What can be set:** the type (`LOCAL` or `NETWORK`), the local folder, and for a share the protocol, host, share, mount path, folder inside it and the "refuse unless really mounted" check, plus the free space limit.
+- **Only inside allowed roots.** Folders must be inside `STORAGE_ALLOWED_ROOTS` (full paths separated by commas, `~` allowed). Blank allows only `STORAGE_LOCAL_PATH` and `STORAGE_NETWORK_MOUNT_PATH`. To pick a share from the dashboard, list the folder it is mounted in, for example `/mnt`. `..` and symbolic links that lead out of the roots are refused, and nothing is created outside them.
+- **Try before saving.** "Try it" creates the folder, writes and deletes a small file, checks that a share is really mounted and that the free space is above the limit. A save does the same and is refused when it fails, so a bad value can never be saved.
+- **Old files keep working.** Each folder used before is remembered (the last 20), and the `.env` folder too. Downloads look in the current folder first and then in those, and deleting an application removes it from all of them. An application that was started in an old folder carries on in a new folder of the same name in the new location. Nothing is copied or moved.
+- **A saved location that is no longer inside the allowed roots is ignored** with a warning in the log, and the `.env` values are used, so editing `STORAGE_ALLOWED_ROOTS` can never leave the service writing somewhere it should not.
+- **Audit trail.** Each save and reset is written as `STORAGE_SETTINGS_CHANGED` with the administrator's name (`GET /admin/security/events`).
+- **Docker.** The service sees only what is mounted into the container (`/data` in the compose files). To offer another folder, add a volume for it and list its container path in `STORAGE_ALLOWED_ROOTS`.
+- **Several copies of the service** share the saved values through MongoDB, so every copy needs the same folder or share mounted at the same path.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/admin/storage-settings` | Allowed roots and the storage in use: where it comes from (`ENV` or `DASHBOARD`), the values, the folder, whether it is ready and why not, the free space, and the `.env` values |
+| `POST` | `/admin/storage-settings/check` | Try values without saving: `{ type, localPath, networkProtocol, networkHost, networkShare, networkMountPath, networkDirectory, networkRequireMount, minFreeMb }`. Returns `{ ok, problem, location, freeMb }` |
+| `PUT` | `/admin/storage-settings` | Save them (same body). `400` with the reason when refused |
+| `DELETE` | `/admin/storage-settings` | Reset to the `.env` values |
+
 ## Folder and file names
 
 - Each application gets one folder: `<application number> <applicant name>`, for example `HOA-2026-000123 Ada Lovelace`. A person can find a file by looking in the folder, with no database.
@@ -157,5 +179,5 @@ The check result is cached for a few seconds, so a fix takes effect within momen
 - A file is written to a temporary name and moved into place, so a half written file never appears.
 - Files are given the permissions `rw-r-----` where the file system supports them.
 - If the database save fails after a file was written, the file is deleted again. Old files are removed only after the new record is safely saved.
-- The disk path and the per file storage key are never included in an API response. Staff see only the application's folder name, so they can find it on the share.
+- The disk path and the per file storage key are never included in an API response, except in the administrators' own storage endpoint (`/admin/storage-settings`), which shows the folder in use. Staff see only the application's folder name, so they can find it on the share.
 - Only the applicant and staff can download. Anyone else gets `404`.

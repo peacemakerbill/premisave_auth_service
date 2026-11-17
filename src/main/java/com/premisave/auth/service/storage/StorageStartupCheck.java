@@ -34,15 +34,15 @@ public class StorageStartupCheck implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         FileStorageService.Status status = storage.check(true);
         if (status.available()) {
-            log.info("Document storage ready: type={}, directory={}", properties.getType(), storage.baseDirectory());
-            if (properties.getType() == StorageProperties.Type.NETWORK
+            log.info("Document storage ready: type={}, directory={}", storage.type(), storage.baseDirectory());
+            if (storage.type() == StorageProperties.Type.NETWORK
                     && properties.getNetwork().isRequireMount()
                     && (properties.getNetwork().getHost() == null || properties.getNetwork().getHost().isBlank())) {
                 log.warn("STORAGE_NETWORK_HOST is empty, so only the presence of a mount is checked, not which NAS it belongs to.");
             }
             return;
         }
-        String message = "Document storage is not usable (type=" + properties.getType() + "): " + status.message();
+        String message = "Document storage is not usable (type=" + storage.type() + "): " + status.message();
         if (properties.isFailOnUnavailable()) {
             throw new IllegalStateException(message + " STORAGE_FAIL_ON_UNAVAILABLE is on, so the service will not start.");
         }

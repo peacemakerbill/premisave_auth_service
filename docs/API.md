@@ -258,6 +258,10 @@ All of this is `ADMIN` only.
 | Method and path | Does |
 | --- | --- |
 | `POST /admin/applications/{id}/promote` | The "Make Home Owner" button. Needs a `VERIFIED` application. Sets the applicant's role to `HOME_OWNER`, marks the application `ACCEPTED` and emails them. Body optional: `message`, `internalNote`. |
+| `GET /admin/storage-settings` | Where documents are stored now, the allowed folders and the `.env` values. |
+| `POST /admin/storage-settings/check` | Try storage values without saving. Body: `type`, `localPath`, `networkProtocol`, `networkHost`, `networkShare`, `networkMountPath`, `networkDirectory`, `networkRequireMount`, `minFreeMb`. |
+| `PUT /admin/storage-settings` | Save them (the dashboard value then wins over `.env`). `400` with the reason when the folder is refused. |
+| `DELETE /admin/storage-settings` | Go back to the `.env` values. |
 | `GET /admin/security/events` | The audit trail. Query: `userId`, `type`, `page` (default 0), `size` (default 50, most 100). |
 | `GET /admin/users` | Everyone. |
 | `GET /admin/users/{id}`, `/email/{email}` | One user. |

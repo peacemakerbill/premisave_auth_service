@@ -36,6 +36,12 @@ public class StorageProperties {
     /** Uploads are refused when less than this many megabytes are free. 0 turns the check off. */
     private int minFreeMb = 100;
 
+    /**
+     * Folders an administrator may choose from the dashboard, as full paths separated by commas (a leading ~ is the home
+     * directory). Blank allows only the folders this file already names: the LOCAL path and the network mount path.
+     */
+    private String allowedRoots = "";
+
     private Local local = new Local();
     private Network network = new Network();
 
@@ -47,6 +53,8 @@ public class StorageProperties {
     public void setFailOnUnavailable(boolean failOnUnavailable) { this.failOnUnavailable = failOnUnavailable; }
     public int getMinFreeMb() { return minFreeMb; }
     public void setMinFreeMb(int minFreeMb) { this.minFreeMb = Math.max(0, minFreeMb); }
+    public String getAllowedRoots() { return allowedRoots; }
+    public void setAllowedRoots(String allowedRoots) { this.allowedRoots = allowedRoots == null ? "" : allowedRoots; }
     public Local getLocal() { return local; }
     public void setLocal(Local local) { this.local = local; }
     public Network getNetwork() { return network; }

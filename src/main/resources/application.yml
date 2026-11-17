@@ -240,6 +240,9 @@ app:
     fail-on-unavailable: ${STORAGE_FAIL_ON_UNAVAILABLE:false}
     # Uploads are refused when less than this much space is free (0 turns the check off)
     min-free-mb: ${STORAGE_MIN_FREE_MB:100}
+    # Folders an administrator may choose from the dashboard (Settings, Storage), as full paths separated by commas.
+    # Blank allows only the local path and the network mount path below.
+    allowed-roots: ${STORAGE_ALLOWED_ROOTS:}
     local:
       # Set STORAGE_LOCAL_PATH in .env. No path is written here. If it is left unset or blank, the code uses
       # ~/premisave-file-storage/homeowner-onboarding (inside the home directory of the user running the service).

@@ -257,6 +257,91 @@ public final class StorageLayout {
         return false;
     }
 
+    /**
+     * True when the network share of these settings is really mounted at its mount path. Uses /proc/mounts and, where that
+     * cannot be read (not Linux), checks that the mount path sits on another file system than its parent.
+     */
+    public static boolean isMounted(StorageProperties p) {
+        StorageProperties.Network n = p.getNetwork();
+        Path mount = mountPoint(p);
+        List<String> lines = readProcMounts();
+        if (lines != null) {
+            return isMounted(lines, mount, n.getProtocol(), n.getHost(), n.getShare());
+        }
+        try {
+            Path parent = mount.getParent();
+            if (parent == null || !Files.isDirectory(mount)) {
+                return false;
+            }
+            return !Files.getFileStore(mount).equals(Files.getFileStore(parent));
+        } catch (IOException | RuntimeException e) {
+            return false;
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Allowed roots (the folders an administrator may choose from the dashboard)
+    // ------------------------------------------------------------------
+
+    /** Splits a comma separated list of full paths (a leading ~ is allowed). Entries that are not usable paths are skipped. */
+    public static List<Path> parseRoots(String commaSeparated) {
+        List<Path> out = new ArrayList<>();
+        if (commaSeparated == null) {
+            return out;
+        }
+        for (String part : commaSeparated.split(",")) {
+            if (part.isBlank()) {
+                continue;
+            }
+            try {
+                String text = part.trim();
+                if (!Path.of(withHome(text)).isAbsolute()) {
+                    continue;
+                }
+                Path p = expand(text);
+                if (!out.contains(p)) {
+                    out.add(p);
+                }
+            } catch (RuntimeException ignored) {
+                // an unusable entry in .env is skipped, not fatal
+            }
+        }
+        return out;
+    }
+
+    /** True when the path is one of the roots or inside one. Both are compared as cleaned-up absolute paths. */
+    public static boolean isInside(Path path, List<Path> roots) {
+        Path p = path.toAbsolutePath().normalize();
+        for (Path root : roots) {
+            if (p.startsWith(root.toAbsolutePath().normalize())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The same check on real paths, so a symbolic link inside an allowed folder cannot lead out of it. The folder does not have
+     * to exist yet: its nearest existing parent is resolved and the folders still to be made are added to it. Nothing is created.
+     */
+    public static boolean isReallyInside(Path folder, List<Path> roots) throws IOException {
+        Path wanted = folder.toAbsolutePath().normalize();
+        Path existing = wanted;
+        while (existing != null && !Files.exists(existing)) {
+            existing = existing.getParent();
+        }
+        if (existing == null) {
+            return false;
+        }
+        Path real = existing.toRealPath().resolve(existing.relativize(wanted)).normalize();
+        List<Path> realRoots = new ArrayList<>();
+        for (Path root : roots) {
+            Path r = root.toAbsolutePath().normalize();
+            realRoots.add(Files.exists(r) ? r.toRealPath() : r);
+        }
+        return isInside(real, realRoots);
+    }
+
     /** Reads /proc/mounts. Returns null when it cannot be read (not Linux, or restricted). */
     public static List<String> readProcMounts() {
         Path proc = Path.of("/proc/mounts");

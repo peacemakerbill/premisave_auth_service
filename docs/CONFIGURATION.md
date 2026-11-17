@@ -240,6 +240,7 @@ Where the uploaded files live, and how to set up a NAS: [STORAGE.md](STORAGE.md)
 | `STORAGE_CREATE_DIRECTORIES` | `true` | Creates the folders when they are missing. |
 | `STORAGE_FAIL_ON_UNAVAILABLE` | `false` | `true` stops startup when the location is unusable. `false` starts anyway and uploads answer `503` until it is fixed. |
 | `STORAGE_MIN_FREE_MB` | `100` | Uploads are refused when less than this is free. `0` turns the check off. |
+| `STORAGE_ALLOWED_ROOTS` | empty | Folders the admin dashboard may choose from, full paths separated by commas. Empty allows only `STORAGE_LOCAL_PATH` and `STORAGE_NETWORK_MOUNT_PATH`. See [STORAGE.md](STORAGE.md#changing-the-location-from-the-admin-dashboard). |
 | `STORAGE_LOCAL_PATH` | empty | The folder for `LOCAL`. Empty means `~/premisave-file-storage/homeowner-onboarding` in the home folder of the user running the service. |
 | `STORAGE_NETWORK_PROTOCOL` | `SMB` | `SMB` or `NFS`. |
 | `STORAGE_NETWORK_HOST` | empty | The NAS address. Used to check that the right share is mounted, never to connect. |

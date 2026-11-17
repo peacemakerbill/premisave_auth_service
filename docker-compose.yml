@@ -38,6 +38,8 @@ services:
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-not-set}
       # The device cookie needs https unless it is switched off for plain http development.
       SECURITY_DEVICE_COOKIE_SECURE: "false"
+      # Folders the admin dashboard may choose for documents. Blank allows only the .env folders. In Docker only /data is kept.
+      STORAGE_ALLOWED_ROOTS: ${STORAGE_ALLOWED_ROOTS:-}
     ports:
       - "8080:8080"
     volumes:

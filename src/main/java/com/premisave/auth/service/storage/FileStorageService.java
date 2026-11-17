@@ -19,6 +19,7 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -36,6 +37,10 @@ import java.util.List;
  *   - nothing is overwritten: a name collision gets a random suffix
  *   - an unavailable location (share not mounted, directory missing or not writable, disk full)
  *     answers 503 with a generic message; the technical reason goes to the log without any secret
+ *
+ * Where the files live is read on every call from {@link StorageSettingsService}: the .env values, or what an
+ * administrator saved from the dashboard. Files saved under an earlier location are still found, because reads and
+ * deletes also look in the folders used before.
  */
 @Slf4j
 @Service
@@ -57,25 +62,18 @@ public class FileStorageService {
     private static final long STATUS_CACHE_MS = 5_000;
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private final StorageProperties properties;
-    private final List<String> configProblems;
-    private final Path base;
+    private final StorageSettingsService settings;
 
     private volatile Status lastStatus;
+    private volatile StorageSettingsService.Active lastActive;
     private volatile long lastStatusAt;
 
-    public FileStorageService(StorageProperties properties) {
-        this.properties = properties;
-        this.configProblems = StorageLayout.validate(properties);
-        Path resolved = null;
-        if (configProblems.isEmpty()) {
-            try {
-                resolved = StorageLayout.baseDirectory(properties);
-            } catch (RuntimeException e) {
-                log.error("Storage location could not be resolved: {}", e.getClass().getSimpleName());
-            }
+    public FileStorageService(StorageSettingsService settings) {
+        this.settings = settings;
+        StorageSettingsService.Active env = settings.environment();
+        if (!env.problems().isEmpty()) {
+            log.error("Storage location from .env is not usable: {}", String.join("; ", env.problems()));
         }
-        this.base = resolved;
     }
 
     // ------------------------------------------------------------------
@@ -89,27 +87,35 @@ public class FileStorageService {
 
     /** Configuration problems in words, empty when valid. Safe to log. */
     public List<String> configurationProblems() {
-        return configProblems;
+        return settings.active().problems();
     }
 
     public Type type() {
-        return properties.getType();
+        return settings.active().props().getType();
     }
 
-    /** The base directory, for the startup log only. Never put this in a response. */
+    /** The base directory in use now. For the startup log and the administrators' storage screen only. */
     public Path baseDirectory() {
-        return base;
+        return settings.active().base();
+    }
+
+    /** Free space in the storage directory in megabytes, or null when it cannot be read. */
+    public Long freeMb() {
+        Path base = settings.active().base();
+        return base == null || !Files.isDirectory(base) ? null : StorageSettingsService.freeMb(base);
     }
 
     /** Checks the location (cached for a few seconds, because it runs before every operation). */
     public Status status() {
+        StorageSettingsService.Active active = settings.active();
         long now = System.currentTimeMillis();
         Status cached = lastStatus;
-        if (cached != null && now - lastStatusAt < STATUS_CACHE_MS) {
+        if (cached != null && active == lastActive && now - lastStatusAt < STATUS_CACHE_MS) {
             return cached;
         }
-        Status fresh = check(true);
+        Status fresh = check(active, true);
         lastStatus = fresh;
+        lastActive = active;
         lastStatusAt = now;
         return fresh;
     }
@@ -120,14 +126,20 @@ public class FileStorageService {
      * @param createIfMissing create the storage directory when it does not exist and creation is enabled
      */
     public Status check(boolean createIfMissing) {
-        if (!configProblems.isEmpty()) {
-            return new Status(false, "Storage configuration is invalid: " + String.join("; ", configProblems));
+        return check(settings.active(), createIfMissing);
+    }
+
+    private Status check(StorageSettingsService.Active active, boolean createIfMissing) {
+        StorageProperties properties = active.props();
+        Path base = active.base();
+        if (!active.problems().isEmpty()) {
+            return new Status(false, "Storage configuration is invalid: " + String.join("; ", active.problems()));
         }
         if (base == null) {
             return new Status(false, "Storage location could not be resolved.");
         }
         try {
-            if (properties.getType() == Type.NETWORK && properties.getNetwork().isRequireMount() && !isMounted()) {
+            if (properties.getType() == Type.NETWORK && properties.getNetwork().isRequireMount() && !StorageLayout.isMounted(properties)) {
                 return new Status(false, "The network share is not mounted at the configured mount path.");
             }
             if (!Files.exists(base)) {
@@ -157,37 +169,18 @@ public class FileStorageService {
         }
     }
 
-    private boolean isMounted() {
-        StorageProperties.Network n = properties.getNetwork();
-        Path mount = StorageLayout.mountPoint(properties);
-        List<String> lines = StorageLayout.readProcMounts();
-        if (lines != null) {
-            return StorageLayout.isMounted(lines, mount, n.getProtocol(), n.getHost(), n.getShare());
-        }
-        // No /proc/mounts (not Linux): a mounted share sits on a different file system than its parent.
-        try {
-            Path parent = mount.getParent();
-            if (parent == null || !Files.isDirectory(mount)) {
-                return false;
-            }
-            return !Files.getFileStore(mount).equals(Files.getFileStore(parent));
-        } catch (IOException | RuntimeException e) {
-            return false;
-        }
-    }
-
     // ------------------------------------------------------------------
     // Operations
     // ------------------------------------------------------------------
 
     /** Creates (or reuses) the folder of one application. The same name always yields the same folder. */
     public StoredFolder createApplicationFolder(String folderName) {
-        requireAvailable();
+        Path base = requireAvailable();
         String name = StorageLayout.sanitizeName(folderName, "application");
         try {
             Path folder = StorageLayout.resolveKey(base, name);
             Files.createDirectories(folder);
-            requireInside(folder);
+            requireInside(folder, base);
             return new StoredFolder(name);
         } catch (IOException | IllegalArgumentException e) {
             throw failure("create the application folder", e);
@@ -196,7 +189,7 @@ public class FileStorageService {
 
     /** Stores the bytes as a new file inside an application folder and returns its key. */
     public StoredFile upload(String folderId, String fileName, String mimeType, byte[] content) {
-        requireAvailable();
+        Path base = requireAvailable();
         if (content == null) {
             throw ApiException.badRequest("The file is empty.");
         }
@@ -204,10 +197,13 @@ public class FileStorageService {
         Path temp = null;
         try {
             Path folder = StorageLayout.resolveKey(base, folderId);
-            if (!Files.isDirectory(folder, LinkOption.NOFOLLOW_LINKS)) {
+            if (!Files.exists(folder, LinkOption.NOFOLLOW_LINKS)) {
+                // The application's folder was made under an earlier storage location. Its new files start a folder here.
+                Files.createDirectories(folder);
+            } else if (!Files.isDirectory(folder, LinkOption.NOFOLLOW_LINKS)) {
                 throw ApiException.notFound("The application folder could not be found in document storage.");
             }
-            requireInside(folder);
+            requireInside(folder, base);
 
             temp = folder.resolve(".upload-" + HexFormat.of().formatHex(randomBytes(8)) + ".tmp");
             Files.write(temp, content, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
@@ -237,20 +233,31 @@ public class FileStorageService {
 
     /** Reads a file. A key that does not exist is a 404. */
     public byte[] download(String key) {
-        requireAvailable();
+        Path current = requireAvailable();
         if (!StorageLayout.isWellFormedKey(key) || !key.contains("/")) {
             throw ApiException.notFound("The file could not be found in document storage.");
         }
         try {
-            Path file = StorageLayout.resolveKey(base, key);
-            if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
-                throw ApiException.notFound("The file could not be found in document storage.");
+            // The current folder first, then the folders used before, so a changed location never loses a file.
+            List<Path> bases = new ArrayList<>();
+            bases.add(current);
+            for (Path earlier : settings.fallbackBases(current)) {
+                if (Files.isDirectory(earlier)) {
+                    bases.add(earlier);
+                }
             }
-            requireInside(file);
-            if (Files.size(file) > MAX_READ_BYTES) {
-                throw new ApiException(HttpStatus.BAD_GATEWAY, "The file is too large to be served.");
+            for (Path base : bases) {
+                Path file = StorageLayout.resolveKey(base, key);
+                if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                    continue;
+                }
+                requireInside(file, base);
+                if (Files.size(file) > MAX_READ_BYTES) {
+                    throw new ApiException(HttpStatus.BAD_GATEWAY, "The file is too large to be served.");
+                }
+                return Files.readAllBytes(file);
             }
-            return Files.readAllBytes(file);
+            throw ApiException.notFound("The file could not be found in document storage.");
         } catch (ApiException e) {
             throw e;
         } catch (NoSuchFileException e) {
@@ -272,19 +279,30 @@ public class FileStorageService {
             log.warn("Could not delete a stored item because storage is unavailable.");
             return;
         }
-        try {
-            Path target = StorageLayout.resolveKey(base, key);
-            if (!Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-                return;
+        Path current = settings.active().base();
+        List<Path> bases = new ArrayList<>();
+        bases.add(current);
+        for (Path earlier : settings.fallbackBases(current)) {
+            if (Files.isDirectory(earlier)) {
+                bases.add(earlier);
             }
-            requireInside(target);
-            if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
-                deleteTree(target);
-            } else {
-                Files.deleteIfExists(target);
+        }
+        // The item can be in any folder used so far (an application's files may be split across a change), so each is cleaned.
+        for (Path base : bases) {
+            try {
+                Path target = StorageLayout.resolveKey(base, key);
+                if (!Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+                    continue;
+                }
+                requireInside(target, base);
+                if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
+                    deleteTree(target);
+                } else {
+                    Files.deleteIfExists(target);
+                }
+            } catch (IOException | IllegalArgumentException | ApiException e) {
+                log.warn("Could not delete a stored item: {}", e.getClass().getSimpleName());
             }
-        } catch (IOException | IllegalArgumentException | ApiException e) {
-            log.warn("Could not delete a stored item: {}", e.getClass().getSimpleName());
         }
     }
 
@@ -292,17 +310,24 @@ public class FileStorageService {
     // Internals
     // ------------------------------------------------------------------
 
-    private void requireAvailable() {
+    /** Fails with 503 when the storage cannot be used. Returns the base directory to work in. */
+    private Path requireAvailable() {
         Status status = status();
         if (!status.available()) {
             log.warn("Document storage unavailable: {}", status.message());
             throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
                     "Document storage is temporarily unavailable. Please try again later.");
         }
+        Path base = settings.active().base();
+        if (base == null) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Document storage is temporarily unavailable. Please try again later.");
+        }
+        return base;
     }
 
     /** After symbolic links are resolved, the item must still be inside the storage directory. */
-    private void requireInside(Path path) throws IOException {
+    private void requireInside(Path path, Path base) throws IOException {
         Path realBase = base.toRealPath();
         Path real = path.toRealPath();
         if (!real.startsWith(realBase)) {
