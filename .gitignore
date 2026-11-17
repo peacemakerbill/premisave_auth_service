@@ -35,3 +35,7 @@ build/
 # Ignore all .env files anywhere in the repo, except the committable template
 **/.env
 !**/.env.example
+
+# Deployment env files hold real secrets
+deploy/env/*.env
+!deploy/env/*.env.example

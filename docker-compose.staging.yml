@@ -1,0 +1,82 @@
+# Premisave auth-service, STAGING, on one server with Docker.
+#
+#   cp deploy/env/staging.env.example deploy/env/staging.env     (then fill it in)
+#   docker compose --env-file deploy/env/staging.env -f docker-compose.staging.yml up -d --build
+#
+# Staging is a copy of production for testing a release: same image, same profile settings, its own data.
+# It includes its own MongoDB, so it needs nothing else. Use a separate database from production, always.
+#
+# To use a published image instead of building here, log in once (docker login ghcr.io) and run:
+#   IMAGE_TAG=staging docker compose --env-file deploy/env/staging.env -f docker-compose.staging.yml pull
+#   IMAGE_TAG=staging docker compose --env-file deploy/env/staging.env -f docker-compose.staging.yml up -d
+
+name: premisave-auth-staging
+
+services:
+  auth:
+    build: .
+    image: ghcr.io/peacemakerbill/premisave_auth_service:${IMAGE_TAG:-staging}
+    container_name: premisave-auth-staging
+    env_file:
+      - deploy/env/staging.env
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      MONGODB_URI: mongodb://mongo:27017/premisave-auth-staging
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    # Published on this server only. Put a reverse proxy (nginx, Caddy, Traefik) in front for https.
+    ports:
+      - "${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:8080"
+    volumes:
+      - auth-data:/data
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  mongo:
+    image: mongo:7
+    container_name: premisave-auth-staging-mongo
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: premisave-auth-staging-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  auth-data:
+  mongo-data:
+  redis-data:

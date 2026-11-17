@@ -26,7 +26,13 @@ public class RateLimiterConfig {
 
     @Bean
     RedisClient redisClient(@Value("${spring.data.redis.host}") String host,
-                                   @Value("${spring.data.redis.port}") int port) {
+                                   @Value("${spring.data.redis.port}") int port,
+                                   @Value("${spring.data.redis.url:}") String url) {
+        // Hosting platforms hand over one address with the password in it (redis://:password@host:6379,
+        // or rediss:// for TLS). Set it in SPRING_DATA_REDIS_URL. Without it, REDIS_HOST and REDIS_PORT apply.
+        if (url != null && !url.isBlank()) {
+            return RedisClient.create(url.trim());
+        }
         return RedisClient.create("redis://" + host + ":" + port);
     }
 }

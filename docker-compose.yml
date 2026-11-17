@@ -1,0 +1,80 @@
+# Premisave auth-service, DEVELOPMENT.
+#
+# Starts the service together with its own MongoDB and Redis, so nothing else has to be installed:
+#
+#     docker compose up --build
+#
+# The service answers on http://localhost:8080 (health: http://localhost:8080/health).
+# Values from a ".env" file next to this file are used when present (copy .env.example to .env and fill in
+# the mail and Cloudinary values to try those features). Anything not set falls back to a development default.
+#
+# Staging and production use docker-compose.staging.yml and docker-compose.production.yml.
+
+name: premisave-auth-dev
+
+services:
+  auth:
+    build: .
+    image: premisave-auth:dev
+    container_name: premisave-auth-dev
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      # Inside the container, "localhost" is the container itself, so these names point at the services below.
+      MONGODB_URI: mongodb://mongo:27017/premisave-auth
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      # Development defaults. The messenger service uses the same two values, so both work together.
+      JWT_SECRET: ${JWT_SECRET:-eW91ci12ZXJ5LXNlY3VyZS1qd3Qtc2VjcmV0LWtleS0zMi1ieXRlcyE=}
+      API_KEY: ${API_KEY:-dev-internal-api-key}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+      # Needed to start. Put real values in .env to use email and profile pictures.
+      GMAIL_PASSWORD: ${GMAIL_PASSWORD:-not-set}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-not-set}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-not-set}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-not-set}
+      # The device cookie needs https unless it is switched off for plain http development.
+      SECURITY_DEVICE_COOKIE_SECURE: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - auth-data:/data
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: premisave-auth-dev-mongo
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: premisave-auth-dev-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  auth-data:
+  mongo-data:
+  redis-data:

@@ -1,0 +1,8 @@
+# Premisave auth-service on HEROKU (container stack). Heroku builds the Dockerfile itself:
+#   heroku stack:set container -a <app>
+#   git push heroku main
+# One file serves staging and production: they are two apps in one pipeline, each with its own config vars
+# (heroku config:set). See deploy/README.md.
+build:
+  docker:
+    web: Dockerfile

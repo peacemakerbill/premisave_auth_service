@@ -1,2 +1,6 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+
+# Shell scripts and the Dockerfile must keep Unix line endings or the container will not start
+*.sh text eol=lf
+Dockerfile text eol=lf

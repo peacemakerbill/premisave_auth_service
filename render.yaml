@@ -1,0 +1,193 @@
+# Premisave auth-service on RENDER: three environments in one Blueprint.
+#
+#   development   free plan (no disk, sleeps when idle), deploys every push to the "develop" branch
+#   staging       paid starter plan with a small disk, deploys every push to the "staging" branch, private network
+#   production    paid standard plan with a disk for documents, deploys by hand, private network
+#
+# Plans and sizes are choices, change them freely. A disk needs a paid plan, and a service with a disk
+# runs as one instance (it cannot be scaled out).
+#
+# How to use it: Render dashboard > New > Blueprint > pick this repository. Render asks once for every
+# value marked "sync: false" (secrets). Names must be unique in the whole file, so every environment has its own.
+# MongoDB is not offered by Render: create a free cluster on MongoDB Atlas and use its address for MONGODB_URI.
+#
+# JWT_SECRET must be the SAME in the auth service and the messenger service in the same environment.
+# Generate one once with:  openssl rand -base64 32
+# Render Key Value (Redis) is reached over the private network, so it needs no password.
+
+projects:
+  - name: premisave-auth
+    environments:
+      # ------------------------------------------------------------------------------------------
+      - name: development
+        services:
+          - type: web
+            name: premisave-auth-dev
+            runtime: docker
+            plan: free
+            region: frankfurt
+            branch: develop
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            healthCheckPath: /health
+            autoDeployTrigger: commit
+            envVars:
+              - key: SPRING_PROFILES_ACTIVE
+                value: dev
+              - key: SPRING_DATA_REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: premisave-auth-redis-dev
+                  property: connectionString
+              - key: MONGODB_URI
+                sync: false
+              - key: JWT_SECRET
+                sync: false
+              - key: API_KEY
+                sync: false
+              - key: FRONTEND_URL
+                sync: false
+              - key: BACKEND_URL
+                sync: false
+              - key: GMAIL_USERNAME
+                sync: false
+              - key: GMAIL_PASSWORD
+                sync: false
+              - key: CLOUDINARY_CLOUD_NAME
+                sync: false
+              - key: CLOUDINARY_API_KEY
+                sync: false
+              - key: CLOUDINARY_API_SECRET
+                sync: false
+              - key: SECURITY_TRUSTED_PROXIES
+                value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+              # The free plan has no disk. Documents saved here disappear when the service restarts.
+              - key: STORAGE_LOCAL_PATH
+                value: /data/homeowner-onboarding
+          - type: keyvalue
+            name: premisave-auth-redis-dev
+            plan: free
+            region: frankfurt
+            maxmemoryPolicy: allkeys-lru
+            ipAllowList: []
+
+      # ------------------------------------------------------------------------------------------
+      - name: staging
+        networking:
+          isolation: enabled
+        services:
+          - type: web
+            name: premisave-auth-staging
+            runtime: docker
+            plan: starter
+            region: frankfurt
+            branch: staging
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            healthCheckPath: /health
+            autoDeployTrigger: commit
+            disk:
+              name: auth-data-staging
+              mountPath: /data
+              sizeGB: 2
+            envVars:
+              - key: SPRING_PROFILES_ACTIVE
+                value: staging
+              - key: SPRING_DATA_REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: premisave-auth-redis-staging
+                  property: connectionString
+              - key: MONGODB_URI
+                sync: false
+              - key: JWT_SECRET
+                sync: false
+              - key: API_KEY
+                sync: false
+              - key: FRONTEND_URL
+                sync: false
+              - key: BACKEND_URL
+                sync: false
+              - key: GMAIL_USERNAME
+                sync: false
+              - key: GMAIL_PASSWORD
+                sync: false
+              - key: CLOUDINARY_CLOUD_NAME
+                sync: false
+              - key: CLOUDINARY_API_KEY
+                sync: false
+              - key: CLOUDINARY_API_SECRET
+                sync: false
+              - key: SECURITY_TRUSTED_PROXIES
+                value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+              - key: STORAGE_LOCAL_PATH
+                value: /data/homeowner-onboarding
+          - type: keyvalue
+            name: premisave-auth-redis-staging
+            plan: free
+            region: frankfurt
+            maxmemoryPolicy: allkeys-lru
+            ipAllowList: []
+
+      # ------------------------------------------------------------------------------------------
+      - name: production
+        networking:
+          isolation: enabled
+        permissions:
+          protection: enabled
+        services:
+          - type: web
+            name: premisave-auth
+            runtime: docker
+            plan: standard
+            region: frankfurt
+            branch: main
+            dockerfilePath: ./Dockerfile
+            dockerContext: .
+            healthCheckPath: /health
+            # Production is deployed by hand (Manual Deploy), after the same commit passed on staging.
+            autoDeployTrigger: "off"
+            disk:
+              name: auth-data
+              mountPath: /data
+              sizeGB: 10
+            envVars:
+              - key: SPRING_PROFILES_ACTIVE
+                value: prod
+              - key: SPRING_DATA_REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: premisave-auth-redis
+                  property: connectionString
+              - key: MONGODB_URI
+                sync: false
+              - key: JWT_SECRET
+                sync: false
+              - key: API_KEY
+                sync: false
+              - key: FRONTEND_URL
+                sync: false
+              - key: BACKEND_URL
+                sync: false
+              - key: GMAIL_USERNAME
+                sync: false
+              - key: GMAIL_PASSWORD
+                sync: false
+              - key: SUPPORT_EMAIL
+                sync: false
+              - key: CLOUDINARY_CLOUD_NAME
+                sync: false
+              - key: CLOUDINARY_API_KEY
+                sync: false
+              - key: CLOUDINARY_API_SECRET
+                sync: false
+              - key: SECURITY_TRUSTED_PROXIES
+                value: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+              - key: STORAGE_LOCAL_PATH
+                value: /data/homeowner-onboarding
+          - type: keyvalue
+            name: premisave-auth-redis
+            plan: starter
+            region: frankfurt
+            maxmemoryPolicy: volatile-lru
+            ipAllowList: []

@@ -1,0 +1,42 @@
+# Premisave auth-service on FLY.IO, STAGING.
+#
+#   fly apps create premisave-auth-staging
+#   fly volumes create premisave_auth_staging --region jnb --size 5 -a premisave-auth-staging
+#   fly secrets import -a premisave-auth-staging < deploy/env/staging.env
+#   fly deploy -c fly.staging.toml
+#
+# Fly's Redis (Upstash) gives an address with the password in it: use it for SPRING_DATA_REDIS_URL.
+# MongoDB is not offered by Fly: use MongoDB Atlas for MONGODB_URI.
+
+app = "premisave-auth-staging"
+primary_region = "jnb"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  SPRING_PROFILES_ACTIVE = "staging"
+  PORT = "8080"
+  STORAGE_LOCAL_PATH = "/data/homeowner-onboarding"
+
+[mounts]
+  source = "premisave_auth_staging"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "90s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

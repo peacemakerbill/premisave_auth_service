@@ -1,0 +1,17 @@
+# Production (SPRING_PROFILES_ACTIVE=prod, the default in the Docker image): quiet logs, no error details
+# sent to callers, requests in flight finish before the service stops.
+logging:
+  level:
+    root: WARN
+    "[com.premisave.auth]": INFO
+    "[org.springframework.data.mongodb]": WARN
+
+server:
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s

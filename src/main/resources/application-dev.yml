@@ -1,0 +1,9 @@
+# Development (SPRING_PROFILES_ACTIVE=dev): chatty logs, errors show their message.
+logging:
+  level:
+    "[com.premisave.auth]": DEBUG
+    "[org.springframework.data.mongodb]": INFO
+
+server:
+  error:
+    include-message: always

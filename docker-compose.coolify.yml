@@ -1,0 +1,98 @@
+# Premisave auth-service on COOLIFY (and any platform that deploys a Docker Compose file).
+#
+# In Coolify: Project > Environment (staging or production) > New resource > Public/Private Repository,
+# Build Pack "Docker Compose", Base Directory "/", Docker Compose Location "/docker-compose.coolify.yml".
+#
+# One file serves every environment. Create one Coolify environment per stage and give each its own
+# variables, branch and domain. Coolify shows every ${...} below under Environment Variables:
+#   - ${NAME:?}        required, the deploy waits until it has a value
+#   - ${NAME:-value}   starts with that value, change it per environment
+#   - SERVICE_URL_AUTH_8080 gives the service a domain and sends traffic to port 8080
+#   - SERVICE_PASSWORD_...   generates a password once and keeps it
+#
+#   development   SPRING_PROFILES_ACTIVE=dev      branch develop
+#   staging       SPRING_PROFILES_ACTIVE=staging  branch staging
+#   production    SPRING_PROFILES_ACTIVE=prod     branch main
+#
+# MongoDB: by default the file starts one in the same stack. For production use a managed database
+# (MongoDB Atlas) and set MONGODB_URI to its address; the bundled one is then unused (it is harmless).
+
+services:
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - SERVICE_URL_AUTH_8080
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE:-prod}
+      # ---- Required ----
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongo:27017/premisave-auth}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:?}
+      - API_KEY=${API_KEY:?}
+      - FRONTEND_URL=${FRONTEND_URL:?}
+      - BACKEND_URL=${BACKEND_URL:-${SERVICE_URL_AUTH}}
+      - GMAIL_USERNAME=${GMAIL_USERNAME:?}
+      - GMAIL_PASSWORD=${GMAIL_PASSWORD:?}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL:-support@example.com}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:?}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:?}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:?}
+      # ---- Social sign in (leave empty to switch a provider off) ----
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_CODE_CLIENT_ID=${GOOGLE_CODE_CLIENT_ID:-}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY:-}
+      - FACEBOOK_APP_ID=${FACEBOOK_APP_ID:-}
+      - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET:-}
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID:-}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET:-}
+      - OAUTH_ALLOWED_REDIRECT_URIS=${OAUTH_ALLOWED_REDIRECT_URIS:-http://localhost:3000/auth.html}
+      # ---- Administrators ----
+      - INITIAL_ADMIN_EMAILS=${INITIAL_ADMIN_EMAILS:-}
+      - AUTO_ADMIN_EMAILS=${AUTO_ADMIN_EMAILS:-}
+      # ---- Behind Coolify's proxy ----
+      # Addresses allowed to send X-Forwarded-For. Coolify's proxy is on a private Docker network.
+      - SECURITY_TRUSTED_PROXIES=${SECURITY_TRUSTED_PROXIES:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+      - SECURITY_DISPLAY_ZONE=${SECURITY_DISPLAY_ZONE:-UTC}
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=${RATE_LIMIT_REQUESTS_PER_MINUTE:-20}
+      # Home owner documents live on the persistent volume below.
+      - STORAGE_LOCAL_PATH=/data/homeowner-onboarding
+    volumes:
+      - auth-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8080/health > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  auth-data:
+  mongo-data:
+  redis-data:

@@ -1,0 +1,42 @@
+# Premisave auth-service on FLY.IO, PRODUCTION.
+#
+#   fly apps create premisave-auth
+#   fly volumes create premisave_auth --region jnb --size 5 -a premisave-auth
+#   fly secrets import -a premisave-auth < deploy/env/production.env
+#   fly deploy -c fly.production.toml
+#
+# Fly's Redis (Upstash) gives an address with the password in it: use it for SPRING_DATA_REDIS_URL.
+# MongoDB is not offered by Fly: use MongoDB Atlas for MONGODB_URI.
+
+app = "premisave-auth"
+primary_region = "jnb"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  SPRING_PROFILES_ACTIVE = "prod"
+  PORT = "8080"
+  STORAGE_LOCAL_PATH = "/data/homeowner-onboarding"
+
+[mounts]
+  source = "premisave_auth"
+  destination = "/data"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "90s"
+    interval = "30s"
+    method = "GET"
+    path = "/health"
+    timeout = "5s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "2gb"

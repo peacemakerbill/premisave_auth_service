@@ -1,0 +1,17 @@
+# Staging (SPRING_PROFILES_ACTIVE=staging): behaves like production, with a little more detail in the logs
+# so a problem can be found before a release reaches real users.
+logging:
+  level:
+    root: INFO
+    "[com.premisave.auth]": DEBUG
+    "[org.springframework.data.mongodb]": WARN
+
+server:
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+
+spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s

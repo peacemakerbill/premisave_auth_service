@@ -1,0 +1,44 @@
+{
+  "name": "premisave-auth-service",
+  "description": "Premisave authentication service: sign in, sessions, profiles, administrators.",
+  "repository": "https://github.com/peacemakerbill/premisave_auth_service",
+  "stack": "container",
+  "formation": {
+    "web": { "quantity": 1, "size": "basic" }
+  },
+  "env": {
+    "SPRING_PROFILES_ACTIVE": {
+      "description": "dev, staging or prod. Use staging on the staging app and prod on the production app.",
+      "value": "staging"
+    },
+    "MONGODB_URI": {
+      "description": "MongoDB Atlas connection string (Heroku has no MongoDB of its own). Use a different database for staging and production."
+    },
+    "SPRING_DATA_REDIS_URL": {
+      "description": "Redis address with its password, for example rediss://default:password@host:6379 (Upstash or Redis Cloud). The Heroku Key-Value Store add-on uses a self-signed certificate and does not work here."
+    },
+    "JWT_SECRET": {
+      "description": "Must be the same value in the auth and messenger services of the same environment. openssl rand -base64 32"
+    },
+    "API_KEY": {
+      "description": "Shared key for internal calls. The messenger calls it INTERNAL_API_KEY. openssl rand -hex 32"
+    },
+    "FRONTEND_URL": { "description": "Address of the website or app, used in email links." },
+    "BACKEND_URL": { "description": "Public address of this app, for example https://premisave-auth-staging.herokuapp.com" },
+    "GMAIL_USERNAME": { "description": "Gmail address that sends the mail." },
+    "GMAIL_PASSWORD": { "description": "16 character Gmail App Password." },
+    "CLOUDINARY_CLOUD_NAME": { "description": "Cloudinary cloud name (profile pictures)." },
+    "CLOUDINARY_API_KEY": { "description": "Cloudinary API key." },
+    "CLOUDINARY_API_SECRET": { "description": "Cloudinary API secret." },
+    "SECURITY_TRUSTED_PROXIES": {
+      "description": "Heroku's router addresses may send X-Forwarded-For. Private ranges cover it.",
+      "value": "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+      "required": false
+    },
+    "STORAGE_FAIL_ON_UNAVAILABLE": {
+      "description": "Heroku keeps no files between restarts, so home owner document uploads do not last here. Use Render, Fly.io, Coolify or a server for that.",
+      "value": "false",
+      "required": false
+    }
+  }
+}

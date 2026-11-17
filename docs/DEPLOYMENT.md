@@ -117,30 +117,20 @@ journalctl -u premisave-auth -f
 
 ## Run in Docker
 
-The repository does not ship a Dockerfile. This one is a good start:
-
-```dockerfile
-FROM eclipse-temurin:21-jre
-WORKDIR /app
-COPY target/premisave_auth_service-0.0.1-SNAPSHOT.jar app.jar
-RUN useradd -r -u 1001 premisave && chown premisave /app
-USER premisave
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
-```
+The repository ships a `Dockerfile`, a compose file per environment, and files for Render, Coolify, Heroku,
+Fly.io and Railway. The full guide, with development, staging and production, is in
+[deploy/README.md](../deploy/README.md).
 
 ```bash
-docker run -d --name premisave-auth -p 8080:8080 \
-  --env-file ./auth.env \
-  -v premisave-docs:/var/lib/premisave/homeowner-onboarding \
-  -e STORAGE_LOCAL_PATH=/var/lib/premisave/homeowner-onboarding \
-  premisave-auth
+docker compose up --build        # development: the service with its own MongoDB and Redis, on :8080
 ```
 
 Two things to get right in a container:
 
-- **Mount the document folder as a volume.** Without one, application documents vanish with the container. For a NAS, mount the share on the **host** and bind it into the container, see [STORAGE.md](STORAGE.md).
-- Point `MONGODB_URI` and `REDIS_HOST` at services the container can reach. `localhost` inside a container is the container itself.
+- **Mount the document folder as a volume.** The image keeps documents in `/data`; without a volume they vanish
+  with the container. For a NAS, mount the share on the **host** and bind it into the container, see [STORAGE.md](STORAGE.md).
+- Point `MONGODB_URI` and `REDIS_HOST` (or `SPRING_DATA_REDIS_URL`) at services the container can reach.
+  `localhost` inside a container is the container itself.
 
 ## Behind a reverse proxy
 

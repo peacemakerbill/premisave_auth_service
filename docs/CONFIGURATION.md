@@ -80,7 +80,8 @@ Two more have defaults that are **not yours**, so set them: `GMAIL_USERNAME` and
 | --- | --- | --- |
 | `MONGODB_URI` | `mongodb://localhost:27017/premisave-auth` | The connection string. The database name is the last part of the path. Add credentials and `?authSource=` for a secured server, or use an Atlas `mongodb+srv://` string. |
 | `REDIS_HOST` | `localhost` | Redis host. |
-| `REDIS_PORT` | `6379` | Redis port. There is no dedicated setting for a Redis password in this file, so keep Redis on a private network. |
+| `REDIS_PORT` | `6379` | Redis port. |
+| `SPRING_DATA_REDIS_URL` | empty | One Redis address instead of the two above, for a Redis that needs a password or TLS: `redis://:password@host:6379`, or `rediss://` for TLS. Hosting platforms give you this form. When it is set, `REDIS_HOST` and `REDIS_PORT` are ignored. |
 
 ## Mail and profile pictures
 
