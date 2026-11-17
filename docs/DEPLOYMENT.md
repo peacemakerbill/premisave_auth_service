@@ -3,7 +3,7 @@
 
 <img src="assets/head-deployment.svg" alt="docs/DEPLOYMENT.md. A checklist for going live, and the limits to plan around." width="100%"/>
 
-[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](#containers)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](#run-in-docker)
 [![Nginx proxy](https://img.shields.io/badge/Nginx-proxy-009639?style=flat-square&logo=nginx&logoColor=white)](#behind-a-reverse-proxy)
 [![HTTPS required](https://img.shields.io/badge/HTTPS-required-14493B?style=flat-square&logo=letsencrypt&logoColor=white)](#before-you-go-live)
 [![Updated](https://img.shields.io/github/last-commit/peacemakerbill/premisave_auth_service?path=docs/DEPLOYMENT.md&style=flat-square&color=14493B&label=updated)](https://github.com/peacemakerbill/premisave_auth_service/commits/main/docs/DEPLOYMENT.md)
@@ -123,7 +123,12 @@ Fly.io and Railway. The full guide, with development, staging and production, is
 
 ```bash
 docker compose up --build        # development: the service with its own MongoDB and Redis, on :8080
+docker compose down              # stop it, the data stays
 ```
+
+The main [README](../README.md#run-it-with-docker-and-deploy-it) explains every environment with pictures: development,
+staging on a server, production with a version tag, publishing the image, and each hosting platform. `deploy/env/from-dotenv.sh`
+builds the staging or production settings file from the `.env` you already use.
 
 Two things to get right in a container:
 

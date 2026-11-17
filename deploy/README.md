@@ -1,5 +1,9 @@
 # Deploying the auth-service
 
+<p align="center">
+  <img src="../docs/assets/environments.svg" alt="Development, staging and production side by side" width="100%" />
+</p>
+
 One Docker image runs everywhere. What makes an environment development, staging or production is only the
 environment variables, above all `SPRING_PROFILES_ACTIVE`.
 
@@ -9,7 +13,11 @@ environment variables, above all `SPRING_PROFILES_ACTIVE`.
 | staging | `staging` | `staging` | `staging` | its own database, never production's |
 | production | `prod` | `main` | `production`, or a version such as `1.0.0` | managed MongoDB with backups |
 
-Files in this repository:
+<p align="center">
+  <img src="../docs/assets/hosting.svg" alt="Docker Compose, Coolify, Render, Heroku, Fly.io and Railway each have a ready file" width="100%" />
+</p>
+
+Files in this repository (the platform files are in this folder, except the two Heroku reads from the root):
 
 | File | What it is for |
 |---|---|
@@ -44,6 +52,19 @@ in staging and production. Never commit a filled-in env file: `deploy/env/*.env`
 
 Health check for every platform: `GET /health` (public, returns `{"status":"UP"}`).
 
+## The settings file, without an editor
+
+`deploy/env/<stage>.env` is where a stage keeps its values. It is git-ignored. One command builds it from the example and the
+`.env` you already use for development:
+
+```bash
+deploy/env/from-dotenv.sh staging         # or: production
+```
+
+It copies every value your `.env` already has, generates the secrets nobody could supply, and lists what you still have to
+check. It never prints a value. Run it again any time: it updates the file in place. To use another source file:
+`deploy/env/from-dotenv.sh staging /path/to/.env`.
+
 ## Development on your machine
 
 ```bash
@@ -72,6 +93,21 @@ IMAGE_TAG=1.0.0 docker compose --env-file deploy/env/production.env -f deploy/do
 
 The service is published on `127.0.0.1:8080`. Put nginx, Caddy or Traefik in front for https and set
 `SECURITY_TRUSTED_PROXIES` to the proxy's address. Documents live in the `auth-data` volume: back it up.
+
+## Checking, reading the log and stopping
+
+Run these in the project folder. Staging first, then production (production needs its env file and `IMAGE_TAG` even to
+read the log or stop, because the file refuses to load without them).
+
+| | Staging | Production |
+|---|---|---|
+| Is it up? | `docker compose -f deploy/docker-compose.staging.yml ps` | `IMAGE_TAG=1.0.0 docker compose --env-file deploy/env/production.env -f deploy/docker-compose.production.yml ps` |
+| Health | `curl http://127.0.0.1:8080/health` | the same, on the server |
+| Follow the log | `docker compose -f deploy/docker-compose.staging.yml logs -f auth` | add `--env-file ... logs -f --tail 200 auth` as above |
+| Stop, keep the data | `docker compose -f deploy/docker-compose.staging.yml down` | `IMAGE_TAG=1.0.0 docker compose --env-file ... down` |
+| Stop and wipe the data | `... down -v` | do not, in production |
+
+Development: the same without `-f`, in the repository root (`docker compose ps`, `docker compose logs -f`, `docker compose down`).
 
 ## Coolify
 
@@ -156,6 +192,10 @@ The image is `ghcr.io/peacemakerbill/premisave_auth_service:<tag>` (see the work
 6. Set `SECURITY_TRUSTED_PROXIES` to the addresses of the platform's router, or every caller looks like one address.
 
 ## Publishing the image
+
+<p align="center">
+  <img src="../docs/assets/pipeline.svg" alt="From git push to a running service" width="100%" />
+</p>
 
 `.github/workflows/docker-image.yml` runs on GitHub: a push to `develop`, `staging` or `main` publishes the tag
 for that stage, and a tag such as `v1.0.0` publishes `1.0.0`. In GitHub, open the package once and allow the

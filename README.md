@@ -23,7 +23,7 @@
 [![Issues](https://img.shields.io/github/issues/peacemakerbill/premisave_auth_service?style=flat-square&color=14493B)](https://github.com/peacemakerbill/premisave_auth_service/issues)
 [![Frontend](https://img.shields.io/badge/frontend-premisave__flutter__frontend-0E3B2F?style=flat-square&logo=flutter&logoColor=E3A72F)](https://github.com/peacemakerbill/premisave_flutter_frontend)
 
-**[Quick start](#quick-start)** &nbsp;|&nbsp; **[How it works](#how-it-works)** &nbsp;|&nbsp; **[Sign in](#sign-in-and-sessions)** &nbsp;|&nbsp; **[Access](#who-can-reach-what)** &nbsp;|&nbsp; **[Applications](#home-owner-applications)** &nbsp;|&nbsp; **[Docs](#documentation)**
+**[Quick start](#quick-start)** &nbsp;|&nbsp; **[Docker and deploy](#run-it-with-docker-and-deploy-it)** &nbsp;|&nbsp; **[How it works](#how-it-works)** &nbsp;|&nbsp; **[Sign in](#sign-in-and-sessions)** &nbsp;|&nbsp; **[Access](#who-can-reach-what)** &nbsp;|&nbsp; **[Applications](#home-owner-applications)** &nbsp;|&nbsp; **[Docs](#documentation)**
 
 </div>
 
@@ -51,6 +51,7 @@ It is a Spring Boot service with MongoDB for data and Redis for the token blackl
 ## Contents
 
 - [Quick start](#quick-start)
+- [Run it with Docker and deploy it](#run-it-with-docker-and-deploy-it)
 - [How it works](#how-it-works)
 - [Sign in and sessions](#sign-in-and-sessions)
 - [Who can reach what](#who-can-reach-what)
@@ -76,7 +77,7 @@ It is a Spring Boot service with MongoDB for data and Redis for the token blackl
 
 The full walk through, with every prerequisite and the things that usually go wrong, is in **[docs/SETUP.md](docs/SETUP.md)**. The short version:
 
-**1. Install the tools.** Java 21 and git. For the databases, Docker is the quickest way, or install MongoDB and Redis yourself.
+**1. Install the tools.** Java 21 and git. For the databases, Docker is the quickest way, or install MongoDB and Redis yourself. (Want no Java at all? [Run everything in Docker](#run-it-with-docker-and-deploy-it).)
 
 **2. Start the databases and get the code.**
 
@@ -116,6 +117,193 @@ curl http://localhost:8080/health
 ```
 
 **6. Sign in.** Register through the [Flutter app](https://github.com/peacemakerbill/premisave_flutter_frontend), through the [browser console](test-client/README.md) or with curl, then open the activation link in the email. To get an administrator on the first start, set `ADMIN1_*` or `INITIAL_ADMIN_EMAILS` as described in [docs/ADMIN_AND_ACCOUNT_SECURITY.md](docs/ADMIN_AND_ACCOUNT_SECURITY.md).
+
+## Run it with Docker and deploy it
+
+<p align="center">
+  <img src="docs/assets/environments.svg" alt="Development, staging and production side by side: profile, branch and image tag, the command, MongoDB, Redis and the port" width="100%" />
+</p>
+
+Everything here uses **one Docker image**. What makes an environment development, staging or production is only the variables, above all `SPRING_PROFILES_ACTIVE` (`dev`, `staging` or `prod`). The image listens on `PORT` (or 8080), runs as an unprivileged user and reports its health at `GET /health`.
+
+You do not need Java, Maven, MongoDB or Redis for this. You need **Docker with the Compose plugin**: `docker compose version` should print a version.
+
+| I want to | Use | Go to |
+| --- | --- | --- |
+| Try it or work on it on my computer | `docker compose up --build` | [Development](#development-on-your-computer) |
+| Run the auth-service, the messenger and the app together | three folders, in order | [The whole system](#the-whole-system-on-one-computer) |
+| A test server for the team | `deploy/docker-compose.staging.yml` | [Staging](#staging-on-a-server) |
+| The real thing | `deploy/docker-compose.production.yml` with a version tag | [Production](#production-on-a-server) |
+| Render, Coolify, Fly.io, Railway or Heroku | the file in `deploy/` | [Hosting platforms](#hosting-platforms) |
+
+### Development on your computer
+
+<p align="center">
+  <img src="docs/assets/docker-dev.svg" alt="docker compose up --build starts the service with its own MongoDB and Redis and answers on port 8080" width="100%" />
+</p>
+
+```bash
+cd premisave_auth_service
+docker compose up --build
+```
+
+Check it: `curl http://localhost:8080/health` answers `{"status":"UP"}`. Then register through the [Flutter app](https://github.com/peacemakerbill/premisave_flutter_frontend) or the [browser console](test-client/README.md).
+
+Without a `.env` the service uses development defaults, so **email and profile pictures stay off**. Copy `.env.example` to `.env` next to `docker-compose.yml` and add the Gmail and Cloudinary values to try them. While you are on plain `http`, also set `SECURITY_DEVICE_COOKIE_SECURE=false`, or the browser drops the device cookie.
+
+Useful commands, all run in the project folder:
+
+| Command | What it does |
+| --- | --- |
+| `docker compose up --build` | Build the image and start everything. Add `-d` to run in the background |
+| `docker compose logs -f` | Follow the log (add the service name `auth` to see only that one) |
+| `docker compose ps` | Show what is running and whether it is healthy |
+| `docker compose down` | Stop and remove the containers. **Your data stays** in its volumes |
+| `docker compose down -v` | Same, and also delete the data. Use it for a clean start |
+| `docker compose up --build -d auth` | Rebuild and restart only the service after a code change |
+
+The first build takes a few minutes because Maven downloads the dependencies once. The next ones reuse them.
+
+### The whole system on one computer
+
+<p align="center">
+  <img src="docs/assets/whole-stack.svg" alt="Start the auth-service, then the messenger, then LiveKit if you want calls, then the Flutter app" width="100%" />
+</p>
+
+Start them in this order, each in its own folder (the folders sit side by side):
+
+```bash
+(cd premisave_auth_service && docker compose up --build -d)                          # 1. sign in, on :8080
+(cd premisave-messenger-service && docker compose up --build -d)                     # 2. messages, on :8081
+(cd premisave-messenger-service/deploy/livekit && docker compose --env-file ../../.env up -d)   # 3. only for calls
+(cd premisave_flutter_frontend && ./run.sh)                                          # 4. the app
+```
+
+To stop: `docker compose down` in each backend folder, and the same in `deploy/livekit` if you started it.
+
+### Staging on a server
+
+Staging is a copy of production that you can break. It gets its **own database and its own secrets**, and it pairs with the staging messenger and app, never the production one. The compose file starts MongoDB and Redis beside the service.
+
+**1. Get the code and make the settings file.** The file is git-ignored, so secrets never reach GitHub.
+
+```bash
+git clone https://github.com/peacemakerbill/premisave_auth_service.git && cd premisave_auth_service
+
+deploy/env/from-dotenv.sh staging        # builds deploy/env/staging.env from the example and your .env
+```
+
+The script copies every value your development `.env` already has and generates the secrets nobody could supply. It prints key names only, never values, and lists what you still have to check. Prefer to do it by hand? `cp deploy/env/staging.env.example deploy/env/staging.env` and open it in any editor.
+
+These are the values that matter. Everything else has a default (see [`.env.example`](.env.example)).
+
+| Value | What to put |
+| --- | --- |
+| `JWT_SECRET` | `openssl rand -base64 32`. The messenger must use the same one |
+| `API_KEY` | `openssl rand -hex 32`. The messenger calls it `INTERNAL_API_KEY` |
+| `FRONTEND_URL`, `BACKEND_URL` | Public addresses, used in the links inside emails |
+| `OAUTH_ALLOWED_REDIRECT_URIS` | Where social sign in may send people back to |
+| `GMAIL_USERNAME`, `GMAIL_PASSWORD` | The sender and its Gmail App Password |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Profile pictures |
+| `SECURITY_TRUSTED_PROXIES` | The address of your reverse proxy, so throttling sees the real caller |
+| `INITIAL_ADMIN_EMAILS` | Who becomes an administrator on the first start |
+
+**2. Start it.**
+
+```bash
+docker compose --env-file deploy/env/staging.env -f deploy/docker-compose.staging.yml up -d --build
+```
+
+**3. Check it.**
+
+```bash
+docker compose -f deploy/docker-compose.staging.yml ps
+curl http://127.0.0.1:8080/health
+docker compose -f deploy/docker-compose.staging.yml logs -f auth
+```
+
+**4. Update it later.** Pull the code and run step 2 again. **Stop it** with the same command ending in `down` instead of `up -d --build`.
+
+The service is published on `127.0.0.1:8080` only, so nothing outside the server can reach it until you put a reverse proxy (nginx, Caddy or Traefik) in front for https. Set `HTTP_PORT` or `HTTP_BIND` in the env file to publish it elsewhere. Give the staging messenger the same `JWT_SECRET`, and your `API_KEY` as its `INTERNAL_API_KEY`. Home owner documents live in the `auth-data` volume: back it up.
+
+### Production on a server
+
+Production differs from staging in four ways, all on purpose:
+
+- **MongoDB is not started here.** Use a managed database (MongoDB Atlas, with backups) and put its address in `MONGODB_URI`. Allow the server's address in Atlas.
+- **The image is pulled by an exact version**, so production runs the very build you tested on staging. `IMAGE_TAG` is required.
+- **Secrets have no fallback.** The file refuses to start without them.
+- **Redis keeps its data on disk** and is reachable only from the service.
+
+```bash
+git clone https://github.com/peacemakerbill/premisave_auth_service.git && cd premisave_auth_service
+deploy/env/from-dotenv.sh production                  # or copy deploy/env/production.env.example by hand and fill it in
+
+docker login ghcr.io                                  # once. User: your GitHub name, password: a token with read:packages
+IMAGE_TAG=1.0.0 docker compose --env-file deploy/env/production.env -f deploy/docker-compose.production.yml pull
+IMAGE_TAG=1.0.0 docker compose --env-file deploy/env/production.env -f deploy/docker-compose.production.yml up -d
+```
+
+| Task | Command |
+| --- | --- |
+| Release a new version | `IMAGE_TAG=1.1.0 docker compose --env-file deploy/env/production.env -f deploy/docker-compose.production.yml pull`, then the same with `up -d` |
+| Roll back | Run the two commands again with the previous `IMAGE_TAG` |
+| See the log | `IMAGE_TAG=1.0.0 docker compose --env-file deploy/env/production.env -f deploy/docker-compose.production.yml logs -f --tail 200 auth` |
+| Stop | `IMAGE_TAG=1.0.0 docker compose --env-file deploy/env/production.env -f deploy/docker-compose.production.yml down` (the data stays) |
+
+### Publishing the image
+
+<p align="center">
+  <img src="docs/assets/pipeline.svg" alt="A push to develop, staging or main, or a version tag, makes GitHub Actions build the image and publish it to ghcr.io. A server pulls it, or a platform builds from the Dockerfile" width="100%" />
+</p>
+
+`.github/workflows/docker-image.yml` does it on GitHub, with nothing to set up:
+
+| You push | Image tag published |
+| --- | --- |
+| branch `develop` | `development` |
+| branch `staging` | `staging` |
+| branch `main` | `production` and `latest` |
+| tag `v1.2.3` | `1.2.3` |
+| any of the above | also `sha-<commit>` |
+
+A pull request only checks that the image builds. To cut a release: `git tag v1.0.0 && git push origin v1.0.0`, wait for the **Docker image** run to turn green in the Actions tab, then use `IMAGE_TAG=1.0.0` on the server. The first time, open the package on GitHub (your profile, Packages) and either make it public or let the repository read it.
+
+### Hosting platforms
+
+<p align="center">
+  <img src="docs/assets/hosting.svg" alt="Docker Compose, Coolify, Render, Heroku, Fly.io and Railway each have a ready file in the repository" width="100%" />
+</p>
+
+Every platform runs the same Dockerfile. The files are in `deploy/`, except the two Heroku reads from the repository root.
+
+| Platform | File | The one thing to set |
+| --- | --- | --- |
+| Docker Compose (a server) | `deploy/docker-compose.staging.yml`, `deploy/docker-compose.production.yml` | Run the commands above |
+| Coolify | `deploy/docker-compose.coolify.yml` | Build pack **Docker Compose**, Base Directory `/deploy`, Compose Location `/docker-compose.coolify.yml` |
+| Render | `deploy/render.yaml` | New, **Blueprint**, then set the file path to `deploy/render.yaml` in the Blueprint settings |
+| Fly.io | `deploy/fly.staging.toml`, `deploy/fly.production.toml` | `fly deploy . --config deploy/fly.staging.toml --dockerfile Dockerfile` |
+| Railway | `deploy/railway.json` | Service settings, **Config as code**, file path `/deploy/railway.json` |
+| Heroku | `heroku.yml`, `app.json` (root) | `heroku create --stack container`, then push |
+
+The steps for each one, the limits to know (Heroku has no file storage, Render cannot run LiveKit) and a troubleshooting table are in **[deploy/README.md](deploy/README.md)**.
+
+### When Docker misbehaves
+
+| You see | Why, and what to do |
+| --- | --- |
+| `open .../deploy/docker-compose.staging.yml: no such file` | You are not in the project folder, or you have not pulled the latest code. `cd` into it and `git pull` |
+| `couldn't find env file .../deploy/env/staging.env` | The settings file does not exist yet. Run `deploy/env/from-dotenv.sh staging` |
+| `required variable ... is missing a value` | Production insists on `IMAGE_TAG` and its secrets. Set them, or pass `IMAGE_TAG=1.0.0` in front of the command |
+| `port is already allocated` or `address already in use` | Another stack uses 8080. `docker ps` shows which. Stop it, or set `HTTP_PORT` for staging and production |
+| `pull access denied` or `unauthorized` from ghcr.io | Run `docker login ghcr.io`, make sure the package is readable, and check the tag exists (the Docker image run must have finished) |
+| `Connection refused` to `localhost:27017` or `6379` | A value still points at `localhost`. Inside a container that is the container itself. Use the compose service names, or the real address |
+| The container shows `unhealthy` for the first minute | Java is still starting. Allow about 90 seconds, then read `docker compose logs auth` |
+| The build stops while downloading dependencies | A network hiccup. Run the same command again, the finished layers are cached |
+| It stops at start with `Could not resolve placeholder 'JWT_SECRET'` | A required variable is missing. Fill it in the env file |
+| Everyone looks like the same address and gets rate limited together | `SECURITY_TRUSTED_PROXIES` does not include your reverse proxy |
+| Sign in works but the browser drops the cookie | The site is on `http`. Use https, or `SECURITY_DEVICE_COOKIE_SECURE=false` for development only |
+| A document upload answers 503 | There is no writable `/data`. Mount a volume (see [docs/STORAGE.md](docs/STORAGE.md)) |
 
 <img src="docs/assets/divider.svg" alt="" width="100%"/>
 
@@ -256,7 +444,10 @@ premisave_auth_service/
 |   |-- application.yml
 |   `-- templates/email HTML emails
 |-- docs/               guides, and the pictures in docs/assets
-|-- tool/               readme_assets.py redraws the pictures
+|-- tool/               readme_assets.py and deploy_pictures.py redraw the pictures
+|-- Dockerfile, docker/ the image and its entrypoint
+|-- docker-compose.yml  development: the service with its own MongoDB and Redis
+|-- deploy/             staging, production, Coolify, Render, Fly.io and Railway files, env examples, README
 |-- postman/            collection and environment
 |-- test-client/        auth-console.html, a browser console for the API
 |-- oauth-test/         oauth-test.html, a tester for the social sign in flows
@@ -271,6 +462,8 @@ sh ./mvnw spring-boot:run          # run with the settings from .env
 sh ./mvnw -q -DskipTests package   # build target/premisave_auth_service-0.0.1-SNAPSHOT.jar
 java -jar target/premisave_auth_service-0.0.1-SNAPSHOT.jar
 python3 tool/readme_assets.py      # redraw the pictures after a big change
+docker compose up --build          # or run it in Docker, with its own MongoDB and Redis
+docker compose down                # stop it again, the data stays
 ```
 
 `.env` is read from the folder you start the service in. More on building, the tests and how to add an endpoint is in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
@@ -291,7 +484,7 @@ python3 tool/readme_assets.py      # redraw the pictures after a big change
 | <img src="docs/assets/icons/home-owner.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/HOME_OWNER_APPLICATIONS.md](docs/HOME_OWNER_APPLICATIONS.md) | The application workflow, documents, review and emails. |
 | <img src="docs/assets/icons/storage.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/STORAGE.md](docs/STORAGE.md) | Keeping documents on a local disk or on a network share mounted by the operating system. |
 | <img src="docs/assets/icons/integration.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/INTEGRATION.md](docs/INTEGRATION.md) | The token contract and the internal API, for other services. |
-| <img src="docs/assets/icons/deployment.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | A checklist for going live. |
+| <img src="docs/assets/icons/deployment.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | A checklist for going live. Running it in Docker on every environment is in [Run it with Docker and deploy it](#run-it-with-docker-and-deploy-it) and [deploy/README.md](deploy/README.md). |
 | <img src="docs/assets/icons/development.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | Building, testing, adding an endpoint, and how the pictures are made. |
 | <img src="docs/assets/icons/troubleshooting.svg" alt="" width="24" height="24" align="absmiddle"/>&nbsp;[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) | Symptoms and fixes. |
 

@@ -15,6 +15,7 @@ import base64
 import math
 import os
 import re
+import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'docs', 'assets')
@@ -1542,3 +1543,5 @@ if __name__ == '__main__':
     triage()
     requirements()
     admin_paths()
+    import deploy_pictures
+    deploy_pictures.run(sys.modules[__name__])

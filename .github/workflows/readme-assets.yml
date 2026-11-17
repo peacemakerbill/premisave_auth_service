@@ -10,6 +10,8 @@ on:
       - 'src/main/resources/application.yml'
       - 'pom.xml'
       - 'tool/readme_assets.py'
+      - 'tool/deploy_pictures.py'
+      - 'deploy/**'
       - 'tool/fonts/**'
       - '.github/workflows/readme-assets.yml'
   workflow_dispatch:
