@@ -528,6 +528,12 @@
       "defaultValue": 100
     },
     {
+      "name": "app.storage.allowed-roots",
+      "type": "java.lang.String",
+      "description": "Folders an administrator may choose from the dashboard (Settings, Storage), as full paths separated by commas (env STORAGE_ALLOWED_ROOTS). A leading ~ means the home folder of the user running the service. Blank allows only the local path and the network mount path.",
+      "defaultValue": ""
+    },
+    {
       "name": "app.storage.local.path",
       "type": "java.lang.String",
       "description": "Directory for LOCAL storage (env STORAGE_LOCAL_PATH). An absolute path, or one starting with ~/ for the home directory of the user running the service. Set it in .env for a specific folder; a blank value keeps the default.",

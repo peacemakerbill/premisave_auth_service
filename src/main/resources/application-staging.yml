@@ -8,10 +8,11 @@ logging:
 
 server:
   shutdown: graceful
-  error:
-    include-message: never
-    include-stacktrace: never
 
 spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
+  web:
+    error:
+      include-message: never
+      include-stacktrace: never

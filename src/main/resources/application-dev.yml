@@ -4,6 +4,7 @@ logging:
     "[com.premisave.auth]": DEBUG
     "[org.springframework.data.mongodb]": INFO
 
-server:
-  error:
-    include-message: always
+spring:
+  web:
+    error:
+      include-message: always
