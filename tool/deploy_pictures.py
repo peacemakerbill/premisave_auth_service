@@ -98,34 +98,35 @@ def environments(H, c):
     lx = 32
     lab = 150
     cw = (w - 64 - lab) / 3
-    top = 96
-    rows = [('profile', 62), ('branch and image tag', 62), ('start it with', 118), ('MongoDB', 62), ('Redis', 62), ('listens on', 62)]
+    top = 124
+    pad = 18
+    rows = [('profile', 58), ('branch and image tag', 58), ('start it with', 100), ('MongoDB', 58), ('Redis', 58), ('listens on', 58)]
     out = []
     y = top
     ys = []
     for name, hgt in rows:
         ys.append(y)
         out.append(f'<line x1="{lx}" y1="{y}" x2="{w - 32}" y2="{y}" stroke="{H.RULE}"/>')
-        out.append(text(H, lx, y + 36, name, 14, 'cond', f'fill:{H.INK2}'))
+        out.append(text(H, lx, y + 34, name, 14, 'cond', f'fill:{H.INK2}'))
         y += hgt
     end = y
     out.append(f'<line x1="{lx}" y1="{end}" x2="{w - 32}" y2="{end}" stroke="{H.INK}" stroke-width="1.5"/>')
     for i, (name, prof, br, tag, cmd, mongo, redis, listen) in enumerate(cols):
-        x = lx + lab + i * cw + 8
+        x = lx + lab + i * cw + pad
         fill = H.INK if i == 2 else H.PAPER
         out.append(f'<g class="rise" style="animation-delay:{.1 + i * .12:.2f}s">')
-        out.append(f'<text class="cond" x="{x}" y="{top - 14}" font-size="22">{name}</text>')
-        out.append(f'<text class="mono" x="{x}" y="{ys[0] + 36}" font-size="14" font-weight="600" style="fill:{H.DATA}">SPRING_PROFILES_ACTIVE={prof}</text>')
-        out.append(f'<text x="{x}" y="{ys[1] + 28}" font-size="13">branch <tspan class="mono" font-weight="600">{br}</tspan></text>')
-        out.append(f'<text x="{x}" y="{ys[1] + 48}" font-size="13">tag <tspan class="mono" font-weight="600">{H.esc(tag)}</tspan></text>')
-        out.append(lines(H, x, ys[2] + 30, cmd, 11, 17, 'mono'))
-        out.append(lines(H, x, ys[3] + 36, [mongo], 13))
-        out.append(lines(H, x, ys[4] + 36, [redis], 13))
-        out.append(lines(H, x, ys[5] + 36, [listen], 13, 17, 'mono'))
+        out.append(f'<text class="cond" x="{x}" y="{top - 16}" font-size="22">{name}</text>')
+        out.append(f'<text class="mono" x="{x}" y="{ys[0] + 34}" font-size="13" font-weight="600" style="fill:{H.DATA}">SPRING_PROFILES_ACTIVE={prof}</text>')
+        out.append(f'<text x="{x}" y="{ys[1] + 26}" font-size="13">branch <tspan class="mono" font-size="13" font-weight="600">{br}</tspan></text>')
+        out.append(f'<text x="{x}" y="{ys[1] + 46}" font-size="13">tag <tspan class="mono" font-size="13" font-weight="600">{H.esc(tag)}</tspan></text>')
+        out.append(lines(H, x, ys[2] + 32, cmd, 12, 18, 'mono'))
+        out.append(lines(H, x, ys[3] + 34, [mongo], 13))
+        out.append(lines(H, x, ys[4] + 34, [redis], 13))
+        out.append(lines(H, x, ys[5] + 34, [listen], 13, 17, 'mono'))
         out.append('</g>')
     # the moving amber outline
     cwid = cw - 4
-    out.append(f'<rect class="hi" x="{lx + lab + 2}" y="{top - 44}" width="{cwid}" height="{end - top + 50}" fill="none" stroke="{H.AMBER}" stroke-width="4"/>')
+    out.append(f'<rect class="hi" x="{lx + lab + 2}" y="{top - 40}" width="{cwid}" height="{end - top + 48}" fill="none" stroke="{H.AMBER}" stroke-width="3"/>')
     css = RISE + f'.hi {{ opacity: 0; animation: hi {cycle}s infinite; }}\n' + H.band_kf('hi', cycle, 3, 3.6, cw, 'X')
     out.append(text(H, lx, end + 34, 'One image runs in all three. Only the variables change, above all SPRING_PROFILES_ACTIVE. Use a different database and different secrets in each.', 13.5))
     out.append(text(H, lx, end + 56, f'Copy deploy/env/<name>.env.example to deploy/env/<name>.env and fill it in. Filled-in env files are git-ignored.', 13.5, '', f'fill:{H.INK2}'))
