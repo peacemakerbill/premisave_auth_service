@@ -71,6 +71,8 @@ public class InternalEmailService {
             vars.put("intro", oneLine(request.message(), MAX_MESSAGE));
             vars.put("subject", subject);
             vars.put("preheader", oneLine(request.message(), 110));
+            String icon = oneLine(request.icon(), 2);
+            vars.put("icon", icon.isEmpty() ? "G" : icon);
             String path = safePath(request.buttonPath());
             if (path != null && request.buttonLabel() != null && !request.buttonLabel().isBlank()) {
                 vars.put("buttonLabel", oneLine(request.buttonLabel(), 40));

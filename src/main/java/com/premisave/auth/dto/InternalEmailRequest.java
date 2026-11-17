@@ -10,6 +10,7 @@ import java.util.Map;
  * message  the sentence under the greeting
  * details  optional label and value pairs shown as a small table, in the order given
  * buttonLabel and buttonPath add a button that opens the web app at that path, for example "Open messages" and "/messages"
+ * icon        optional one or two characters for the round badge at the top, for example "@". Empty means "G".
  */
 public record InternalEmailRequest(
         String userId,
@@ -18,5 +19,6 @@ public record InternalEmailRequest(
         String message,
         Map<String, String> details,
         String buttonLabel,
-        String buttonPath) {
+        String buttonPath,
+        String icon) {
 }

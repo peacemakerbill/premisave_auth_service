@@ -283,7 +283,7 @@ These need `X-API-Key` and no user token. They are for other Premisave services,
 | `GET /internal/users/validate-email/{email}` | Always `200`: `{ "valid": true, "reason": "" }`, or `valid: false` with `reason` one of `NOT_FOUND`, `INACTIVE`, `UNVERIFIED`, `ARCHIVED` or `INVALID_FORMAT`. |
 | `GET /internal/users/{email}/details` | `id`, `email`, `role`, `active`, `verified`, `firstName`, `middleName`, `lastName`. `404` if there is no such account. |
 | `GET /internal/sessions/{sid}?userId=` | `{ "active": true }` or false. The `sid` and `userId` are claims of the access token. |
-| `POST /internal/notifications/email` | Body `userId`, `subject`, `message` (required), `title`, `details` (label and value pairs), `buttonLabel`, `buttonPath` (a path on the web app). `202 { "queued": true }` as soon as it is queued, `400` when a required field is missing. The address never leaves this service. Only a verified, active account is emailed. |
+| `POST /internal/notifications/email` | Body `userId`, `subject`, `message` (required), `title`, `details` (label and value pairs), `buttonLabel`, `buttonPath` (a path on the web app), `icon` (one or two characters for the round badge, default `G`, the messenger sends `@` for tags). `202 { "queued": true }` as soon as it is queued, `400` when a required field is missing. The address never leaves this service. Only a verified, active account is emailed. |
 
 ## Public
 

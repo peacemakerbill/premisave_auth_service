@@ -99,7 +99,7 @@ Every call carries `X-API-Key`. A missing or wrong key answers `401`.
 | `GET /internal/users/validate-email/{email}` | Always `200`: `{ "valid": true, "reason": "" }`, or `valid: false` with `reason` of `NOT_FOUND`, `INACTIVE`, `UNVERIFIED`, `ARCHIVED` or `INVALID_FORMAT` | Check that an address belongs to a real, active, verified person before sending money or a notice to them. |
 | `GET /internal/users/{email}/details` | `id`, `email`, `role`, `active`, `verified`, `firstName`, `middleName`, `lastName`. `404` when there is no such account. | Show a real name in a receipt or an email. |
 | `GET /internal/sessions/{sid}?userId=` | `{ "active": true }` or false | Check that a session is still valid. |
-| `POST /internal/notifications/email` | `202 { "queued": true }`. Body: `userId`, `subject`, `message`, and optionally `title`, `details`, `buttonLabel`, `buttonPath`. | Email one of our users without ever learning their address. The messenger uses it for group notices such as made an admin or added to a group. |
+| `POST /internal/notifications/email` | `202 { "queued": true }`. Body: `userId`, `subject`, `message`, and optionally `title`, `details`, `buttonLabel`, `buttonPath`, `icon` (a short badge character such as `@`). | Email one of our users without ever learning their address. The messenger uses it for group notices such as made an admin or added to a group. |
 | `GET /profile/public/directory` | A list of `id`, `email`, `phoneNumber` for every active, non archived user | Bulk lookups. Treat it as sensitive. |
 
 `validate-email` always answers `200` on purpose, so a client such as Feign does not log a 404 for an unknown address. Read the `valid` field.
