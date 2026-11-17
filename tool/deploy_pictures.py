@@ -11,6 +11,7 @@ read from the repository where it can be (which deploy files exist), so they sta
   docker-dev.svg     what `docker compose up --build` starts on your computer (auth, messenger)
   pipeline.svg       from git push to a running service                       (auth, messenger)
   hosting.svg        which platform ships which file                          (auth, messenger)
+  livekit.svg        setting up and starting LiveKit and the recorder         (messenger)
   whole-stack.svg    the whole system on one computer, in start order         (all three)
 """
 import os
@@ -28,6 +29,8 @@ def run(H):
         docker_dev(H, cfg)
         pipeline(H, cfg)
         hosting(H, cfg)
+        if cfg.get('livekit'):
+            livekit_setup(H, cfg)
     whole_stack(H, repo)
 
 
@@ -39,7 +42,7 @@ CONFIG = {
     'premisave-messenger-service': dict(
         title='messenger', short='messenger', port=8081, health='/health', repo='premisave-messenger-service',
         dev_containers=['premisave-messenger-dev', 'premisave-messenger-dev-mongo', 'premisave-messenger-dev-redis'],
-        needs='MongoDB, Redis and the auth-service', note_dev='Start the auth-service first: sign in goes through it.'),
+        needs='MongoDB, Redis and the auth-service', livekit=True, note_dev='Start the auth-service first: sign in goes through it.'),
 }
 
 FONTS = ('cond7', 'sans4', 'sans6', 'mono4', 'mono6')
@@ -309,6 +312,82 @@ def hosting(H, c):
     body = H.sheet(w, h, 'Where each environment can run', f'{c["title"]}') + ''.join(out)
     H.save('hosting.svg', H.svg(w, h, body, css, '', f'Where the {c["title"]} can be deployed',
                                 'Docker Compose, Coolify, Render, Heroku, Fly.io and Railway each have a ready file in the repository.', FONTS))
+
+# ------------------------------------------------------------------------------------------ livekit
+
+def livekit_setup(H, c):
+    w, h = 1200, 500
+    cycle = 10.0
+    out = []
+    # the four commands, in order
+    tx, ty, tw, th = 32, 96, 480, 236
+    out.append(f'<rect x="{tx}" y="{ty}" width="{tw}" height="{th}" fill="{H.INK}"/>')
+    for i, col in enumerate((H.AMBER, H.SHEET_SOFT, H.SHEET_SOFT)):
+        out.append(f'<circle cx="{tx + 20 + i * 18}" cy="{ty + 18}" r="5" fill="{col}"/>')
+    cmds = ['openssl rand -hex 32', 'mkdir -p recordings && chmod 777 recordings', 'docker compose --env-file ../../.env up -d',
+            'curl localhost:7880']
+    notes = ['1 the secret for .env', '2 where videos are saved', '3 LiveKit and the recorder', '4 answers OK']
+    for i, cmd in enumerate(cmds):
+        yy = ty + 58 + i * 44
+        out.append(f'<text class="mono" x="{tx + 22}" y="{yy}" font-size="13" style="fill:{H.SHEET_SOFT}">$</text>'
+                   f'<text class="mono" x="{tx + 40}" y="{yy}" font-size="13" font-weight="600" style="fill:{H.PAPER}">{H.esc(cmd)}</text>'
+                   f'<text x="{tx + 40}" y="{yy + 17}" font-size="11.5" style="fill:{H.AMBER}">{H.esc(notes[i])}</text>')
+    out.append(text(H, tx, ty + th + 30, 'Run 2 to 4 in deploy/livekit. The key and secret come from the', 13.5))
+    out.append(text(H, tx, ty + th + 48, 'messenger .env, so both sides always agree.', 13.5))
+    # the pieces
+    bw, bh = 270, 112
+    msg = (560, 96, 250, bh)
+    lk = (900, 96, bw, bh)
+    eg = (900, 280, bw, bh)
+    fo = (560, 280, 250, bh)
+    boxes = [
+        ('msg', msg, 'messenger', 'port 8081', 'signs tokens, keeps records', 'reads the recordings folder', H.PAPER),
+        ('lk', lk, 'LiveKit server', 'premisave-livekit', 'audio and video, port 7880', 'host network, UDP 50000-50200', H.INK),
+        ('eg', eg, 'recorder', 'premisave-egress', 'LiveKit Egress, a headless', 'browser that saves an MP4', H.PAPER),
+        ('fo', fo, 'recordings folder', 'CALLS_RECORDINGS_HOST_DIR', 'the same folder for the recorder', 'and the messenger', H.PAPER),
+    ]
+    for key, (x, y, bw_, bh_), title, mono, l2, l3, fill in boxes:
+        dark = fill == H.INK
+        fg = H.PAPER if dark else H.INK
+        out.append(f'<g class="box {key}"><rect x="{x}" y="{y}" width="{bw_}" height="{bh_}" fill="{fill}" stroke="{H.INK}" stroke-width="2"/>'
+                   f'<text class="cond" x="{x + 18}" y="{y + 34}" font-size="20" style="fill:{fg}">{H.esc(title)}</text>'
+                   f'<text class="mono" x="{x + 18}" y="{y + 58}" font-size="11" style="fill:{H.AMBER if dark else H.DATA}">{H.esc(mono)}</text>'
+                   f'<text x="{x + 18}" y="{y + 80}" font-size="12.5" style="fill:{H.SHEET_LINE if dark else H.INK2}">{H.esc(l2)}</text>'
+                   f'<text x="{x + 18}" y="{y + 98}" font-size="12" style="fill:{H.SHEET_SOFT if dark else H.INK2}">{H.esc(l3)}</text></g>')
+    # the links
+    out.append(arrow(H, 810, 134, 900, 134, H.INK, None, 1.6))
+    out.append(text(H, 855, 124, 'tokens', 12, '', f'fill:{H.INK2}', 'middle'))
+    out.append(arrow(H, 900, 176, 810, 176, H.INK, '5 4', 1.6))
+    out.append(text(H, 855, 194, 'webhook', 12, '', f'fill:{H.INK2}', 'middle'))
+    out.append(arrow(H, 1035, 208, 1035, 280, H.INK, None, 1.6))
+    out.append(text(H, 1047, 248, 'through Redis', 12, '', f'fill:{H.INK2}'))
+    out.append(arrow(H, 900, 336, 810, 336, H.AMBER, None, 2.2))
+    out.append(text(H, 855, 326, 'writes MP4', 12, '', f'fill:{H.INK2}', 'middle'))
+    out.append(arrow(H, 685, 208, 685, 280, H.INK, None, 1.6))
+    out.append(text(H, 697, 248, 'plays back', 12, '', f'fill:{H.INK2}'))
+    # a packet from the recorder to the folder
+    out.append(f'<circle class="pk" r="6" fill="{H.AMBER}" stroke="{H.INK}" stroke-width="1.5" cx="900" cy="336"/>')
+    css = RISE
+    base = f'stroke:{H.INK};stroke-width:2'
+    on = f'stroke:{H.AMBER};stroke-width:5'
+    for key, win in (('lk', (0.4, 3.0)), ('eg', (3.0, 5.6)), ('fo', (5.6, 8.0)), ('msg', (8.0, 9.6))):
+        css += f'.{key} rect {{ animation: {key}lit {cycle}s infinite; }}\n'
+        css += H.lit_kf(f'{key}lit', cycle, base, on, [win])
+    css += f'.pk {{ opacity:0; animation: pk {cycle}s infinite; }}\n'
+    css += H.kf('pk', cycle, [(0, 'opacity:0;transform:translateX(0)'), (5.0, 'opacity:0;transform:translateX(0)'), (5.2, 'opacity:1;transform:translateX(0)'),
+                              (6.2, 'opacity:1;transform:translateX(-90px)'), (6.4, 'opacity:0;transform:translateX(-90px)'), (cycle, 'opacity:0;transform:translateX(0)')])
+    # the everyday commands
+    sy2 = 428
+    out.append(f'<line x1="32" y1="{sy2 - 14}" x2="{w - 32}" y2="{sy2 - 14}" stroke="{H.INK}" stroke-width="1.5"/>')
+    items = [('Is it running?', 'docker compose ps'), ('Read the log', 'docker compose logs -f livekit egress'),
+             ('Stop it, videos stay', 'docker compose down')]
+    for i, (a, b) in enumerate(items):
+        x = 32 + i * 380
+        out.append(text(H, x, sy2 + 12, a, 14, 'cond', f'fill:{H.INK2}'))
+        out.append(f'<text class="mono" x="{x}" y="{sy2 + 36}" font-size="13" font-weight="600" style="fill:{H.DATA}">{H.esc(b)}</text>')
+    body = H.sheet(w, h, 'Set up LiveKit for calls and recording', f'{c["title"]}, deploy/livekit') + ''.join(out)
+    H.save('livekit.svg', H.svg(w, h, body, css, '', 'Setting up LiveKit',
+                                'Make a secret, make a recordings folder, start LiveKit and the recorder with docker compose, then check port 7880. The messenger signs the tokens, LiveKit carries the media, and the recorder writes MP4 files to the folder the messenger plays back from.', FONTS))
 
 
 # ------------------------------------------------------------------------------------------ whole stack

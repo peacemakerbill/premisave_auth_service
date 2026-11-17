@@ -179,6 +179,8 @@ Start them in this order, each in its own folder (the folders sit side by side):
 (cd premisave_flutter_frontend && ./run.sh)                                          # 4. the app
 ```
 
+The first time you want calls, make the key, the secret and the recordings folder, and have a Redis on port 6379, before step 3. Each step is in [Set up and run LiveKit](https://github.com/peacemakerbill/premisave-messenger-service#set-up-and-run-livekit) in the messenger README. Starting LiveKit does not change anything else: chat works with or without it.
+
 To stop: `docker compose down` in each backend folder, and the same in `deploy/livekit` if you started it.
 
 ### Staging on a server
