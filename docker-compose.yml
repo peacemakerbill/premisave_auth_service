@@ -8,7 +8,7 @@
 # Values from a ".env" file next to this file are used when present (copy .env.example to .env and fill in
 # the mail and Cloudinary values to try those features). Anything not set falls back to a development default.
 #
-# Staging and production use docker-compose.staging.yml and docker-compose.production.yml.
+# Staging and production use deploy/docker-compose.staging.yml and deploy/docker-compose.production.yml.
 
 name: premisave-auth-dev
 

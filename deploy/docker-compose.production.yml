@@ -1,8 +1,8 @@
 # Premisave auth-service, PRODUCTION, on one server with Docker.
 #
 #   cp deploy/env/production.env.example deploy/env/production.env     (then fill it in)
-#   IMAGE_TAG=v1.0.0 docker compose --env-file deploy/env/production.env -f docker-compose.production.yml pull
-#   IMAGE_TAG=v1.0.0 docker compose --env-file deploy/env/production.env -f docker-compose.production.yml up -d
+#   IMAGE_TAG=v1.0.0 docker compose --env-file deploy/env/production.env -f deploy/docker-compose.production.yml pull
+#   IMAGE_TAG=v1.0.0 docker compose --env-file deploy/env/production.env -f deploy/docker-compose.production.yml up -d
 #
 # Differences from staging:
 #   - MongoDB is NOT started here. Use a managed database (MongoDB Atlas, with backups) and put its
@@ -15,11 +15,13 @@ name: premisave-auth-production
 
 services:
   auth:
-    build: .
+    build:
+      context: ..
+      dockerfile: Dockerfile
     image: ghcr.io/peacemakerbill/premisave_auth_service:${IMAGE_TAG:?Set IMAGE_TAG to the version to run, for example v1.0.0}
     container_name: premisave-auth
     env_file:
-      - deploy/env/production.env
+      - env/production.env
     environment:
       SPRING_PROFILES_ACTIVE: prod
       REDIS_HOST: redis

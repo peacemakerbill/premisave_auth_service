@@ -22,8 +22,5 @@ LICENSE
 deploy
 Dockerfile
 docker-compose*.yml
-render.yaml
 heroku.yml
 app.json
-railway.json
-fly.*.toml

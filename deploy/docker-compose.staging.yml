@@ -1,24 +1,26 @@
 # Premisave auth-service, STAGING, on one server with Docker.
 #
 #   cp deploy/env/staging.env.example deploy/env/staging.env     (then fill it in)
-#   docker compose --env-file deploy/env/staging.env -f docker-compose.staging.yml up -d --build
+#   docker compose --env-file deploy/env/staging.env -f deploy/docker-compose.staging.yml up -d --build
 #
 # Staging is a copy of production for testing a release: same image, same profile settings, its own data.
 # It includes its own MongoDB, so it needs nothing else. Use a separate database from production, always.
 #
 # To use a published image instead of building here, log in once (docker login ghcr.io) and run:
-#   IMAGE_TAG=staging docker compose --env-file deploy/env/staging.env -f docker-compose.staging.yml pull
-#   IMAGE_TAG=staging docker compose --env-file deploy/env/staging.env -f docker-compose.staging.yml up -d
+#   IMAGE_TAG=staging docker compose --env-file deploy/env/staging.env -f deploy/docker-compose.staging.yml pull
+#   IMAGE_TAG=staging docker compose --env-file deploy/env/staging.env -f deploy/docker-compose.staging.yml up -d
 
 name: premisave-auth-staging
 
 services:
   auth:
-    build: .
+    build:
+      context: ..
+      dockerfile: Dockerfile
     image: ghcr.io/peacemakerbill/premisave_auth_service:${IMAGE_TAG:-staging}
     container_name: premisave-auth-staging
     env_file:
-      - deploy/env/staging.env
+      - env/staging.env
     environment:
       SPRING_PROFILES_ACTIVE: staging
       MONGODB_URI: mongodb://mongo:27017/premisave-auth-staging

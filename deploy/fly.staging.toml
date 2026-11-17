@@ -3,7 +3,7 @@
 #   fly apps create premisave-auth-staging
 #   fly volumes create premisave_auth_staging --region jnb --size 5 -a premisave-auth-staging
 #   fly secrets import -a premisave-auth-staging < deploy/env/staging.env
-#   fly deploy -c fly.staging.toml
+#   fly deploy . --config deploy/fly.staging.toml --dockerfile Dockerfile
 #
 # Fly's Redis (Upstash) gives an address with the password in it: use it for SPRING_DATA_REDIS_URL.
 # MongoDB is not offered by Fly: use MongoDB Atlas for MONGODB_URI.
@@ -12,7 +12,6 @@ app = "premisave-auth-staging"
 primary_region = "jnb"
 
 [build]
-  dockerfile = "Dockerfile"
 
 [env]
   SPRING_PROFILES_ACTIVE = "staging"

@@ -1,7 +1,7 @@
 # Premisave auth-service on COOLIFY (and any platform that deploys a Docker Compose file).
 #
 # In Coolify: Project > Environment (staging or production) > New resource > Public/Private Repository,
-# Build Pack "Docker Compose", Base Directory "/", Docker Compose Location "/docker-compose.coolify.yml".
+# Build Pack "Docker Compose", Base Directory "/deploy", Docker Compose Location "/docker-compose.coolify.yml".
 #
 # One file serves every environment. Create one Coolify environment per stage and give each its own
 # variables, branch and domain. Coolify shows every ${...} below under Environment Variables:
@@ -20,7 +20,7 @@
 services:
   auth:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile
     environment:
       - SERVICE_URL_AUTH_8080
