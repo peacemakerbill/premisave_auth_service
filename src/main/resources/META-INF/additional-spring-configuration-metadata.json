@@ -219,6 +219,12 @@
       "defaultValue": 30
     },
     {
+      "name": "app.security.session-touch-minutes",
+      "type": "java.lang.Integer",
+      "description": "Minutes between updates of a session's last-seen time. A larger value means fewer database writes.",
+      "defaultValue": 5
+    },
+    {
       "name": "app.security.reauth-window-minutes",
       "type": "java.lang.Integer",
       "description": "Minutes after a social sign-in during which the session counts as freshly authenticated for sensitive actions. (env SECURITY_REAUTH_WINDOW_MINUTES)",
@@ -598,6 +604,54 @@
       "type": "java.lang.String",
       "description": "Frontend path the emails link to.",
       "defaultValue": "/home-owner/application"
+    },
+    {
+      "name": "places.google-api-key",
+      "type": "java.lang.String",
+      "description": "Google Maps API key for address search and map pin lookups. With a key the apps get Google Places suggestions, which know Nairobi estates, roads and landmarks well; without one they use the free OpenStreetMap search. The key never leaves this service. In Google Cloud enable Places API (New) and Geocoding API, turn on billing, and restrict the key to those two APIs and to this server's IP address. SENSITIVE: supply it only through .env or the environment and never commit it. (env GOOGLE_MAPS_API_KEY)",
+      "defaultValue": ""
+    },
+    {
+      "name": "places.timeout-ms",
+      "type": "java.lang.Integer",
+      "description": "Milliseconds to wait for Google to answer an address search before giving up. Values below 500 are raised to 500. (env PLACES_TIMEOUT_MS)",
+      "defaultValue": 4000
+    },
+    {
+      "name": "places.requests-per-user-per-minute",
+      "type": "java.lang.Integer",
+      "description": "The most Google address calls one account can make in a minute. Beyond it the person gets a 429 answer and must wait a moment. Values below 10 are raised to 10. (env PLACES_REQUESTS_PER_USER_PER_MINUTE)",
+      "defaultValue": 90
+    },
+    {
+      "name": "username-generation.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Run the background job that gives a username to accounts that have none: older accounts, accounts created by an administrator and anyone the sign-up time assignment missed. Set false to turn the job off.",
+      "defaultValue": true
+    },
+    {
+      "name": "username-generation.interval-ms",
+      "type": "java.lang.Long",
+      "description": "Milliseconds the username job pauses between runs (300000 is 5 minutes).",
+      "defaultValue": 300000
+    },
+    {
+      "name": "username-generation.initial-delay-ms",
+      "type": "java.lang.Long",
+      "description": "Milliseconds the username job waits after the service starts before its first run.",
+      "defaultValue": 30000
+    },
+    {
+      "name": "username-generation.batch-size",
+      "type": "java.lang.Integer",
+      "description": "How many accounts the username job handles in one batch. Values below 1 are raised to 1.",
+      "defaultValue": 200
+    },
+    {
+      "name": "username-generation.max-batches",
+      "type": "java.lang.Integer",
+      "description": "Most batches the username job handles in one run, so a single run stays short. Values below 1 are raised to 1.",
+      "defaultValue": 25
     }
   ],
   "hints": [
