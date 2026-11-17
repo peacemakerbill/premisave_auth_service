@@ -272,4 +272,8 @@ These are in `application.yml` itself. Change the file, rebuild, and restart.
 | `profile-views.max-history-size` | `20` | How many entries `GET /profile/views/who-i-viewed` returns. |
 | `logging.level` for `com.premisave.auth` and `org.springframework.data.mongodb` | `DEBUG` | Right for development, too chatty for production. Set it to `INFO` before you deploy. |
 
+### Error details by profile
+
+How much of an error is sent back to the caller is set in the profile files, not in `.env`: `application-dev.yml` sets `spring.web.error.include-message: always`, and `application-staging.yml` and `application-prod.yml` set `include-message` and `include-stacktrace` to `never`. Spring Boot 4 removed the old `server.error.*` keys, so use `spring.web.error.*`. A key under `server.error` is ignored without any warning.
+
 CORS allows every origin. That is convenient while building and is listed in [DEPLOYMENT.md](DEPLOYMENT.md) as something to close before production.

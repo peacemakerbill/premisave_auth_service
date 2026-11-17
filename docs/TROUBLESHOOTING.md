@@ -44,6 +44,7 @@ Find the symptom, read the likely cause, apply the fix. The service logs a plain
 | `WeakKeyException` or `The signing key's size is ... bits` | `JWT_SECRET` is too short. Use `openssl rand -base64 32`. |
 | `Unsupported class file major version` | The JDK is older than 21. `java -version`. |
 | `Storage configuration is invalid` | Only a warning unless `STORAGE_FAIL_ON_UNAVAILABLE=true`. See [STORAGE.md](STORAGE.md#when-storage-is-not-working). |
+| An error answers with a generic message and no detail while you develop | Start with `SPRING_PROFILES_ACTIVE=dev`. Only the dev profile sends the error message back. If you set the key yourself, use `spring.web.error.include-message`. Spring Boot 4 ignores `server.error.include-message`. |
 | `contextLoads` fails in `mvnw test` | The tests do not read `.env`. Export the six required settings in your shell and start MongoDB. See [DEVELOPMENT.md](DEVELOPMENT.md#tests). |
 
 ## Email does not arrive
