@@ -66,13 +66,15 @@ public class AdminSecurityController {
 
     /**
      * The trail, newest first. Every filter is optional: q (free text, see {@link #search}), userId (the account), actor (who
-     * did it), type, severity, outcome, ip, and from / to (an ISO date such as 2026-11-18 or an instant).
+     * did it), type, group (staff: every kind of change an administrator makes, the events the summary counts as staff
+     * changes), severity, outcome, ip, and from / to (an ISO date such as 2026-11-18 or an instant).
      */
     @GetMapping("/events")
     public List<AdminEventView> events(@RequestParam(required = false) String q,
                                        @RequestParam(required = false) String userId,
                                        @RequestParam(required = false) String actor,
                                        @RequestParam(required = false) SecurityEventType type,
+                                       @RequestParam(required = false) String group,
                                        @RequestParam(required = false) SecuritySeverity severity,
                                        @RequestParam(required = false) SecurityOutcome outcome,
                                        @RequestParam(required = false) String ip,
@@ -94,6 +96,8 @@ public class AdminSecurityController {
         }
         if (type != null) {
             query.addCriteria(Criteria.where("type").is(type.name()));
+        } else if ("staff".equalsIgnoreCase(group == null ? "" : group.trim())) {
+            query.addCriteria(Criteria.where("type").in(ADMIN_CHANGES.stream().map(Enum::name).toList()));
         }
         if (severity != null) {
             query.addCriteria(Criteria.where("severity").is(severity.name()));
