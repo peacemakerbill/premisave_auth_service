@@ -88,7 +88,7 @@ public class ProfileViewService {
                     User target = view.getTarget();
                     return new WhoIViewedResponse(
                             target.getId(),
-                            target.getFirstName() + " " + target.getLastName(),
+                            nameOf(target),
                             target.getProfilePictureUrl(),
                             target.getDisplayUsername(),
                             view.getViewedAt(),
@@ -166,11 +166,31 @@ public class ProfileViewService {
         return "DIRECT";
     }
 
+    /**
+     * First and last name for a list row. An account that has no name yet shows its username, so a row is never
+     * "null null".
+     */
+    private String nameOf(User user) {
+        StringBuilder name = new StringBuilder();
+        if (user.getFirstName() != null && !user.getFirstName().isBlank()) {
+            name.append(user.getFirstName().trim());
+        }
+        if (user.getLastName() != null && !user.getLastName().isBlank()) {
+            if (name.length() > 0) name.append(' ');
+            name.append(user.getLastName().trim());
+        }
+        if (name.length() > 0) {
+            return name.toString();
+        }
+        String handle = user.getDisplayUsername();
+        return handle != null && !handle.isBlank() && !handle.contains("@") ? handle : null;
+    }
+
     private ProfileViewResponse convertToResponse(ProfileView view) {
         return new ProfileViewResponse(
                 view.getId(),
                 view.getViewer().getId(),
-                view.getViewer().getFirstName() + " " + view.getViewer().getLastName(),
+                nameOf(view.getViewer()),
                 view.getViewer().getProfilePictureUrl(),
                 view.getTarget().getId(),
                 view.getViewedAt(),

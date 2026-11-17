@@ -6,6 +6,7 @@ import com.premisave.auth.entity.User;
 import com.premisave.auth.enums.Role;
 import com.premisave.auth.enums.SecurityEventType;
 import com.premisave.auth.enums.SecuritySeverity;
+import com.premisave.auth.exception.ApiException;
 import com.premisave.auth.repository.ProfileViewRepository;
 import com.premisave.auth.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -131,45 +132,91 @@ public class UserManagementService {
         return convertToDto(user);
     }
 
+    private static final java.util.regex.Pattern EMAIL_FORMAT = java.util.regex.Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$");
+
     public UserDto updateUser(String id, UserDto userDto) {
         log.info("Updating user with ID: {}", id);
         
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
         Role previousRole = user.getRole();
+        boolean wasActive = user.isActive();
+        boolean wasArchived = user.isArchived();
         boolean passwordChanged = false;
-        
-        if (userDto.getEmail() != null && !user.getEmail().equals(userDto.getEmail())) {
-            if (userRepository.findByEmail(userDto.getEmail()).isPresent()) {
-                throw new RuntimeException("Email already exists");
+        boolean emailChanged = false;
+        boolean editingSelf = id.equals(actorId());
+
+        // An administrator can edit their own name and address, but not what could lock them out.
+        if (editingSelf) {
+            boolean roleDiffers = userDto.getRole() != null && userDto.getRole() != previousRole;
+            boolean activeDiffers = userDto.getActive() != null && userDto.getActive() != wasActive;
+            boolean archivedDiffers = userDto.getArchived() != null && userDto.getArchived() != wasArchived;
+            boolean verifiedDiffers = userDto.getVerified() != null && userDto.getVerified() != user.isVerified();
+            boolean hasPassword = userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty();
+            if (roleDiffers || activeDiffers || archivedDiffers || verifiedDiffers || hasPassword) {
+                throw ApiException.forbidden("You cannot change your own role, status or password here. Use your account page for the password.");
             }
-            user.setEmail(userDto.getEmail());
+        }
+
+        String newEmail = userDto.getEmail() == null ? null : userDto.getEmail().trim().toLowerCase();
+        if (newEmail != null && !newEmail.equalsIgnoreCase(user.getEmail())) {
+            if (editingSelf) {
+                throw ApiException.forbidden("You cannot change your own email here.");
+            }
+            if (!EMAIL_FORMAT.matcher(newEmail).matches()) {
+                throw ApiException.badRequest("Enter a valid email address.");
+            }
+            if (userRepository.findByEmail(newEmail).isPresent()) {
+                throw ApiException.conflict("Email already exists");
+            }
+            user.setEmail(newEmail);
+            emailChanged = true;
         }
         
-        if (userDto.getUsername() != null && !userDto.getUsername().isBlank()
-                && !userDto.getUsername().equals(user.getUsername())) {
-            if (userRepository.findByUsername(userDto.getUsername()).isPresent()) {
-                throw new RuntimeException("Username already exists");
+        // User.getUsername() is the sign in name Spring Security needs, which is the email. The handle people see
+        // is getDisplayUsername().
+        String newUsername = userDto.getUsername() == null ? "" : userDto.getUsername().trim();
+        if (!newUsername.isEmpty() && !newUsername.equalsIgnoreCase(user.getDisplayUsername())) {
+            final String ownId = user.getId();
+            boolean takenByAnother = userRepository.findByUsername(newUsername)
+                    .filter(other -> !other.getId().equals(ownId))
+                    .isPresent();
+            if (takenByAnother) {
+                throw ApiException.conflict("Username already exists");
             }
-            user.setUsername(userDto.getUsername());
+            user.setUsername(newUsername);
             user.setUsernameGenerated(false);
         }
+
+        if (userDto.getFirstName() != null && userDto.getFirstName().isBlank()) {
+            throw ApiException.badRequest("First name cannot be empty.");
+        }
+        if (userDto.getLastName() != null && userDto.getLastName().isBlank()) {
+            throw ApiException.badRequest("Last name cannot be empty.");
+        }
         
-        if (userDto.getFirstName() != null) user.setFirstName(userDto.getFirstName());
-        if (userDto.getMiddleName() != null) user.setMiddleName(userDto.getMiddleName());
-        if (userDto.getLastName() != null) user.setLastName(userDto.getLastName());
-        if (userDto.getPhoneNumber() != null) user.setPhoneNumber(userDto.getPhoneNumber());
-        if (userDto.getAddress1() != null) user.setAddress1(userDto.getAddress1());
-        if (userDto.getAddress2() != null) user.setAddress2(userDto.getAddress2());
-        if (userDto.getCountry() != null) user.setCountry(userDto.getCountry());
+        if (userDto.getFirstName() != null) user.setFirstName(userDto.getFirstName().trim());
+        if (userDto.getMiddleName() != null) user.setMiddleName(userDto.getMiddleName().trim());
+        if (userDto.getLastName() != null) user.setLastName(userDto.getLastName().trim());
+        if (userDto.getPhoneNumber() != null) user.setPhoneNumber(userDto.getPhoneNumber().trim());
+        if (userDto.getAddress1() != null) user.setAddress1(userDto.getAddress1().trim());
+        if (userDto.getAddress2() != null) user.setAddress2(userDto.getAddress2().trim());
+        if (userDto.getCountry() != null) user.setCountry(userDto.getCountry().trim());
         if (userDto.getLanguage() != null) user.setLanguage(userDto.getLanguage());
         if (userDto.getProfilePictureUrl() != null) user.setProfilePictureUrl(userDto.getProfilePictureUrl());
-        if (userDto.getRole() != null) user.setRole(userDto.getRole());
+
+        if (userDto.getRole() != null && userDto.getRole() != previousRole) {
+            if (previousRole == Role.ADMIN && userRepository.countByRole(Role.ADMIN) <= 1) {
+                throw ApiException.conflict("Cannot demote the last ADMIN user for security reasons.");
+            }
+            user.setRole(userDto.getRole());
+        }
         
         if (userDto.getActive() != null) user.setActive(userDto.getActive());
         if (userDto.getVerified() != null) user.setVerified(userDto.getVerified());
         if (userDto.getArchived() != null) user.setArchived(userDto.getArchived());
         
         if (userDto.getPassword() != null && !userDto.getPassword().trim().isEmpty()) {
+            validatePasswordStrength(userDto.getPassword());
             user.setPassword(passwordEncoder.encode(userDto.getPassword()));
             passwordChanged = true;
         }
@@ -183,6 +230,13 @@ public class UserManagementService {
         if (passwordChanged) {
             passwordChanges.afterPasswordChange(user, null, SecurityEventType.PASSWORD_CHANGED, actorId(),
                     "Changed by an administrator", RequestAttributes.currentClient());
+        }
+        // The token names the account by its email, so a new email, and an account that may no longer sign in,
+        // end every session. A password change does it on its own through the handler above.
+        if (emailChanged) {
+            endAllSessions(user, "EMAIL_CHANGED_BY_ADMIN");
+        } else if (!passwordChanged && ((wasActive && !user.isActive()) || (!wasArchived && user.isArchived()))) {
+            endAllSessions(user, user.isActive() ? "ACCOUNT_ARCHIVED" : "ACCOUNT_DEACTIVATED");
         }
         
         return convertToDto(user);
@@ -446,7 +500,7 @@ public class UserManagementService {
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
-        dto.setUsername(user.getUsername());
+        dto.setUsername(user.getDisplayUsername());
         dto.setUsernameGenerated(user.isUsernameGenerated());
         dto.setEmail(user.getEmail());
         dto.setFirstName(user.getFirstName());

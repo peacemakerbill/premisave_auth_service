@@ -154,8 +154,8 @@ These are `POST` on purpose. A `GET` that changes something is triggered by mail
 | Method and path | Access | Does |
 | --- | --- | --- |
 | `POST /profile/views/{targetId}` | Signed in | Records that the caller looked at a profile. |
-| `GET /profile/views/who-viewed-me` | Signed in | Who looked at the caller's profile. |
-| `GET /profile/views/who-i-viewed` | Signed in | Profiles the caller looked at. |
+| `GET /profile/views/who-viewed-me` | Signed in | Who looked at the caller's profile. Each row has `viewerId`, `viewerName` and `viewerProfilePicture`. |
+| `GET /profile/views/who-i-viewed` | Signed in | Profiles the caller looked at. Each row has `targetId`, `targetName`, `targetUsername` and `targetProfilePicture`. |
 | `GET /profile/views/my-stats` | Signed in | The caller's view statistics. |
 | `GET /profile/views/stats` | Signed in | Own statistics, or another person's total with `?userId=`. |
 | `GET /profile/views/stats/{userId}` | Signed in | Another person's public statistics (the total only). |
@@ -265,7 +265,7 @@ All of this is `ADMIN` only.
 | `GET /admin/users/exists/email/{email}`, `/exists/username/{username}` | `true` or `false`. |
 | `POST /admin/users/search` | Body: `query`. |
 | `POST /admin/users/create` | Create an account from a `UserDto`. |
-| `PUT /admin/users/update/{id}` | Update from a `UserDto`. |
+| `PUT /admin/users/update/{id}` | Update every detail from a `UserDto`: names, username, email, phone, address, language, role, status and, when sent, a new password (8 characters with a capital, a small letter and a digit). A new email or password ends the account's sessions. The last admin cannot be demoted, and an administrator cannot change their own email, role, status or password here. |
 | `DELETE /admin/users/delete/{id}` | Delete. |
 | `PUT /admin/users/archive/{id}`, `/unarchive/{id}` | Archive or restore. |
 | `PUT /admin/users/activate/{id}`, `/deactivate/{id}` | Allow or block sign in. |
