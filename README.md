@@ -58,6 +58,8 @@ It is a Spring Boot service with MongoDB for data and Redis for the token blackl
 - [Home Owner applications](#home-owner-applications)
 - [Account security](#account-security)
 - [API at a glance](#api-at-a-glance)
+- [Where it sits](#where-it-sits)
+- [Connected to the Flutter app](#connected-to-the-flutter-app)
 - [Talking to other services](#talking-to-other-services)
 - [Configuration](#configuration)
 - [Project layout](#project-layout)
@@ -402,6 +404,105 @@ All of it, with the settings, is in **[docs/ADMIN_AND_ACCOUNT_SECURITY.md](docs/
 <img src="docs/assets/stats-endpoints.svg" alt="Number of endpoints per area." width="100%"/>
 
 Every error has the same JSON shape with `timestamp`, `status` and `message`, and validation errors add an `errors` map by field. The complete list of endpoints, with the body and the answer for each group, is in **[docs/API.md](docs/API.md)**. A Postman collection is in [`postman/`](postman), and the [browser console](test-client/README.md) exercises most of the API from a single page.
+
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
+
+## Where it sits
+
+<img src="docs/assets/services.svg" alt="The Flutter app on the left and the seven Premisave services on the right with their ports and the setting that holds each address. This service is picked out." width="100%"/>
+
+The auth-service is where everyone signs in. It issues the token that the messenger, listing, wallet and property services check, and the Flutter app talks to it for accounts, sessions, profiles, security, the home owner application, administration and places.
+
+| Caller | What for | Proves who it is with |
+| --- | --- | --- |
+| Flutter app | every sign in, profile, security and admin screen | the person's bearer token |
+| messenger, listing, wallet, property | check the same token, and ask for profiles | `JWT_SECRET`, and `X-API-Key` for `/internal/**` |
+| Browsers | the HTML test consoles under `test-client` | the person's bearer token |
+
+It listens on port **8080**. The Flutter app finds it with the setting `BASE_URL`.
+
+<img src="docs/assets/divider.svg" alt="" width="100%"/>
+
+## Connected to the Flutter app
+
+<img src="docs/assets/connect.svg" alt="A screen asks a provider, which asks the repository, which uses the API client to call this service." width="100%"/>
+
+The Flutter app is this service's main client. Every screen that is not about messages, bookings, money, tenancy, developers or M-Pesa lookups uses it.
+
+The code is in [`premisave_flutter_frontend`](https://github.com/peacemakerbill/premisave_flutter_frontend): the repository class is `lib/src/data/repositories/auth_repository.dart`, the providers are in `lib/src/state`, and every call below goes through one client built for this service.
+
+### What the app does with it
+
+| Screen | What it does | Calls |
+| --- | --- | --- |
+| Sign in and up | Email and password, activation, password reset, admin invitations | `/auth/signup`, `/auth/signin`, `/auth/logout`, `/auth/refresh`, `/auth/resend-activation`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/change-password`, `/auth/admin-invitation/accept` |
+| Social sign in | Google, Facebook and GitHub | `/auth/google`, `/auth/facebook`, `/auth/github` |
+| Profile and location | Details, photo, who viewed me, location with a map picker | `/profile/me`, `/profile/update`, `/profile/upload-profile-picture`, `/profile/change-password`, `/profile/search`, `/profile/all`, `/profile/views/*`, `/location`, `/location/current`, `/location/history` |
+| People | Follow, like and review | `/social/follow`, `/social/like`, `/social/review`, `/social/my-followers`, `/social/my-following`, `/social/my-likes`, `/social/my-reviews` |
+| Security centre | Sessions, devices, sign in history, events, "this was not me" | `/security/sessions`, `/security/sessions/revoke-others`, `/security/devices`, `/security/events`, `/security/sign-ins`, `/auth/security-actions/inspect`, `/auth/security-actions/confirm` |
+| Home owner application | The guided form, status, withdraw and reapply | `/home-owner/applications`, `/home-owner/applications/mine`, `/home-owner/applications/eligibility`, `/home-owner/applications/meta` |
+| Staff review | The queue and the decisions | `/staff/applications`, `/staff/applications/stats`, `/staff/applications/reviewers` |
+| Administration | Users, roles, platform security summary and audit trail | `/admin/users`, `/admin/users/active`, `/admin/users/archived`, `/admin/users/create`, `/admin/users/search`, `/admin/security/events`, `/admin/security/summary` |
+| Places | Address search and "what is here" | `/places/suggest`, `/places/details`, `/places/reverse`, `/places/status` |
+| Contact | The help screen form | `/contact` |
+
+- The app is the only client that sends `X-Client-Platform` and `X-Device-Token`, so the auth-service can tell devices apart. The other services never receive them.
+- Refresh tokens rotate: each works once and the answer carries the next. The app lets only one refresh run at a time so two screens cannot spend the same token.
+- Answers are plain bodies, not an envelope.
+
+### Settings
+
+In the Flutter app, in `config/env/*.json` or passed with `--dart-define`:
+
+| Key | Default | Meaning |
+| --- | --- | --- |
+| `BASE_URL` | `http://localhost:8080`, or `http://10.0.2.2:8080` on the Android emulator | Where this service lives, with no trailing slash |
+
+On a real phone `localhost` is the phone itself, so use the computer's address on the network. Flutter reads these values only at launch: stop the app and run it again after a change.
+
+In this service's `.env`:
+
+| Variable | Why the app cares |
+| --- | --- |
+| `JWT_SECRET` | Signs every access token. The other services must hold the same value |
+| `FRONTEND_URL` | Where the app runs. Every link in an email starts with this |
+| `API_KEY` | The shared key other services send as `X-API-Key` |
+
+### Signing and tokens
+
+This service **issues** the token. The app signs in here, keeps the access token in memory and the refresh token in the platform's secure storage, and sends `Authorization: Bearer <access token>` to every service that trusts it. The messenger, listing, wallet and property services check the signature with the same `JWT_SECRET`. The developer and C2B services keep their own.
+
+### Browser rules (CORS)
+
+A phone or desktop build is not stopped by CORS. A browser is, so for the web build this service must allow the address the app is served from, which is `http://localhost:3000` in development.
+
+| Setting | Default | What to do |
+| --- | --- | --- |
+| none | any origin | The auth-service allows every origin pattern, so nothing needs setting for the web build. Narrow it in `SecurityConfig` before production. |
+
+### Run it together
+
+Each command is run in its own terminal. Start the services this one needs first.
+
+```bash
+# 1. this service
+cd ~/MyProjects/premisave/premisave_auth_service && ./mvnw spring-boot:run
+
+# 2. the app, on the port the backends allow for browsers
+cd ~/MyProjects/premisave/premisave_flutter_frontend
+flutter run -d chrome --web-port=3000 --dart-define-from-file=config/env/dev.local.json
+```
+
+Leave `BASE_URL` empty in the app's file and it finds this service on `localhost:8080`. The same walk through for every service is in [the app's docs](https://github.com/peacemakerbill/premisave_flutter_frontend/blob/main/docs/SERVICES.md).
+
+### If it does not connect
+
+| You see | Likely cause | Do this |
+| --- | --- | --- |
+| Every screen says "Could not reach the server" | The auth-service is not running, or `BASE_URL` points elsewhere | Start it, or set `BASE_URL` and restart the app |
+| On a phone nothing connects | `localhost` means the phone itself | Set `BASE_URL` to the computer's address on the network |
+| Signed out again and again | The refresh token was rejected | Sign in again. Check the device clock and that only one app instance uses the account |
+| Social sign in fails | The provider keys are missing | See [docs/SOCIAL_SIGN_IN.md](docs/SOCIAL_SIGN_IN.md) |
 
 <img src="docs/assets/divider.svg" alt="" width="100%"/>
 
