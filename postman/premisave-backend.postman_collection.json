@@ -13785,6 +13785,341 @@
 								}
 							},
 							"response": []
+						},
+						{
+							"name": "Update Default Currency",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/default-currency",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"default-currency"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"currency\": \"KES\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "The currency shown and pre-filled on payment forms. The balance itself stays in USD. M-Pesa is always KES whatever is chosen here."
+							},
+							"response": []
+						},
+						{
+							"name": "Transfer to Another Wallet",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/transfer",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"transfer"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"amount\": 5.00,\n  \"recipientAccountNumber\": \"{{recipient_email}}\",\n  \"description\": \"Rent split\",\n  \"reference\": \"{{idempotency_key}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"description": "recipientAccountNumber is the recipient email. The app finds people by name and fills the email in for you."
+							},
+							"response": []
+						},
+						{
+							"name": "Transfer History",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/transfer/history?",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"transfer",
+										"history"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "COMPLETED",
+											"disabled": true
+										},
+										{
+											"key": "direction",
+											"value": "SENT",
+											"disabled": true
+										},
+										{
+											"key": "fromDate",
+											"value": "2026-10-01",
+											"disabled": true
+										},
+										{
+											"key": "toDate",
+											"value": "2026-10-31",
+											"disabled": true
+										}
+									]
+								},
+								"description": "Transfers sent and received, newest first. Each record has a direction of SENT or RECEIVED."
+							},
+							"response": []
+						},
+						{
+							"name": "Transaction History (activity)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_wallet}}/transactions/history",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"transactions",
+										"history"
+									]
+								},
+								"description": "Every deposit, withdrawal, transfer and payment, newest first. Each row now also carries direction (IN or OUT), provider, counterpartyId, counterpartyEmail, counterpartyName (who was on the other side of a transfer), account (phone number or PayPal email), reference and failureReason."
+							},
+							"response": []
+						},
+						{
+							"name": "PayPal: Start Link",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/paypal/link",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"paypal",
+										"link"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PayPal: Confirm Link",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/paypal/link/confirm",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"paypal",
+										"link",
+										"confirm"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"setupTokenId\": \"{{paypal_setup_token_id}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PayPal: Linked Account",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/paypal/account",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"paypal",
+										"account"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "PayPal: Disconnect",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/paypal/disconnect",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"paypal",
+										"disconnect"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Stripe: Create Setup Intent",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/stripe/setup-intent",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"stripe",
+										"setup-intent"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Stripe: Confirm Setup Intent (save card)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									}
+								],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/stripe/setup-intent/confirm",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"stripe",
+										"setup-intent",
+										"confirm"
+									]
+								},
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"setupIntentId\": \"{{setupIntentId}}\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Stripe: List Saved Cards",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/stripe/cards",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"stripe",
+										"cards"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Stripe: Make Card Default",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/stripe/cards/{{paymentMethodId}}/default",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"stripe",
+										"cards",
+										"{{paymentMethodId}}",
+										"default"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Stripe: Remove Card",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url_wallet}}/wallet/stripe/cards/{{paymentMethodId}}",
+									"host": [
+										"{{base_url_wallet}}"
+									],
+									"path": [
+										"wallet",
+										"stripe",
+										"cards",
+										"{{paymentMethodId}}"
+									]
+								}
+							},
+							"response": []
 						}
 					],
 					"description": "| Request | Method | Path | Auth |\n|---|---|---|---|\n| Create Wallet | POST | `/wallet/create` | Bearer token |\n| Get Wallet Balance | GET | `/wallet/balance` | Bearer token |\n| Get Wallet Details | GET | `/wallet` | Bearer token |\n| Get Wallet Statement | POST | `/wallet/statement` | Bearer token |\n| Get Accounts (Internal) | GET | `/internal/accounts?page=0&size=20` | Own header |\n| Freeze Wallet | PUT | `/wallet/freeze` | Bearer token |\n| Unfreeze Wallet | PUT | `/wallet/unfreeze` | Bearer token |\n| Update M-Pesa Phone Number | PUT | `/wallet/mpesa-phone` | Bearer token |\n| Update M-Pesa Pochi Phone Number | PUT | `/wallet/pochi-phone` | Bearer token |\n| Update PayPal Email | PUT | `/wallet/paypal-email` | Bearer token |"
@@ -13808,7 +14143,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"amount\": 20.00,\n    \"provider\": \"MPESA\"\n}",
+											"raw": "{\n    \"amount\": 2000.00,\n    \"provider\": \"MPESA\",\n    \"currency\": \"KES\"\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -13824,7 +14159,8 @@
 												"wallet",
 												"deposit"
 											]
-										}
+										},
+										"description": "M-Pesa is always paid in KES. Type the amount in shillings; the wallet is credited the USD value at the current rate, because the wallet balance is always held in USD."
 									},
 									"response": []
 								},
@@ -14219,7 +14555,7 @@
 										],
 										"body": {
 											"mode": "raw",
-											"raw": "{\n    \"amount\": 500.00,\n    \"currency\": \"KES\",\n    \"remarks\": \"Withdrawal to M-Pesa\"\n}\n\n// {\n//     \"amount\": 5.00,\n//     \"currency\": \"USD\",\n//     \"remarks\": \"Withdrawal to M-Pesa\"\n// }",
+											"raw": "{\n    \"amount\": 500.00,\n    \"currency\": \"KES\",\n    \"remarks\": \"Withdrawal to M-Pesa\"\n}",
 											"options": {
 												"raw": {
 													"language": "json"
@@ -14234,7 +14570,8 @@
 											"path": [
 												"disbursements"
 											]
-										}
+										},
+										"description": "M-Pesa pays out in KES. The wallet is debited the USD value of the amount."
 									},
 									"response": []
 								},
@@ -19997,6 +20334,11 @@
 			"key": "retry_same_key",
 			"value": "",
 			"type": "default"
+		},
+		{
+			"key": "paypal_setup_token_id",
+			"value": "",
+			"type": "string"
 		}
 	]
 }
